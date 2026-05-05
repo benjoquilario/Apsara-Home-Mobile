@@ -22,8 +22,8 @@ type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'setti
 
 const TABS: TabKey[] = ['home', 'wishlist', 'shop', 'notification', 'profile'];
 const SLIDE_DISTANCE = 30;
-const OUT_DURATION = 50;
-const IN_DURATION = 50;
+const OUT_DURATION = 0;
+const IN_DURATION = 0;
 
 interface User {
   id: string;
