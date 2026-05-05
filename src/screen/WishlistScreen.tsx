@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -14,7 +15,8 @@ import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import ItemList from '../components/Items/ItemList';
-import SelectedItemsModal from '../components/Items/SelectedItemsModal';
+import AddToCartModal from '../components/Items/AddToCartModal';
+import MultipleItemsCartModal from '../components/Items/MultipleItemsCartModal';
 
 interface WishlistItem {
   wishlist_id: number;
@@ -40,15 +42,20 @@ interface WishlistScreenProps {
   refreshing: boolean;
   onRefresh: () => void;
   onProductPress?: (id: number) => void;
+  onCartUpdate?: () => void;
 }
 
-export default function WishlistScreen({ token, wishlistItems, loading, refreshing, onRefresh, onProductPress }: WishlistScreenProps) {
+export default function WishlistScreen({ token, wishlistItems, loading, refreshing, onRefresh, onProductPress, onCartUpdate }: WishlistScreenProps) {
   const [wishlist, setWishlist] = useState<WishlistItem[]>(wishlistItems);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
   const [discountFilter, setDiscountFilter] = useState<'all' | 'discount'>('all');
   const [showModal, setShowModal] = useState(false);
-  const [addingToCart, setAddingToCart] = useState(false);
+  const [loadingMultiple, setLoadingMultiple] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<WishlistItem | null>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     setWishlist(wishlistItems);
@@ -107,41 +114,72 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
       .filter((item): item is WishlistItem => item !== undefined);
   };
 
-  const handleAddSelectedToCart = async () => {
+
+  const handleAddProductToCart = async (data: { product_id: number; variant_id?: number; quantity: number }) => {
     if (!token) return;
-
     try {
-      setAddingToCart(true);
-      const selectedItemsList = getSelectedItemsForModal();
+      const cartData = {
+        product_id: data.product_id,
+        variant_id: data.variant_id || null,
+        quantity: data.quantity,
+        selected_color: null,
+        selected_size: null,
+        selected_type: null,
+      };
 
-      // Add each selected item to cart via /wishlist endpoint
-      await Promise.all(
-        selectedItemsList.map(item =>
-          axios.post(
-            `${API_CONFIG.BASE_URL}/wishlist`,
-            { product_id: item.product.id },
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
-        )
+      await axios.post(
+        `${API_CONFIG.BASE_URL}/cart/add`,
+        cartData,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       Toast.show({
         type: 'success',
         text1: 'Added to Cart',
-        text2: `${selectedItemsList.length} items added to cart`,
+        text2: `${data.quantity} item(s) added to your cart`,
       });
-
-      setShowModal(false);
-      setSelectedItems(new Set());
+      setShowAddToCartModal(false);
+      setSelectedProduct(null);
+      setQuantity(1);
+      setSelectedVariant(null);
+      onCartUpdate?.();
     } catch (error: any) {
       console.error('Error adding to cart:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to add item to cart';
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Failed to add items to cart',
+        text2: errorMessage,
+      });
+    }
+  };
+
+  const handleAddMultipleToCart = async (items: Array<{ product_id: number; quantity: number; variant_id?: number }>) => {
+    if (!token) return;
+    try {
+      setLoadingMultiple(true);
+      await axios.post(
+        `${API_CONFIG.BASE_URL}/cart/batch`,
+        { items },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      Toast.show({
+        type: 'success',
+        text1: 'Added to Cart',
+        text2: `${items.length} items added to your cart`,
+      });
+      setShowModal(false);
+      setSelectedItems(new Set());
+      onCartUpdate?.();
+    } catch (error: any) {
+      console.error('Error adding to cart:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to add items to cart';
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMessage,
       });
     } finally {
-      setAddingToCart(false);
+      setLoadingMultiple(false);
     }
   };
 
@@ -185,12 +223,12 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
       onProductPress={onProductPress}
       onRemove={removeFromWishlist}
       onSelect={handleSelectItem}
-      onAddToCart={() => {
-        Toast.show({
-          type: 'success',
-          text1: 'Added to Cart',
-          text2: 'Item added to your cart',
-        });
+      onAddToCart={(wishlistId) => {
+        const product = wishlist.find(w => w.wishlist_id === wishlistId);
+        if (product) {
+          setSelectedProduct(product);
+          setShowAddToCartModal(true);
+        }
       }}
     />
   );
@@ -280,24 +318,77 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
             <Text style={styles.totalPrice}>₱{getSelectedTotal().toLocaleString()}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.checkoutBtn, addingToCart && { opacity: 0.6 }]}
+            style={[styles.checkoutBtn, loadingMultiple && { opacity: 0.6 }]}
             onPress={() => setShowModal(true)}
-            disabled={addingToCart}
+            disabled={loadingMultiple}
           >
             <Text style={styles.checkoutBtnText}>Add Selected to Cart</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <SelectedItemsModal
+      <Modal
         visible={showModal}
-        selectedItems={getSelectedItemsForModal()}
-        selectedCount={selectedItems.size}
-        totalPrice={getSelectedTotal()}
-        onClose={() => setShowModal(false)}
-        onAddToCart={handleAddSelectedToCart}
-        loading={addingToCart}
-      />
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <MultipleItemsCartModal
+          visible={showModal}
+          items={getSelectedItemsForModal()}
+          onClose={() => setShowModal(false)}
+          onAddToCart={handleAddMultipleToCart}
+          loading={loadingMultiple}
+        />
+      </Modal>
+
+      <Modal
+        visible={showAddToCartModal}
+        transparent
+        animationType="none"
+        onRequestClose={() => {
+          setShowAddToCartModal(false);
+          setSelectedProduct(null);
+          setQuantity(1);
+          setSelectedVariant(null);
+        }}
+      >
+        {selectedProduct && (
+          <AddToCartModal
+            visible={showAddToCartModal}
+            product={{
+              id: selectedProduct.product.id,
+              name: selectedProduct.product.name,
+              image: selectedProduct.product.image,
+              priceMember: selectedProduct.product.priceMember,
+              priceSrp: selectedProduct.product.priceSrp,
+              prodpv: selectedProduct.product.prodpv,
+              qty: selectedProduct.product.qty,
+              soldCount: 0,
+              variants: (selectedProduct.product as any).variants || [],
+            }}
+            images={[selectedProduct.product.image || '']}
+            selectedVariant={selectedVariant}
+            quantity={quantity}
+            onClose={() => {
+              setShowAddToCartModal(false);
+              setSelectedProduct(null);
+              setQuantity(1);
+              setSelectedVariant(null);
+            }}
+            onSelectVariant={setSelectedVariant}
+            onQuantityChange={setQuantity}
+            onAddToCart={handleAddProductToCart}
+            onProductPress={(productId) => {
+              setShowAddToCartModal(false);
+              setSelectedProduct(null);
+              setQuantity(1);
+              setSelectedVariant(null);
+              onProductPress?.(productId);
+            }}
+          />
+        )}
+      </Modal>
     </View>
   );
 }

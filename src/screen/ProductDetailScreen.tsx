@@ -28,6 +28,7 @@ interface ProductDetailScreenProps {
   onBack: () => void;
   onProductPress?: (id: number) => void;
   onSearch?: () => void;
+  onCartUpdate?: () => void;
   user?: {
     name?: string;
     avatar_url?: string;
@@ -87,6 +88,7 @@ export default function ProductDetailScreen({
   onBack,
   onProductPress,
   onSearch,
+  onCartUpdate,
   user,
   cartCount = 0,
 }: ProductDetailScreenProps) {
@@ -299,9 +301,18 @@ export default function ProductDetailScreen({
 
     setAddingToCart(true);
     try {
+      const requestData = {
+        product_id: cartData.product_id,
+        variant_id: cartData.variant_id || null,
+        quantity: cartData.quantity,
+        selected_color: null,
+        selected_size: null,
+        selected_type: null,
+      };
+
       const response = await axios.post(
         `${API_CONFIG.BASE_URL}/cart/add`,
-        cartData,
+        requestData,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -310,10 +321,12 @@ export default function ProductDetailScreen({
       if (response.data?.success) {
         console.log('Item added to cart successfully');
         setShowAddToCartModal(false);
-        // Optional: Show success toast
+        onCartUpdate?.();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add to cart:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to add item to cart';
+      console.error('Error details:', errorMessage);
     } finally {
       setAddingToCart(false);
     }

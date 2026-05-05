@@ -19,6 +19,7 @@ import SearchResultScreen from '../screen/SearchResultScreen';
 import SettingsScreen from '../screen/SettingsScreen';
 import ProductDetailScreen from '../screen/ProductDetailScreen';
 import WishlistScreen from '../screen/WishlistScreen';
+import CartScreen from '../screen/CartScreen';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
 
@@ -112,6 +113,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [previousTab, setPreviousTab] = useState<TabKey>('home');
@@ -434,6 +436,15 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 setPreviousTab(activeTabRef.current);
                 setSearchVisible(true);
               }}
+              onCartUpdate={async () => {
+                const headers = { Authorization: `Bearer ${token}` };
+                try {
+                  const cartRes = await axios.get(`${API_CONFIG.BASE_URL}/cart`, { headers });
+                  setCartCount(extractCount(cartRes.data));
+                } catch (error) {
+                  console.error('Failed to update cart count:', error);
+                }
+              }}
             />
           ) : searchQuery ? (
             <SearchResultScreen
@@ -456,7 +467,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
-                onCartPress={() => navigateTo('notification')}
+                onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   console.log('Camera pressed');
                 }}
@@ -477,6 +488,15 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   setPreviousTab(activeTabRef.current);
                   setSelectedProductId(id);
                 }}
+                onCartUpdate={async () => {
+                  const headers = { Authorization: `Bearer ${token}` };
+                  try {
+                    const cartRes = await axios.get(`${API_CONFIG.BASE_URL}/cart`, { headers });
+                    setCartCount(extractCount(cartRes.data));
+                  } catch (error) {
+                    console.error('Failed to update cart count:', error);
+                  }
+                }}
               />
             </>
           ) : activeTab === 'profile' ? (
@@ -490,7 +510,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
-                onCartPress={() => navigateTo('notification')}
+                onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   // TODO: Implement camera functionality
                   console.log('Camera pressed');
@@ -530,7 +550,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
-                onCartPress={() => navigateTo('notification')}
+                onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   // TODO: Implement camera functionality
                   console.log('Camera pressed');
@@ -691,6 +711,19 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             setSearchVisible(false);
           }}
         />
+      )}
+
+      {showCart && (
+        <View style={styles.cartScreenOverlay}>
+          <CartScreen
+            token={token}
+            onBack={() => setShowCart(false)}
+            onCheckout={() => {
+              setShowCart(false);
+              // Navigate to checkout
+            }}
+          />
+        </View>
       )}
     </View>
   );
@@ -942,5 +975,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
+  },
+  cartScreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: Colors.white,
   },
 });
