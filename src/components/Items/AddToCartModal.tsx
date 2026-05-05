@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
+import Toast from 'react-native-toast-message';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -47,6 +48,7 @@ interface AddToCartModalProps {
     quantity: number;
   }) => Promise<void>;
   onCheckout?: () => void;
+  onProductPress?: (productId: number) => void;
   loading?: boolean;
 }
 
@@ -61,15 +63,16 @@ export default function AddToCartModal({
   onQuantityChange,
   onAddToCart,
   onCheckout,
+  onProductPress,
   loading = false,
 }: AddToCartModalProps) {
   const insets = useSafeAreaInsets();
-  const scrollStartY = useRef(0);
-  const hasScrolledDown = useRef(false);
   const slideAnim = useRef(new Animated.Value(300)).current;
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setIsClosing(false);
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 300,
@@ -84,6 +87,11 @@ export default function AddToCartModal({
     }
   }, [visible, slideAnim]);
 
+  const handleClose = () => {
+    setIsClosing(true);
+    onClose();
+  };
+
   useEffect(() => {
     if (!visible) return;
 
@@ -95,26 +103,33 @@ export default function AddToCartModal({
     return () => sub.remove();
   }, [visible, onClose]);
 
-  const handleScroll = (event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-
-    if (currentScrollY === 0) {
-      scrollStartY.current = 0;
-      hasScrolledDown.current = false;
-    } else if (currentScrollY > 50 && !hasScrolledDown.current) {
-      hasScrolledDown.current = true;
-      onClose();
-    }
-  };
 
   const handleAddToCart = async () => {
     if (!product) return;
 
-    await onAddToCart({
-      product_id: product.id,
-      variant_id: selectedVariant || undefined,
-      quantity,
-    });
+    if ((product.variants?.length ?? 0) > 0 && !selectedVariant) {
+      Toast.show({
+        type: 'error',
+        text1: 'Variant Required',
+        text2: 'Please select a variant before adding to cart',
+      });
+      return;
+    }
+
+    try {
+      await onAddToCart({
+        product_id: product.id,
+        variant_id: selectedVariant || undefined,
+        quantity,
+      });
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error?.response?.data?.message || 'Failed to add item to cart',
+      });
+    }
   };
 
   if (!visible || !product) return null;
@@ -124,7 +139,7 @@ export default function AddToCartModal({
       <TouchableOpacity
         style={styles.modalBackdrop}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={handleClose}
       />
       <Animated.View
         style={[
@@ -135,7 +150,7 @@ export default function AddToCartModal({
         {/* Header */}
         <View style={styles.shopeeModalHeader}>
           <TouchableOpacity
-            onPress={onClose}
+            onPress={handleClose}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-down" size={28} color={Colors.text} />
@@ -147,11 +162,16 @@ export default function AddToCartModal({
         <ScrollView
           showsVerticalScrollIndicator={false}
           style={styles.shopeeModalContent}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
         >
-          {/* Product Card */}
+          {/* Product Card with Gradient */}
           <View style={styles.shopeeProductCard}>
+            <LinearGradient
+              colors={['transparent', Colors.sky + '15']}
+              style={styles.cardGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+
             {/* Image */}
             <View style={styles.shopeeProductImage}>
               <Image
@@ -163,13 +183,28 @@ export default function AddToCartModal({
                 style={{ width: '100%', height: '100%' }}
                 resizeMode="contain"
               />
+              {product.priceSrp && product.priceMember &&
+                Math.round(((product.priceSrp - product.priceMember) / product.priceSrp) * 100) > 0 && (
+                <View style={styles.discountBadge}>
+                  <Text style={styles.discountText}>
+                    -{Math.round(((product.priceSrp - product.priceMember) / product.priceSrp) * 100)}%
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Product Info */}
             <View style={styles.shopeeProductInfo}>
-              <Text style={styles.shopeeProductName} numberOfLines={2}>
-                {product.name}
-              </Text>
+              <TouchableOpacity
+                onPress={() => product && onProductPress?.(product.id)}
+                activeOpacity={0.7}
+                style={styles.productNameRow}
+              >
+                <Text style={styles.shopeeProductName} numberOfLines={2}>
+                  {product.name}
+                </Text>
+                <Ionicons name="arrow-forward" size={16} color={Colors.sky} style={styles.arrowIcon} />
+              </TouchableOpacity>
 
               {/* Rating and PV */}
               <View style={styles.shopeeRatingRow}>
@@ -431,17 +466,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingVertical: 12,
+    position: 'relative',
+  },
+  cardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 8,
   },
   shopeeProductImage: {
+    position: 'relative',
     width: 90,
     height: 90,
     borderRadius: 12,
     backgroundColor: '#f1f5f9',
     overflow: 'hidden',
   },
+  discountBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  discountText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
   shopeeProductInfo: {
     flex: 1,
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   shopeeProductName: {
     fontSize: 13,
@@ -670,5 +730,13 @@ const styles = StyleSheet.create({
     color: Colors.white,
     textAlign: 'center',
     lineHeight: 13,
+  },
+  productNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  arrowIcon: {
+    marginTop: 2,
   },
 });
