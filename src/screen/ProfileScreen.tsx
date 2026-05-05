@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking,
+  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking, Share, Clipboard,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,6 +58,29 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   const photoUrl = user?.avatar_url ?? null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : '?';
   const firstName = user?.name?.split(' ')[0] ?? 'User';
+  const username = user?.username || 'guest';
+  const signupUrl = `https://afhome.ph/ref/${username}`;
+  const shoppingUrl = `https://afhome.ph/shop?ref=${username}`;
+
+  const handleCopy = (url: string) => {
+    Clipboard.setString(url);
+    Toast.show({
+      type: 'success',
+      text1: 'Link Copied',
+      text2: 'Referral link copied to clipboard',
+    });
+  };
+
+  const handleShare = async (url: string) => {
+    try {
+      await Share.share({
+        message: `Check out AF Home! ${url}`,
+        url: url,
+      });
+    } catch (error) {
+      console.log('Error sharing:', error);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -161,6 +185,118 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
           </View>
         </View>
 
+        {/* Affiliate Referral QR */}
+        <View style={styles.section}>
+          <View style={styles.purchasesHeader}>
+            <View>
+              <Text style={styles.purchasesTitle}>Affiliate Referral QR</Text>
+              <Text style={styles.qrSubtitle}>Ready to Share</Text>
+            </View>
+          </View>
+
+          <View style={styles.qrContainer}>
+            {/* Signup QR Section */}
+            <View style={styles.qrCard}>
+              <View style={styles.qrCardHeader}>
+                <View style={styles.qrIconBox}>
+                  <Ionicons name="person-add" size={16} color={Colors.sky} />
+                </View>
+                <Text style={styles.qrCardTitle}>Invite Members</Text>
+              </View>
+              <Text style={styles.qrCardDescription}>
+                Use this link when someone wants to register as your referral.
+              </Text>
+
+              <View style={styles.qrMain}>
+                <View style={styles.qrImageWrapper}>
+                  <Image
+                    source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent(signupUrl)}&size=200` }}
+                    style={styles.qrImage}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.qrImageTag}>
+                    <Text style={styles.qrImageTagText}>Signup</Text>
+                  </View>
+                </View>
+
+                <View style={styles.qrInfo}>
+                  <Text style={styles.qrLabel}>Signup referral QR code</Text>
+                  <Text style={styles.qrLabel}>Member signup link</Text>
+                  <View style={styles.qrLinkBox}>
+                    <Text style={styles.qrLinkText} numberOfLines={2}>{signupUrl}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.qrActions}>
+                <TouchableOpacity style={styles.qrActionBtn} activeOpacity={0.8} onPress={() => handleShare(signupUrl)}>
+                  <Ionicons name="share-social" size={16} color={Colors.white} />
+                  <Text style={styles.qrActionText}>Share</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.qrActionBtn, styles.qrActionBtnOutline]}
+                  activeOpacity={0.8}
+                  onPress={() => handleCopy(signupUrl)}
+                >
+                  <Ionicons name="copy-outline" size={16} color={Colors.sky} />
+                  <Text style={[styles.qrActionText, { color: Colors.sky }]}>Copy Link</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.qrSeparator} />
+
+            {/* Shopping QR Section */}
+            <View style={styles.qrCard}>
+              <View style={styles.qrCardHeader}>
+                <View style={[styles.qrIconBox, { backgroundColor: '#f0fdf4' }]}>
+                  <Ionicons name="cart" size={16} color="#16a34a" />
+                </View>
+                <Text style={styles.qrCardTitle}>Share Shopping Link</Text>
+              </View>
+              <Text style={styles.qrCardDescription}>
+                Use this link for non-members who only want to shop. Their checkout will carry your referral automatically.
+              </Text>
+
+              <View style={styles.qrMain}>
+                <View style={styles.qrImageWrapper}>
+                  <Image
+                    source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent(shoppingUrl)}&size=200` }}
+                    style={styles.qrImage}
+                    resizeMode="contain"
+                  />
+                  <View style={[styles.qrImageTag, { backgroundColor: '#16a34a' }]}>
+                    <Text style={styles.qrImageTagText}>Shopping</Text>
+                  </View>
+                </View>
+
+                <View style={styles.qrInfo}>
+                  <Text style={styles.qrLabel}>Shopping referral QR code</Text>
+                  <Text style={styles.qrLabel}>Shopping referral link</Text>
+                  <View style={styles.qrLinkBox}>
+                    <Text style={styles.qrLinkText} numberOfLines={2}>{shoppingUrl}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.qrActions}>
+                <TouchableOpacity style={[styles.qrActionBtn, { backgroundColor: '#16a34a' }]} activeOpacity={0.8} onPress={() => handleShare(shoppingUrl)}>
+                  <Ionicons name="share-social" size={16} color={Colors.white} />
+                  <Text style={styles.qrActionText}>Share</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.qrActionBtn, styles.qrActionBtnOutline, { borderColor: '#16a34a' }]}
+                  activeOpacity={0.8}
+                  onPress={() => handleCopy(shoppingUrl)}
+                >
+                  <Ionicons name="copy-outline" size={16} color="#16a34a" />
+                  <Text style={[styles.qrActionText, { color: '#16a34a' }]}>Copy Link</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Menu */}
         <View style={styles.section}>
           {MENU_ITEMS.map((item, index) => (
@@ -200,9 +336,9 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
           </View>
           <View style={styles.purchasesGrid}>
             {SOCIAL_ITEMS.map((item) => (
-              <TouchableOpacity 
-                key={item.label} 
-                style={styles.purchaseItem} 
+              <TouchableOpacity
+                key={item.label}
+                style={styles.purchaseItem}
                 activeOpacity={0.7}
                 onPress={() => item.url && Linking.openURL(item.url)}
               >
@@ -467,6 +603,137 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.text,
     marginTop: -2,
+  },
+
+  // ── QR Section ──
+  qrSubtitle: {
+    fontSize: 12,
+    color: Colors.sky,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  qrContainer: {
+    padding: 16,
+    gap: 20,
+  },
+  qrCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  qrCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  qrIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#e0f2fe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  qrCardDescription: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 16,
+  },
+  qrMain: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  qrImageWrapper: {
+    width: 100,
+    height: 100,
+    backgroundColor: Colors.white,
+    padding: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrImage: {
+    width: 80,
+    height: 80,
+  },
+  qrImageTag: {
+    position: 'absolute',
+    bottom: -8,
+    backgroundColor: Colors.sky,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  qrImageTagText: {
+    color: Colors.white,
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  qrInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  qrLabel: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  qrLinkBox: {
+    backgroundColor: '#f1f5f9',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+  },
+  qrLinkText: {
+    fontSize: 10,
+    color: Colors.sky,
+    fontWeight: '600',
+  },
+  qrActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  qrActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.sky,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  qrActionBtnOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.sky,
+  },
+  qrActionText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  qrSeparator: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 8,
   },
 
   // ── Menu ──

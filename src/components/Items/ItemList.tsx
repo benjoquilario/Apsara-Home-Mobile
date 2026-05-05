@@ -12,9 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 
 const BADGE_CONFIG = [
-  { key: 'musthave',   label: 'Must Have',  bg: ['#f97316', '#ea580c'] as const, icon: 'heart'     as const },
-  { key: 'bestseller', label: 'Bestseller', bg: ['#d4a017', '#b8860b'] as const, icon: 'flame'     as const },
-  { key: 'salespromo', label: 'On Sale',    bg: [Colors.forest, '#1e4236'] as const, icon: 'flash' as const },
+  { key: 'musthave', label: 'Must Have', bg: ['#f97316', '#ea580c'] as const, icon: 'heart' as const },
+  { key: 'bestseller', label: 'Bestseller', bg: ['#d4a017', '#b8860b'] as const, icon: 'flame' as const },
+  { key: 'salespromo', label: 'On Sale', bg: [Colors.forest, '#1e4236'] as const, icon: 'flash' as const },
 ] as const;
 
 export interface ItemListProps {
@@ -200,7 +200,7 @@ export default function ItemList({
 
           <View style={styles.stockRow}>
             <Text style={styles.stockText}>
-              {inStock ? `${product.qty} available` : 'Out of Stock'}
+              {inStock ? `${product.qty} available` : 'Out of Srtock'}
             </Text>
           </View>
 
