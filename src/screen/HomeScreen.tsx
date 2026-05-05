@@ -26,8 +26,8 @@ import {
 
 interface HomeScreenProps {
   token?: string | null;
-  user?: { 
-    name?: string; 
+  user?: {
+    name?: string;
     avatar_url?: string;
     monthly_activation?: {
       remaining_pv: number;
@@ -35,6 +35,17 @@ interface HomeScreenProps {
   } | null;
   isDarkMode?: boolean;
   onProductPress?: (id: number) => void;
+  categories?: CategoryItem[];
+  setCategories?: (categories: CategoryItem[]) => void;
+  brands?: BrandItem[];
+  setBrands?: (brands: BrandItem[]) => void;
+  featuredProducts?: ProductCard[];
+  setFeaturedProducts?: (products: ProductCard[]) => void;
+  roomTypes?: RoomType[];
+  setRoomTypes?: (rooms: RoomType[]) => void;
+  loadingFeatured?: boolean;
+  setLoadingFeatured?: (loading: boolean) => void;
+  dataFetchedRef?: React.MutableRefObject<boolean>;
 }
 
 interface RoomType {
@@ -228,7 +239,23 @@ function RoomItemComponent({ item }: { item: RoomType }) {
   );
 }
 
-export default function HomeScreen({ token, user, isDarkMode = false, onProductPress }: HomeScreenProps) {
+export default function HomeScreen({
+  token,
+  user,
+  isDarkMode = false,
+  onProductPress,
+  categories = [],
+  setCategories = () => {},
+  brands = [],
+  setBrands = () => {},
+  featuredProducts = [],
+  setFeaturedProducts = () => {},
+  roomTypes = [],
+  setRoomTypes = () => {},
+  loadingFeatured = false,
+  setLoadingFeatured = () => {},
+  dataFetchedRef,
+}: HomeScreenProps) {
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f8fbff',
     card: isDarkMode ? '#1e293b' : Colors.white,
@@ -239,23 +266,18 @@ export default function HomeScreen({ token, user, isDarkMode = false, onProductP
     statsBg: isDarkMode ? '#1e293b' : '#f0f9ff',
   };
 
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [brands, setBrands] = useState<BrandItem[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<ProductCard[]>([]);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
   const bannerRef = useRef<ScrollView>(null);
-  const dataFetchedRef = useRef(false);
+
 
   const fetchHomeData = async (isRefreshing = false) => {
     if (!token) return;
-    
+
     if (isRefreshing) {
       setRefreshing(true);
-    } else {
-      setLoading(true);
+    } else if (!dataFetchedRef.current) {
+      setLoadingFeatured(true);
     }
 
     try {
@@ -272,7 +294,6 @@ export default function HomeScreen({ token, user, isDarkMode = false, onProductP
       setBrands(brandData);
       setFeaturedProducts(Array.isArray(productData) ? productData.slice(0, 4) : []);
       setRoomTypes(roomData);
-      dataFetchedRef.current = true;
     } catch (error: any) {
       console.error('Home data fetch error:', error);
       Toast.show({
@@ -281,7 +302,7 @@ export default function HomeScreen({ token, user, isDarkMode = false, onProductP
         text2: error.message || 'Unable to update home data.',
       });
     } finally {
-      setLoading(false);
+      setLoadingFeatured(false);
       setRefreshing(false);
     }
   };
@@ -290,20 +311,8 @@ export default function HomeScreen({ token, user, isDarkMode = false, onProductP
     fetchHomeData(true);
   };
 
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    // If data is already loaded, don't fetch again automatically
-    if (dataFetchedRef.current) {
-      setLoading(false);
-      return;
-    }
-
-    fetchHomeData();
-  }, [token]);
+  // Data fetching is handled by parent (AppNavigator)
+  // HomeScreen only handles pull-to-refresh
 
   const greeting = useMemo(() => {
     const firstName = user?.name?.split(' ')[0] ?? 'there';
@@ -394,219 +403,221 @@ export default function HomeScreen({ token, user, isDarkMode = false, onProductP
         />
       }
     >
-      {loading ? (
-        <HomeScreenSkeleton />
-      ) : (
-        <>
-          <View style={[styles.statsBar, { backgroundColor: colors.statsBg, borderBottomColor: colors.border }]}>
-            <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
-              <View style={styles.statsMain}>
-                <Ionicons name="receipt-outline" size={18} color="#f97316" />
-                <Text style={[styles.statsValue, { color: colors.text }]}>14</Text>
-              </View>
-              <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Orders</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
-              <View style={styles.statsMain}>
-                <Ionicons name="cart-outline" size={18} color="#0ea5e9" />
-                <Text style={[styles.statsValue, { color: colors.text }]}>3</Text>
-              </View>
-              <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Cart</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
-              <View style={styles.statsMain}>
-                <Ionicons name="people-outline" size={18} color="#22c55e" />
-                <Text style={[styles.statsValue, { color: colors.text }]}>5</Text>
-              </View>
-              <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Referrals</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
-              <View style={styles.statsMain}>
-                <Ionicons name="trending-up-outline" size={18} color="#ef4444" />
-                <Text style={[styles.statsValue, { color: colors.text }]}>{user?.monthly_activation?.remaining_pv ?? 0}</Text>
-              </View>
-              <Text style={[styles.statsLabel, { color: colors.textSec }]}>Perf. Value</Text>
-            </TouchableOpacity>
+      <View style={[styles.statsBar, { backgroundColor: colors.statsBg, borderBottomColor: colors.border }]}>
+        <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
+          <View style={styles.statsMain}>
+            <Ionicons name="receipt-outline" size={18} color="#f97316" />
+            <Text style={[styles.statsValue, { color: colors.text }]}>14</Text>
           </View>
-
-          <View style={styles.bannerShell}>
-            <ScrollView
-              ref={bannerRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={handleBannerScroll}
-              decelerationRate="fast"
-              snapToInterval={SCREEN_WIDTH - 16}
-              snapToAlignment="start"
-              bounces={true}
-            >
-              {banners.map((banner, index) => (
-                <View key={`banner-${index}`} style={[styles.banner, { width: SCREEN_WIDTH - 16 }]}>
-                  {banner.type === 'video' ? (
-                    <>
-                      <VideoBanner banner={banner} />
-                      <View style={styles.videoOverlay} />
-                      <View style={[styles.bannerGlow, { backgroundColor: banner.accent }]} />
-                      <View style={styles.bannerTextWrap}>
-                        <Text style={styles.bannerEyebrow}>{banner.eyebrow}</Text>
-                        <Text style={styles.bannerTitle}>{banner.title}</Text>
-                        <Text style={styles.bannerSubtitle}>{banner.subtitle}</Text>
-                      </View>
-                      <View style={styles.bannerIcon}>
-                        <Ionicons name={banner.icon} size={30} color={banner.accent} />
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View style={[styles.bannerGlow, { backgroundColor: banner.accent }]} />
-                      <View style={styles.bannerTextWrap}>
-                        <Text style={styles.bannerEyebrow}>{banner.eyebrow}</Text>
-                        <Text style={styles.bannerTitle}>{banner.title}</Text>
-                        <Text style={styles.bannerSubtitle}>{banner.subtitle}</Text>
-                      </View>
-                      <View style={styles.bannerIcon}>
-                        <Ionicons name={banner.icon} size={30} color={banner.accent} />
-                      </View>
-                    </>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-            <View style={styles.pagination}>
-              {banners.map((_, index) => (
-                <View
-                  key={`dot-${index}`}
-                  style={[styles.dot, activeBanner === index && styles.dotActive]}
-                />
-              ))}
-            </View>
+          <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Orders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
+          <View style={styles.statsMain}>
+            <Ionicons name="cart-outline" size={18} color="#0ea5e9" />
+            <Text style={[styles.statsValue, { color: colors.text }]}>3</Text>
           </View>
-
-          <View style={[styles.section, { backgroundColor: colors.bg }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by Rooms</Text>
-              <View style={styles.sectionAction}>
-                <Text style={[styles.sectionMeta, { color: colors.textSec }]}>{(roomTypes.length || FALLBACK_ROOMS.length)} total</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
-              </View>
-            </View>
-            <FlatList
-              data={roomTypes.length > 0 ? roomTypes : FALLBACK_ROOMS}
-              renderItem={({ item }) => <RoomItemComponent item={item} />}
-              keyExtractor={item => `room-${item.room_id}`}
-              numColumns={4}
-              contentContainerStyle={styles.roomGrid}
-              scrollEnabled={false}
-            />
+          <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Cart</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
+          <View style={styles.statsMain}>
+            <Ionicons name="people-outline" size={18} color="#22c55e" />
+            <Text style={[styles.statsValue, { color: colors.text }]}>5</Text>
           </View>
-
-          <View style={[styles.sectionEven, { backgroundColor: colors.sectionEven }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by Categories</Text>
-              <View style={styles.sectionAction}>
-                <Text style={[styles.sectionMeta, { color: colors.textSec }]}>{categories.length} total</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circleRow}>
-              {categories.map((category, index) => (
-                <CategoryCircle key={`category-${category.id}`} category={category} index={index} />
-              ))}
-            </ScrollView>
+          <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Referrals</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
+          <View style={styles.statsMain}>
+            <Ionicons name="trending-up-outline" size={18} color="#ef4444" />
+            <Text style={[styles.statsValue, { color: colors.text }]}>{user?.monthly_activation?.remaining_pv ?? 0}</Text>
           </View>
+          <Text style={[styles.statsLabel, { color: colors.textSec }]}>Perf. Value</Text>
+        </TouchableOpacity>
+      </View>
 
-          <View style={[styles.sectionOdd, { backgroundColor: colors.bg }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by Brand</Text>
-              <View style={styles.sectionAction}>
-                <Text style={[styles.sectionMeta, { color: colors.textSec }]}>{brands.length} total</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandRowHorizontal}>
-              {brands.map(item => {
-                const logo = getBrandLogo(item);
-                
-                return (
-                  <View key={`brand-${item.id}`} style={[styles.brandCard, { backgroundColor: colors.card }]}>
-                    <View style={styles.brandLogoContainer}>
-                      {logo ? (
-                        <Image source={{ uri: logo }} style={styles.brandLogoImage} />
-                      ) : (
-                        <View style={[styles.brandLogoFallback, { backgroundColor: Colors.sky }]}>
-                          <Text style={styles.brandFallbackInitialLarge}>{getBrandInitial(item)}</Text>
-                        </View>
-                      )}
-                      <View style={[styles.brandLogoOverlay, { backgroundColor: 'rgba(14, 165, 233, 0.85)' }]}>
-                        <Text style={[styles.brandCardNameOverlay, { color: Colors.white }]} numberOfLines={2}>
-                          {item.name}
-                        </Text>
-                        {item.total_products !== undefined && (
-                          <Text style={[styles.brandProductCountOverlay, { color: 'rgba(255,255,255,0.95)' }]}>
-                            {item.total_products} products
-                          </Text>
-                        )}
-                      </View>
-                    </View>
+      <View style={styles.bannerShell}>
+        <ScrollView
+          ref={bannerRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleBannerScroll}
+          decelerationRate="fast"
+          snapToInterval={SCREEN_WIDTH - 16}
+          snapToAlignment="start"
+          bounces={true}
+        >
+          {banners.map((banner, index) => (
+            <View key={`banner-${index}`} style={[styles.banner, { width: SCREEN_WIDTH - 16 }]}>
+              {banner.type === 'video' ? (
+                <>
+                  <VideoBanner banner={banner} />
+                  <View style={styles.videoOverlay} />
+                  <View style={[styles.bannerGlow, { backgroundColor: banner.accent }]} />
+                  <View style={styles.bannerTextWrap}>
+                    <Text style={styles.bannerEyebrow}>{banner.eyebrow}</Text>
+                    <Text style={styles.bannerTitle}>{banner.title}</Text>
+                    <Text style={styles.bannerSubtitle}>{banner.subtitle}</Text>
                   </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          <View style={[styles.sectionFeatured, { backgroundColor: colors.sectionEven }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Products</Text>
-              <View style={styles.sectionAction}>
-                <Text style={[styles.sectionMeta, { color: colors.textSec }]}>New arrivals</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
-              </View>
-            </View>
-            <View style={styles.featuredProductsContainer}>
-              {loading ? (
-                <View style={styles.masonryGrid}>
-                  <View style={styles.masonryColumn}>
-                    <View style={styles.featuredProductItem}>
-                      <View style={styles.featuredProductSkeleton} />
-                    </View>
-                    <View style={styles.featuredProductItem}>
-                      <View style={styles.featuredProductSkeleton} />
-                    </View>
+                  <View style={styles.bannerIcon}>
+                    <Ionicons name={banner.icon} size={30} color={banner.accent} />
                   </View>
-                  <View style={styles.masonryColumn}>
-                    <View style={styles.featuredProductItem}>
-                      <View style={styles.featuredProductSkeleton} />
-                    </View>
-                    <View style={styles.featuredProductItem}>
-                      <View style={styles.featuredProductSkeleton} />
-                    </View>
-                  </View>
-                </View>
-              ) : featuredProducts.length > 0 ? (
-                <View style={styles.masonryGrid}>
-                  <View style={styles.masonryColumn}>
-                    {masonryColumns.leftColumn.map((item) => (
-                      <View key={item.id} style={styles.featuredProductItem}>
-                        {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} />}
-                      </View>
-                    ))}
-                  </View>
-                  <View style={styles.masonryColumn}>
-                    {masonryColumns.rightColumn.map((item) => (
-                      <View key={item.id} style={styles.featuredProductItem}>
-                        {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} />}
-                      </View>
-                    ))}
-                  </View>
-                </View>
+                </>
               ) : (
-                <Text style={styles.noProductsText}>No featured products available</Text>
+                <>
+                  <View style={[styles.bannerGlow, { backgroundColor: banner.accent }]} />
+                  <View style={styles.bannerTextWrap}>
+                    <Text style={styles.bannerEyebrow}>{banner.eyebrow}</Text>
+                    <Text style={styles.bannerTitle}>{banner.title}</Text>
+                    <Text style={styles.bannerSubtitle}>{banner.subtitle}</Text>
+                  </View>
+                  <View style={styles.bannerIcon}>
+                    <Ionicons name={banner.icon} size={30} color={banner.accent} />
+                  </View>
+                </>
               )}
             </View>
+          ))}
+        </ScrollView>
+        <View style={styles.pagination}>
+          {banners.map((_, index) => (
+            <View
+              key={`dot-${index}`}
+              style={[styles.dot, activeBanner === index && styles.dotActive]}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.bg }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by Rooms</Text>
+          <View style={styles.sectionAction}>
+            <Text style={[styles.sectionMeta, { color: colors.textSec }]}>{(roomTypes.length || FALLBACK_ROOMS.length)} total</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
           </View>
-        </>
-      )}
+        </View>
+        <FlatList
+          data={roomTypes.length > 0 ? roomTypes : FALLBACK_ROOMS}
+          renderItem={({ item }) => <RoomItemComponent item={item} />}
+          keyExtractor={item => `room-${item.room_id}`}
+          numColumns={4}
+          contentContainerStyle={styles.roomGrid}
+          scrollEnabled={false}
+        />
+      </View>
+
+      <View style={[styles.sectionEven, { backgroundColor: colors.sectionEven }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by Categories</Text>
+          <View style={styles.sectionAction}>
+            <Text style={[styles.sectionMeta, { color: colors.textSec }]}>{categories.length} total</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
+          </View>
+        </View>
+        {loadingFeatured && categories.length === 0 ? (
+          <CategoryRowSkeleton />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circleRow}>
+            {categories.map((category, index) => (
+              <CategoryCircle key={`category-${category.id}`} category={category} index={index} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
+      <View style={[styles.sectionOdd, { backgroundColor: colors.bg }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by Brand</Text>
+          <View style={styles.sectionAction}>
+            <Text style={[styles.sectionMeta, { color: colors.textSec }]}>{brands.length} total</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
+          </View>
+        </View>
+        {loadingFeatured && brands.length === 0 ? (
+          <BrandCardSkeleton />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandRowHorizontal}>
+            {brands.map(item => {
+              const logo = getBrandLogo(item);
+
+              return (
+                <View key={`brand-${item.id}`} style={[styles.brandCard, { backgroundColor: colors.card }]}>
+                  <View style={styles.brandLogoContainer}>
+                    {logo ? (
+                      <Image source={{ uri: logo }} style={styles.brandLogoImage} />
+                    ) : (
+                      <View style={[styles.brandLogoFallback, { backgroundColor: Colors.sky }]}>
+                        <Text style={styles.brandFallbackInitialLarge}>{getBrandInitial(item)}</Text>
+                      </View>
+                    )}
+                    <View style={[styles.brandLogoOverlay, { backgroundColor: 'rgba(14, 165, 233, 0.85)' }]}>
+                      <Text style={[styles.brandCardNameOverlay, { color: Colors.white }]} numberOfLines={2}>
+                        {item.name}
+                      </Text>
+                      {item.total_products !== undefined && (
+                        <Text style={[styles.brandProductCountOverlay, { color: 'rgba(255,255,255,0.95)' }]}>
+                          {item.total_products} products
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        )}
+      </View>
+
+      <View style={[styles.sectionFeatured, { backgroundColor: colors.sectionEven }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Products</Text>
+          <View style={styles.sectionAction}>
+            <Text style={[styles.sectionMeta, { color: colors.textSec }]}>New arrivals</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
+          </View>
+        </View>
+        <View style={styles.featuredProductsContainer}>
+          {loadingFeatured ? (
+            <View style={styles.masonryGrid}>
+              <View style={styles.masonryColumn}>
+                <View style={styles.featuredProductItem}>
+                  <View style={styles.featuredProductSkeleton} />
+                </View>
+                <View style={styles.featuredProductItem}>
+                  <View style={styles.featuredProductSkeleton} />
+                </View>
+              </View>
+              <View style={styles.masonryColumn}>
+                <View style={styles.featuredProductItem}>
+                  <View style={styles.featuredProductSkeleton} />
+                </View>
+                <View style={styles.featuredProductItem}>
+                  <View style={styles.featuredProductSkeleton} />
+                </View>
+              </View>
+            </View>
+          ) : featuredProducts.length > 0 ? (
+            <View style={styles.masonryGrid}>
+              <View style={styles.masonryColumn}>
+                {masonryColumns.leftColumn.map((item) => (
+                  <View key={item.id} style={styles.featuredProductItem}>
+                    {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} />}
+                  </View>
+                ))}
+              </View>
+              <View style={styles.masonryColumn}>
+                {masonryColumns.rightColumn.map((item) => (
+                  <View key={item.id} style={styles.featuredProductItem}>
+                    {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} />}
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.noProductsText}>No featured products available</Text>
+          )}
+        </View>
+      </View>
     </ScrollView>
 
   );
