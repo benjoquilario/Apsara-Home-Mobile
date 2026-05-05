@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, Image, TextInput, StyleSheet, Dimensions,
+  View, Text, TouchableOpacity, ScrollView, Image, TextInput, StyleSheet, Dimensions, BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,6 +66,17 @@ export default function BuyNowModal({
   const scrollStartY = React.useRef(0);
   const hasScrolledDown = React.useRef(false);
   const [addingToCart, setAddingToCart] = React.useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+
+    return () => sub.remove();
+  }, [visible, onClose]);
 
   const handleScroll = (event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
