@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
+
+const BADGE_CONFIG = [
+  { key: 'musthave',   label: 'Must Have',  bg: ['#f97316', '#ea580c'] as const, icon: 'heart'     as const },
+  { key: 'bestseller', label: 'Bestseller', bg: ['#d4a017', '#b8860b'] as const, icon: 'flame'     as const },
+  { key: 'salespromo', label: 'On Sale',    bg: [Colors.forest, '#1e4236'] as const, icon: 'flash' as const },
+] as const;
 
 export interface ItemListProps {
   wishlist_id: number;
@@ -23,6 +30,9 @@ export interface ItemListProps {
     avgRating: number;
     qty: number;
     prodpv: number;
+    musthave?: boolean;
+    bestseller?: boolean;
+    salespromo?: boolean;
     variants?: Array<{
       id: number;
       name: string;
@@ -48,11 +58,31 @@ export default function ItemList({
   onSelect,
 }: ItemListProps) {
   const [isWishlisted, setIsWishlisted] = useState(true);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const discount = Math.round(
     ((product.priceSrp - product.priceMember) / product.priceSrp) * 100
   );
   const inStock = product.qty > 0;
+  const activeBadges = BADGE_CONFIG.filter(b => product[b.key as keyof typeof product]);
+
+  const handleSelectWithAnimation = () => {
+    // Animate checkbox
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    onSelect?.(wishlist_id);
+  };
 
   const handleRemoveFromWishlist = () => {
     setIsWishlisted(false);
@@ -61,14 +91,23 @@ export default function ItemList({
 
   return (
     <View style={[styles.container, isSelected && styles.containerSelected]}>
+      {(discount > 0 || !inStock) && (
+        <LinearGradient
+          colors={['transparent', Colors.sky + '15']}
+          style={styles.containerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+      )}
+
       <TouchableOpacity
         style={styles.checkbox}
-        onPress={() => onSelect?.(wishlist_id)}
+        onPress={handleSelectWithAnimation}
         activeOpacity={0.7}
       >
-        <View style={[styles.checkboxBox, isSelected && styles.checkboxBoxChecked]}>
+        <Animated.View style={[styles.checkboxBox, isSelected && styles.checkboxBoxChecked, { transform: [{ scale: scaleAnim }] }]}>
           {isSelected && <Ionicons name="checkmark" size={14} color={Colors.white} />}
-        </View>
+        </Animated.View>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -125,6 +164,20 @@ export default function ItemList({
               <Ionicons name="trending-up" size={10} color={Colors.white} />
               <Text style={styles.pvText}>{product.prodpv} PV</Text>
             </LinearGradient>
+
+            {activeBadges.map(b => (
+              <LinearGradient
+                key={b.key}
+                colors={b.bg}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.productBadge}
+              >
+                <Ionicons name={b.icon} size={10} color={Colors.white} />
+                <Text style={styles.productBadgeText}>{b.label}</Text>
+              </LinearGradient>
+            ))}
+
             {product.variants && product.variants.length > 0 && (
               <LinearGradient
                 colors={['#8b5cf6', '#7c3aed']}
@@ -155,7 +208,7 @@ export default function ItemList({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.wishlistButton]}
+              style={[styles.button, styles.heartButton]}
               onPress={handleRemoveFromWishlist}
               activeOpacity={0.7}
             >
@@ -183,6 +236,14 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'flex-start',
     marginBottom: 1,
+    position: 'relative',
+  },
+  containerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   containerSelected: {
     backgroundColor: '#f0f7ff',
@@ -317,6 +378,20 @@ const styles = StyleSheet.create({
     color: Colors.white,
     letterSpacing: 0.2,
   },
+  productBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  productBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.white,
+    letterSpacing: 0.2,
+  },
   variantBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -361,7 +436,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  wishlistButton: {
+  heartButton: {
     backgroundColor: '#f3f4f6',
     paddingHorizontal: 10,
   },
