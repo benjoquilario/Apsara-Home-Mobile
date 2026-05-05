@@ -136,9 +136,26 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const { authService } = require('../services/authService');
   const { productService } = require('../services/productService');
 
-  // Initialize cache on mount
+  // Initialize cache and preload data on mount
   useEffect(() => {
-    cacheUtils.init();
+    const init = async () => {
+      await cacheUtils.init();
+      // Preload cached home data immediately
+      try {
+        const [cachedCats, cachedBrands, cachedRooms] = await Promise.all([
+          cacheUtils.get('home_categories'),
+          cacheUtils.get('home_brands'),
+          cacheUtils.get('home_rooms'),
+        ]);
+        if (cachedCats?.length) setHomeCategories(cachedCats);
+        if (cachedBrands?.length) setHomeBrands(cachedBrands);
+        if (cachedRooms?.length) setHomeRoomTypes(cachedRooms);
+        console.log('✅ PRELOADED CACHE ON APP START');
+      } catch (error) {
+        console.log('Preload error:', error);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
@@ -166,25 +183,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const fetchHomeData = async () => {
     if (!token) return;
 
-    // Phase 1: Load from cache immediately
-    try {
-      const [cachedCategories, cachedBrands, cachedRooms] = await Promise.all([
-        cacheUtils.get('home_categories'),
-        cacheUtils.get('home_brands'),
-        cacheUtils.get('home_rooms'),
-      ]);
-
-      if (cachedCategories || cachedBrands || cachedRooms) {
-        console.log('💾 LOADED CACHED DATA');
-        setHomeCategories(cachedCategories || []);
-        setHomeBrands(cachedBrands || []);
-        setHomeRoomTypes(cachedRooms || []);
-      }
-    } catch (error) {
-      console.log('Cache load error:', error);
-    }
-
-    // Phase 2: Fetch fresh data in background
+    // Fetch fresh data in background (cache already preloaded on app start)
     try {
       setHomeLoadingFeatured(true);
       const totalStart = performance.now();
@@ -209,7 +208,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
       setHomeBrands(brandData);
       setHomeRoomTypes(roomData);
 
-      // Cache the fresh data
+      // Update cache with fresh data
       await Promise.all([
         cacheUtils.set('home_categories', sortedCategories),
         cacheUtils.set('home_brands', brandData),
