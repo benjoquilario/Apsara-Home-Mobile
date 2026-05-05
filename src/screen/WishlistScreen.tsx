@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import Toast from 'react-native-toast-message';
+import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 import ItemList from '../components/Items/ItemList';
 
 interface WishlistItem {
@@ -96,13 +98,32 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
     }, 0);
   };
 
-  const removeFromWishlist = (wishlistId: number) => {
-    setWishlist(wishlist.filter((item) => item.wishlist_id !== wishlistId));
-    Toast.show({
-      type: 'success',
-      text1: 'Removed',
-      text2: 'Item removed from wishlist',
-    });
+  const removeFromWishlist = async (wishlistId: number) => {
+    try {
+      // Call DELETE API to remove from wishlist
+      if (token) {
+        await axios.delete(`${API_CONFIG.BASE_URL}/cart/${wishlistId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
+      // Update local state
+      setWishlist(wishlist.filter((item) => item.wishlist_id !== wishlistId));
+      setWishlistCount(prev => Math.max(0, prev - 1));
+
+      Toast.show({
+        type: 'success',
+        text1: 'Removed',
+        text2: 'Item removed from wishlist',
+      });
+    } catch (error: any) {
+      console.error('Error removing from wishlist:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to remove item',
+      });
+    }
   };
 
   const renderWishlistItem = ({ item }: { item: WishlistItem }) => (
@@ -285,20 +306,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderWidth: 0,
   },
   filterBtnActive: {
-    backgroundColor: '#eff6ff',
-    borderColor: Colors.sky,
+    backgroundColor: Colors.sky,
   },
   filterText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.text,
   },
   filterTextActive: {
-    color: Colors.sky,
+    color: Colors.white,
     fontWeight: '700',
   },
   listContent: {

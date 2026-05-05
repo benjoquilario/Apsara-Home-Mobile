@@ -348,6 +348,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 onRefresh={() => fetchWishlistData(true)}
                 onProductPress={(id: number) => {
                   setPreviousSearchQuery(null);
+                  setPreviousTab(activeTabRef.current);
                   setSelectedProductId(id);
                 }}
               />
@@ -380,6 +381,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 isDarkMode={isDarkMode}
                 onProductPress={(id: number) => {
                   setPreviousSearchQuery(null);
+                  setPreviousTab(activeTabRef.current);
                   setSelectedProductId(id);
                 }}
                 categories={homeCategories}
