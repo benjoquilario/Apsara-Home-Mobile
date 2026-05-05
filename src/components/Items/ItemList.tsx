@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 
@@ -46,10 +47,17 @@ export default function ItemList({
   onAddToCart,
   onSelect,
 }: ItemListProps) {
+  const [isWishlisted, setIsWishlisted] = useState(true);
+
   const discount = Math.round(
     ((product.priceSrp - product.priceMember) / product.priceSrp) * 100
   );
   const inStock = product.qty > 0;
+
+  const handleRemoveFromWishlist = () => {
+    setIsWishlisted(false);
+    onRemove?.(wishlist_id);
+  };
 
   return (
     <View style={[styles.container, isSelected && styles.containerSelected]}>
@@ -108,14 +116,24 @@ export default function ItemList({
           </View>
 
           <View style={styles.badgeRow}>
-            <View style={styles.pvBadge}>
+            <LinearGradient
+              colors={[Colors.sky, Colors.skyDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.pvBadge}
+            >
               <Ionicons name="trending-up" size={10} color={Colors.white} />
               <Text style={styles.pvText}>{product.prodpv} PV</Text>
-            </View>
+            </LinearGradient>
             {product.variants && product.variants.length > 0 && (
-              <View style={styles.variantBadge}>
+              <LinearGradient
+                colors={['#ef4444', '#dc2626']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.variantBadge}
+              >
                 <Text style={styles.variantText}>{product.variants.length} variants</Text>
-              </View>
+              </LinearGradient>
             )}
           </View>
 
@@ -136,11 +154,15 @@ export default function ItemList({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.removeButton]}
-              onPress={() => onRemove?.(wishlist_id)}
+              style={[styles.button, styles.wishlistButton]}
+              onPress={handleRemoveFromWishlist}
               activeOpacity={0.7}
             >
-              <Ionicons name="trash-outline" size={14} color={Colors.error} />
+              <Ionicons
+                name={isWishlisted ? "heart" : "heart-outline"}
+                size={16}
+                color={isWishlisted ? Colors.error : Colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -278,31 +300,32 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: 'center',
     marginTop: 4,
+    flexWrap: 'wrap',
   },
   pvBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: Colors.sky,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   pvText: {
     fontSize: 10,
     fontWeight: '700',
     color: Colors.white,
+    letterSpacing: 0.2,
   },
   variantBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#ef4444',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   variantText: {
     fontSize: 10,
     fontWeight: '700',
     color: Colors.white,
+    letterSpacing: 0.2,
   },
   stockRow: {
     marginTop: 2,
@@ -334,7 +357,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  removeButton: {
+  wishlistButton: {
     backgroundColor: '#f3f4f6',
     paddingHorizontal: 10,
   },
