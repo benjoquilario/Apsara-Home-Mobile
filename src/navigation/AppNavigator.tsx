@@ -366,8 +366,11 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 12,
+      onMoveShouldSetPanResponder: (_, g) => {
+        // Disable swipe navigation on Wishlist screen to allow item swiping
+        if (activeTabRef.current === 'wishlist') return false;
+        return Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 12;
+      },
       onPanResponderRelease: (_, g) => {
         if (g.dx < -50) {
           const i = TABS.indexOf(activeTabRef.current);
@@ -501,6 +504,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               user={user}
               onLogout={onLogout}
               onNavigateSettings={() => navigateTo('settings')}
+              onCartPress={() => setShowCart(true)}
+              cartCount={cartCount}
             />
           ) : activeTab === 'home' ? (
             <>
@@ -715,7 +720,12 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           <CartScreen
             token={token}
             user={user}
+            wishlistCount={wishlistCount}
             onBack={() => setShowCart(false)}
+            onProfilePress={() => {
+              setShowCart(false);
+              navigateTo('profile');
+            }}
             onProductPress={(productId) => {
               setShowCart(false);
               setPreviousSearchQuery(null);
