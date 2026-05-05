@@ -41,15 +41,32 @@ interface CartItem {
   product_price_member: string;
   product_prodpv: string;
   brand_name: string;
+  // New variant fields from API
+  variant_id: number | null;
+  variant_name: string | null;
+  variant_price: string | null;
+  variant_price_dp: string | null;
+  variant_price_member: string | null;
+  variant_prodpv: string | null;
+  variant_color: string | null;
+  variant_size: string | null;
+  variant_status: number | null;
 }
 
 interface CartScreenProps {
   token?: string | null;
+  user?: {
+    name: string;
+    username?: string;
+    avatar_url?: string;
+    badge_name?: string;
+  } | null;
   onCheckout?: () => void;
   onBack?: () => void;
+  onProductPress?: (productId: number) => void;
 }
 
-export default function CartScreen({ token, onCheckout, onBack }: CartScreenProps) {
+export default function CartScreen({ token, user, onCheckout, onBack, onProductPress }: CartScreenProps) {
   const insets = useSafeAreaInsets();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +74,7 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [updatingQuantity, setUpdatingQuantity] = useState<number | null>(null);
   const [removingItem, setRemovingItem] = useState<number | null>(null);
+  const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
 
   useEffect(() => {
     fetchCart();
@@ -78,7 +96,10 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
       const response = await axios.get(`${API_CONFIG.BASE_URL}/cart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setCartItems(response.data.cart_items || []);
+      console.log('Cart API response:', response.data);
+      const cartItems = response.data.cart_items || [];
+      console.log('Cart items:', cartItems);
+      setCartItems(cartItems);
     } catch (error: any) {
       console.error('Error fetching cart:', error);
       Toast.show({
@@ -187,6 +208,15 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
     ]);
   };
 
+  const getSortedCartItems = () => {
+    // Sort by creation date
+    return cartItems.sort((a, b) => {
+      const dateA = new Date(a.crt_created_at).getTime();
+      const dateB = new Date(b.crt_created_at).getTime();
+      return sortOrder === 'new' ? dateB - dateA : dateA - dateB;
+    });
+  };
+
   const getSelectedTotal = () => {
     return Array.from(selectedItems).reduce((total, crtId) => {
       const item = cartItems.find(c => c.crt_id === crtId);
@@ -199,7 +229,28 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
     const discount = Math.round(
       ((parseFloat(item.product_price_srp) - parseFloat(item.crt_unit_price)) / parseFloat(item.product_price_srp)) * 100
     );
-    const hasVariants = !!(item.crt_selected_color || item.crt_selected_size || item.crt_selected_type);
+    
+    // Debug logging for variant data
+    console.log('Cart item variant data:', {
+      crt_id: item.crt_id,
+      crt_selected_color: item.crt_selected_color,
+      crt_selected_size: item.crt_selected_size,
+      crt_selected_type: item.crt_selected_type,
+      crt_variant_id: item.crt_variant_id,
+      variant_color: item.variant_color,
+      variant_size: item.variant_size,
+      variant_name: item.variant_name,
+    });
+    
+    // Check both old and new variant fields for compatibility
+    const hasVariants = !!(
+      item.crt_selected_color || 
+      item.crt_selected_size || 
+      item.crt_selected_type ||
+      item.variant_color || 
+      item.variant_size || 
+      item.variant_name
+    );
 
     return (
       <View style={[styles.cartItemContainer, selectedItems.has(item.crt_id) && styles.containerSelected]}>
@@ -221,7 +272,11 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
           </Animated.View>
         </TouchableOpacity>
 
-        <View style={styles.contentWrapper}>
+        <TouchableOpacity 
+          style={styles.contentWrapper}
+          onPress={() => onProductPress?.(item.crt_product_id)}
+          activeOpacity={0.7}
+        >
           {/* Image Container */}
           <View style={styles.imageContainer}>
             <Image
@@ -247,17 +302,40 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
             {/* Variants Display */}
             {hasVariants && (
               <View style={styles.variantContainer}>
-                {item.crt_selected_color && (
+                {/* Display variant color from new API fields */}
+                {item.variant_color && (
+                  <Text style={styles.variantText}>
+                    <Ionicons name="color-palette" size={10} color={Colors.sky} /> {item.variant_color}
+                  </Text>
+                )}
+                {/* Fallback to old fields for compatibility */}
+                {!item.variant_color && item.crt_selected_color && (
                   <Text style={styles.variantText}>
                     <Ionicons name="color-palette" size={10} color={Colors.sky} /> {item.crt_selected_color}
                   </Text>
                 )}
-                {item.crt_selected_size && (
+                
+                {/* Display variant size from new API fields */}
+                {item.variant_size && (
+                  <Text style={styles.variantText}>
+                    <Ionicons name="resize" size={10} color={Colors.sky} /> {item.variant_size}
+                  </Text>
+                )}
+                {/* Fallback to old fields for compatibility */}
+                {!item.variant_size && item.crt_selected_size && (
                   <Text style={styles.variantText}>
                     <Ionicons name="resize" size={10} color={Colors.sky} /> {item.crt_selected_size}
                   </Text>
                 )}
-                {item.crt_selected_type && (
+                
+                {/* Display variant name from new API fields */}
+                {item.variant_name && (
+                  <Text style={styles.variantText}>
+                    <Ionicons name="cube" size={10} color={Colors.sky} /> {item.variant_name}
+                  </Text>
+                )}
+                {/* Fallback to old fields for compatibility */}
+                {!item.variant_name && item.crt_selected_type && (
                   <Text style={styles.variantText}>
                     <Ionicons name="cube" size={10} color={Colors.sky} /> {item.crt_selected_type}
                   </Text>
@@ -308,7 +386,7 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.totalPrice}>₱{parseFloat(item.crt_total_price).toLocaleString()}</Text>
+              <Text style={styles.itemPrice}>₱{parseFloat(item.crt_total_price).toLocaleString()}</Text>
 
               <TouchableOpacity
                 style={[styles.removeBtn, removingItem === item.crt_id && { opacity: 0.6 }]}
@@ -320,39 +398,157 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
     );
   };
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.sky} />
+      <View style={styles.container}>
+        {/* Header with Gradient extending to top */}
+        <LinearGradient
+          colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top }]}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+              <Ionicons name="chevron-back" size={24} color={Colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>My Cart</Text>
+            
+            {/* User Profile and Heart Icon */}
+            <View style={styles.headerRight}>
+              <TouchableOpacity 
+                style={styles.headerIcon}
+                activeOpacity={0.7}
+                onPress={() => {
+                  console.log('Navigate to wishlist');
+                }}
+              >
+                <Ionicons name="heart" size={20} color={Colors.text} />
+              </TouchableOpacity>
+              
+              <View style={styles.profileSection}>
+                <View style={styles.avatar}>
+                  {user?.avatar_url ? (
+                    <Image source={{ uri: user.avatar_url }} style={styles.avatarImage} />
+                  ) : user?.name ? (
+                    <Text style={styles.avatarInitial}>{user.name.charAt(0).toUpperCase()}</Text>
+                  ) : (
+                    <Ionicons name="person" size={16} color={Colors.textSecondary} />
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+        
+        {/* Loading Content */}
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.sky} />
+        </View>
       </View>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <View style={[styles.emptyContainer, { paddingTop: insets.top }]}>
-        <Ionicons name="cart-outline" size={64} color={Colors.textSecondary} />
-        <Text style={styles.emptyTitle}>Your cart is empty</Text>
-        <Text style={styles.emptySubtitle}>Add items to get started shopping</Text>
+      <View style={styles.container}>
+        {/* Header with Gradient extending to top */}
+        <LinearGradient
+          colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top }]}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+              <Ionicons name="chevron-back" size={24} color={Colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>My Cart</Text>
+            
+            {/* User Profile and Heart Icon */}
+            <View style={styles.headerRight}>
+              <TouchableOpacity 
+                style={styles.headerIcon}
+                activeOpacity={0.7}
+                onPress={() => {
+                  console.log('Navigate to wishlist');
+                }}
+              >
+                <Ionicons name="heart" size={20} color={Colors.text} />
+              </TouchableOpacity>
+              
+              <View style={styles.profileSection}>
+                <View style={styles.avatar}>
+                  {user?.avatar_url ? (
+                    <Image source={{ uri: user.avatar_url }} style={styles.avatarImage} />
+                  ) : user?.name ? (
+                    <Text style={styles.avatarInitial}>{user.name.charAt(0).toUpperCase()}</Text>
+                  ) : (
+                    <Ionicons name="person" size={16} color={Colors.textSecondary} />
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+        
+        {/* Empty State Content */}
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cart-outline" size={64} color={Colors.textSecondary} />
+          <Text style={styles.emptyTitle}>Your cart is empty</Text>
+          <Text style={styles.emptySubtitle}>Add items to get started shopping</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Cart</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <View style={styles.container}>
+      {/* Header with Gradient extending to top */}
+      <LinearGradient
+        colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[styles.headerGradient, { paddingTop: insets.top }]}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Cart</Text>
+          
+          {/* User Profile and Heart Icon */}
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={styles.headerIcon}
+              activeOpacity={0.7}
+              onPress={() => {
+                // Navigate to wishlist - you'll need to implement this navigation
+                console.log('Navigate to wishlist');
+              }}
+            >
+              <Ionicons name="heart" size={20} color={Colors.text} />
+            </TouchableOpacity>
+            
+            <View style={styles.profileSection}>
+              <View style={styles.avatar}>
+                {user?.avatar_url ? (
+                  <Image source={{ uri: user.avatar_url }} style={styles.avatarImage} />
+                ) : user?.name ? (
+                  <Text style={styles.avatarInitial}>{user.name.charAt(0).toUpperCase()}</Text>
+                ) : (
+                  <Ionicons name="person" size={16} color={Colors.textSecondary} />
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* Select All */}
       <View style={styles.selectAllContainer}>
@@ -370,11 +566,26 @@ export default function CartScreen({ token, onCheckout, onBack }: CartScreenProp
             {selectedItems.size > 0 ? `${selectedItems.size} selected` : 'Select All'}
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.filterSection}>
+          <TouchableOpacity
+            style={[styles.filterBtn, sortOrder === 'new' && styles.filterBtnActive]}
+            onPress={() => setSortOrder('new')}
+          >
+            <Text style={[styles.filterText, sortOrder === 'new' && styles.filterTextActive]}>New</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterBtn, sortOrder === 'old' && styles.filterBtnActive]}
+            onPress={() => setSortOrder('old')}
+          >
+            <Text style={[styles.filterText, sortOrder === 'old' && styles.filterTextActive]}>Old</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Cart Items */}
       <FlatList
-        data={cartItems}
+        data={getSortedCartItems()}
         renderItem={renderCartItem}
         keyExtractor={(item) => item.crt_id.toString()}
         contentContainerStyle={styles.listContent}
@@ -445,11 +656,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 18,
@@ -462,6 +669,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   selectAllBtn: {
     flexDirection: 'row',
@@ -488,6 +698,29 @@ const styles = StyleSheet.create({
   },
   selectAllTextActive: {
     color: Colors.sky,
+    fontWeight: '700',
+  },
+  filterSection: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  filterBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 0,
+  },
+  filterBtnActive: {
+    backgroundColor: Colors.sky,
+  },
+  filterText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  filterTextActive: {
+    color: Colors.white,
     fontWeight: '700',
   },
   listContent: {
@@ -659,7 +892,7 @@ const styles = StyleSheet.create({
     minWidth: 28,
     textAlign: 'center',
   },
-  totalPrice: {
+  itemPrice: {
     fontSize: 12,
     fontWeight: '800',
     color: Colors.sky,
@@ -703,5 +936,42 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  headerGradient: {
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIcon: {
+    padding: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.sky + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  avatarInitial: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.sky,
   },
 });

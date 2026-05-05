@@ -10,6 +10,7 @@ import * as Notifications from 'expo-notifications';
 import { Colors } from '../constants/colors';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import type { ProductCard } from '../services/productService';
 import AppHeader from '../components/AppHeader/AppHeader';
 import HomeScreen from '../screen/HomeScreen';
 import ProfileScreen from '../screen/ProfileScreen';
@@ -41,7 +42,7 @@ const cacheUtils = {
       console.log('Cache init error:', error);
     }
   },
-  async get(key: string) {
+  async get<T = any>(key: string): Promise<T | null> {
     try {
       const file = await FileSystem.readAsStringAsync(CACHE_DIR + key);
       return JSON.parse(file);
@@ -96,10 +97,6 @@ interface BrandItem {
   total_products?: number;
 }
 
-interface ProductCard {
-  id: number;
-  [key: string]: any;
-}
 
 interface RoomType {
   room_id: number;
@@ -148,9 +145,9 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
       // Preload cached home data immediately
       try {
         const [cachedCats, cachedBrands, cachedRooms] = await Promise.all([
-          cacheUtils.get('home_categories'),
-          cacheUtils.get('home_brands'),
-          cacheUtils.get('home_rooms'),
+          cacheUtils.get<CategoryItem[]>('home_categories'),
+          cacheUtils.get<BrandItem[]>('home_brands'),
+          cacheUtils.get<RoomType[]>('home_rooms'),
         ]);
         if (cachedCats?.length) setHomeCategories(cachedCats);
         if (cachedBrands?.length) setHomeBrands(cachedBrands);
@@ -272,7 +269,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     // Load from cache first if not refreshing
     if (!isRefreshing) {
       try {
-        const cachedWishlist = await cacheUtils.get('wishlist_items');
+        const cachedWishlist = await cacheUtils.get<any[]>('wishlist_items');
         if (cachedWishlist) {
           setWishlistItems(cachedWishlist);
           setWishlistCount(cachedWishlist.length);
@@ -717,7 +714,14 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         <View style={styles.cartScreenOverlay}>
           <CartScreen
             token={token}
+            user={user}
             onBack={() => setShowCart(false)}
+            onProductPress={(productId) => {
+              setShowCart(false);
+              // Navigate to product details
+              // This will need to be implemented based on your navigation structure
+              console.log('Navigate to product:', productId);
+            }}
             onCheckout={() => {
               setShowCart(false);
               // Navigate to checkout

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, Image, TextInput, StyleSheet, Dimensions, BackHandler, Animated,
+  View, Text, TouchableOpacity, ScrollView, Image, TextInput, StyleSheet, Dimensions, BackHandler, Animated, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 interface Product {
   id: number;
   name: string;
+  brand?: string;
   image?: string;
   images?: string[];
   priceMember?: number;
@@ -45,6 +46,9 @@ interface BuyNowModalProps {
     product_id: number;
     variant_id?: number;
     quantity: number;
+    selected_color?: string | null;
+    selected_size?: string | null;
+    selected_type?: string | null;
   }) => Promise<void>;
   loading?: boolean;
 }
@@ -140,8 +144,15 @@ export default function BuyNowModal({
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {/* Product Card - Shopee Style */}
-          <View style={styles.shopeeProductCard}>
+          {/* Full Section Gradient Background */}
+          <LinearGradient
+            colors={['transparent', Colors.sky + '08', Colors.sky + '15']}
+            style={styles.fullSectionGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          >
+            {/* Product Card */}
+            <View style={styles.shopeeProductCard}>
             {/* Image */}
             <View style={styles.shopeeProductImage}>
               <Image
@@ -157,6 +168,12 @@ export default function BuyNowModal({
 
             {/* Product Info */}
             <View style={styles.shopeeProductInfo}>
+              {/* Brand Name */}
+              {product.brand && (
+                <Text style={styles.shopeeBrandName} numberOfLines={1}>
+                  {product.brand}
+                </Text>
+              )}
               <Text style={styles.shopeeProductName} numberOfLines={2}>
                 {product.name}
               </Text>
@@ -189,32 +206,33 @@ export default function BuyNowModal({
                   <View style={styles.shopeePriceRow}>
                     <Text style={styles.shopeePrice}>
                       ₱{(selectedVariant
-                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember)
-                        : product.priceMember).toLocaleString()}
+                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
+                        : (product.priceMember ?? 0)).toLocaleString()}
                     </Text>
                     {(selectedVariant
                       ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? 0)
-                      : product.priceSrp) > (selectedVariant
+                      : (product.priceSrp ?? 0)) > (selectedVariant
                         ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? 0)
-                        : product.priceMember) && (
+                        : (product.priceMember ?? 0)) && (
                       <Text style={styles.shopeeOriginalPrice}>
                         ₱{(selectedVariant
                           ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? 0)
-                          : product.priceSrp).toLocaleString()}
+                          : (product.priceSrp ?? 0)).toLocaleString()}
                       </Text>
                     )}
                   </View>
                 </View>
               </View>
             </View>
-          </View>
+            </View>
+            </LinearGradient>
 
           {/* Divider */}
           <View style={styles.shopeeDivider} />
 
           {/* Variant Selection - Shopee Style */}
           {(product.variants?.length ?? 0) > 0 && (
-            <View style={styles.shopeeSection}>
+            <View style={[styles.shopeeSection, { paddingHorizontal: 16 }]}>
               <View style={styles.shopeeSectionHeader}>
                 <Text style={styles.shopeeSectionTitle}>Variant</Text>
                 <Text style={styles.shopeeSectionRequired}>Required</Text>
@@ -225,7 +243,7 @@ export default function BuyNowModal({
                 style={styles.shopeeVariantScroll}
               >
                 <View style={styles.shopeeVariantRow}>
-                  {product.variants.map((variant, index) => (
+                  {(product.variants || []).map((variant, index) => (
                     <TouchableOpacity
                       key={variant.id}
                       style={[
@@ -261,7 +279,7 @@ export default function BuyNowModal({
           )}
 
           {/* Quantity - Shopee Style */}
-          <View style={styles.shopeeSection}>
+          <View style={[styles.shopeeSection, { paddingHorizontal: 16 }]}>
             <View style={styles.shopeeSectionHeader}>
               <Text style={styles.shopeeSectionTitle}>Quantity</Text>
               <Text style={styles.shopeeStockLeft}>
@@ -318,8 +336,8 @@ export default function BuyNowModal({
               <Text style={styles.shopeePriceSummaryValue}>
                 ₱{(
                   quantity * (selectedVariant
-                    ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? product.priceSrp)
-                    : product.priceSrp)
+                    ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? product.priceSrp ?? 0)
+                    : (product.priceSrp ?? 0))
                 ).toLocaleString()}
               </Text>
             </View>
@@ -327,20 +345,20 @@ export default function BuyNowModal({
             {/* Member Discount */}
             {(selectedVariant
               ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? 0)
-              : product.priceSrp) > (selectedVariant
+              : (product.priceSrp ?? 0)) > (selectedVariant
                 ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? 0)
-                : product.priceMember) && (
+                : (product.priceMember ?? 0)) && (
               <View style={styles.shopeePriceSummaryRow}>
                 <Text style={styles.discountLabel}>Member Discount</Text>
                 <Text style={styles.discountValue}>
                   -₱{(
                     quantity * (
                       (selectedVariant
-                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? product.priceSrp)
-                        : product.priceSrp) -
+                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? product.priceSrp ?? 0)
+                        : (product.priceSrp ?? 0)) -
                       (selectedVariant
-                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember)
-                        : product.priceMember)
+                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
+                        : (product.priceMember ?? 0))
                     )
                   ).toLocaleString()}
                 </Text>
@@ -348,13 +366,13 @@ export default function BuyNowModal({
             )}
 
             {/* Subtotal After Discount */}
-            <View style={[styles.shopeePriceSummaryRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTopY: 8, marginTopY: 8 }]}>
+            <View style={[styles.shopeePriceSummaryRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 8, marginTop: 8 }]}>
               <Text style={styles.shopeePriceSummaryLabel}>Subtotal</Text>
               <Text style={styles.shopeePriceSummaryValue}>
                 ₱{(
                   quantity * (selectedVariant
-                    ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember)
-                    : product.priceMember)
+                    ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
+                    : (product.priceMember ?? 0))
                 ).toLocaleString()}
               </Text>
             </View>
@@ -374,8 +392,8 @@ export default function BuyNowModal({
             <Text style={styles.checkoutTotalPrice}>
               ₱{(
                 quantity * (selectedVariant
-                  ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember)
-                  : product.priceMember)
+                  ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
+                  : (product.priceMember ?? 0))
               ).toLocaleString()}
             </Text>
           </View>
@@ -389,10 +407,18 @@ export default function BuyNowModal({
                 if (!product || !onAddToCart) return;
                 setAddingToCart(true);
                 try {
+                  // Extract variant details if a variant is selected
+                  const selectedVariantData = selectedVariant 
+                    ? product.variants?.find(v => v.id === selectedVariant)
+                    : null;
+
                   await onAddToCart({
                     product_id: product.id,
                     variant_id: selectedVariant || undefined,
                     quantity,
+                    selected_color: selectedVariantData?.color || null,
+                    selected_size: selectedVariantData?.name || null,
+                    selected_type: selectedVariantData?.name || null, // Using name as type for now
                   });
                 } finally {
                   setAddingToCart(false);
@@ -479,12 +505,27 @@ const styles = StyleSheet.create({
   },
   shopeeModalContent: {
     flex: 1,
+    paddingHorizontal: 0,
   },
   shopeeProductCard: {
     flexDirection: 'row',
     gap: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
+    position: 'relative',
+  },
+  fullSectionGradient: {
+    paddingTop: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 0,
+  },
+  shopeeBrandName: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   shopeeProductImage: {
     width: 80,

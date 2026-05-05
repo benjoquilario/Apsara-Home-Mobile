@@ -14,6 +14,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 interface Product {
   id: number;
   name: string;
+  brand?: string;
   image?: string;
   images?: string[];
   priceMember?: number;
@@ -46,6 +47,9 @@ interface AddToCartModalProps {
     product_id: number;
     variant_id?: number;
     quantity: number;
+    selected_color?: string | null;
+    selected_size?: string | null;
+    selected_type?: string | null;
   }) => Promise<void>;
   onCheckout?: () => void;
   onProductPress?: (productId: number) => void;
@@ -117,10 +121,18 @@ export default function AddToCartModal({
     }
 
     try {
+      // Extract variant details if a variant is selected
+      const selectedVariantData = selectedVariant 
+        ? product.variants?.find(v => v.id === selectedVariant)
+        : null;
+
       await onAddToCart({
         product_id: product.id,
         variant_id: selectedVariant || undefined,
         quantity,
+        selected_color: selectedVariantData?.color || null,
+        selected_size: selectedVariantData?.name || null,
+        selected_type: selectedVariantData?.name || null, // Using name as type for now
       });
     } catch (error: any) {
       console.error('Add to cart error:', error);
@@ -163,14 +175,15 @@ export default function AddToCartModal({
           showsVerticalScrollIndicator={false}
           style={styles.shopeeModalContent}
         >
-          {/* Product Card with Gradient */}
-          <View style={styles.shopeeProductCard}>
-            <LinearGradient
-              colors={['transparent', Colors.sky + '15']}
-              style={styles.cardGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-            />
+          {/* Full Section Gradient Background */}
+          <LinearGradient
+            colors={['transparent', Colors.sky + '08', Colors.sky + '15']}
+            style={styles.fullSectionGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          >
+            {/* Product Card */}
+            <View style={styles.shopeeProductCard}>
 
             {/* Image */}
             <View style={styles.shopeeProductImage}>
@@ -195,6 +208,12 @@ export default function AddToCartModal({
 
             {/* Product Info */}
             <View style={styles.shopeeProductInfo}>
+              {/* Brand Name */}
+              {product.brand && (
+                <Text style={styles.shopeeBrandName} numberOfLines={1}>
+                  {product.brand}
+                </Text>
+              )}
               <TouchableOpacity
                 onPress={() => product && onProductPress?.(product.id)}
                 activeOpacity={0.7}
@@ -234,32 +253,33 @@ export default function AddToCartModal({
                   <View style={styles.shopeePriceRow}>
                     <Text style={styles.shopeePrice}>
                       ₱{(selectedVariant
-                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember)
-                        : product.priceMember).toLocaleString()}
+                        ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
+                        : (product.priceMember ?? 0)).toLocaleString()}
                     </Text>
                     {(selectedVariant
                       ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? 0)
-                      : product.priceSrp) > (selectedVariant
+                      : (product.priceSrp ?? 0)) > (selectedVariant
                         ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? 0)
-                        : product.priceMember) && (
+                        : (product.priceMember ?? 0)) && (
                       <Text style={styles.shopeeOriginalPrice}>
                         ₱{(selectedVariant
                           ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? 0)
-                          : product.priceSrp).toLocaleString()}
+                          : (product.priceSrp ?? 0)).toLocaleString()}
                       </Text>
                     )}
                   </View>
                 </View>
               </View>
             </View>
-          </View>
+            </View>
+            </LinearGradient>
 
           {/* Divider */}
           <View style={styles.shopeeDivider} />
 
           {/* Variant Selection */}
           {(product.variants?.length ?? 0) > 0 && (
-            <View style={styles.shopeeSection}>
+            <View style={[styles.shopeeSection, { paddingHorizontal: 16 }]}>
               <View style={styles.shopeeSectionHeader}>
                 <Text style={styles.shopeeSectionTitle}>Variant</Text>
                 <Text style={styles.shopeeSectionRequired}>Required</Text>
@@ -270,7 +290,7 @@ export default function AddToCartModal({
                 style={styles.shopeeVariantScroll}
               >
                 <View style={styles.shopeeVariantRow}>
-                  {product.variants.map((variant, index) => (
+                  {(product.variants || []).map((variant, index) => (
                     <TouchableOpacity
                       key={variant.id}
                       style={[
@@ -306,7 +326,7 @@ export default function AddToCartModal({
           )}
 
           {/* Quantity Selection */}
-          <View style={styles.shopeeSection}>
+          <View style={[styles.shopeeSection, { paddingHorizontal: 16 }]}>
             <View style={styles.shopeeSectionHeader}>
               <Text style={styles.shopeeSectionTitle}>Quantity</Text>
             </View>
@@ -351,15 +371,15 @@ export default function AddToCartModal({
           </View>
 
           {/* Price Summary */}
-          <View style={styles.shopeePriceSummary}>
+          <View style={[styles.shopeePriceSummary, { paddingHorizontal: 16 }]}>
             {/* Subtotal */}
-            <View style={[styles.shopeePriceSummaryRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTopY: 8, marginTopY: 8 }]}>
+            <View style={[styles.shopeePriceSummaryRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 8, marginTop: 8 }]}>
               <Text style={styles.shopeePriceSummaryLabel}>Subtotal</Text>
               <Text style={styles.shopeePriceSummaryValue}>
                 ₱{(
                   quantity * (selectedVariant
-                    ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember)
-                    : product.priceMember)
+                    ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
+                    : (product.priceMember ?? 0))
                 ).toLocaleString()}
               </Text>
             </View>
@@ -460,21 +480,19 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   shopeeModalContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
   },
   shopeeProductCard: {
     flexDirection: 'row',
     gap: 12,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
     position: 'relative',
   },
-  cardGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 8,
+  fullSectionGradient: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
   },
   shopeeProductImage: {
     position: 'relative',
@@ -502,6 +520,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     zIndex: 1,
+  },
+  shopeeBrandName: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   shopeeProductName: {
     fontSize: 13,

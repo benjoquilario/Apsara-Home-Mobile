@@ -115,28 +115,71 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
   };
 
 
-  const handleAddProductToCart = async (data: { product_id: number; variant_id?: number; quantity: number }) => {
+  const handleAddProductToCart = async (data: { 
+    product_id: number; 
+    variant_id?: number; 
+    quantity: number;
+    selected_color?: string | null;
+    selected_size?: string | null;
+    selected_type?: string | null;
+  }) => {
     if (!token) return;
     try {
-      const cartData = {
+      console.log('Add to cart data received:', data);
+      
+      const cartData: any = {
         product_id: data.product_id,
-        variant_id: data.variant_id || null,
         quantity: data.quantity,
-        selected_color: null,
-        selected_size: null,
-        selected_type: null,
       };
 
+      // Only include variant_id if it exists and is not null
+      if (data.variant_id) {
+        cartData.variant_id = data.variant_id;
+      }
+
+      // Include variant details if they exist
+      if (data.selected_color) {
+        cartData.selected_color = data.selected_color;
+      }
+      if (data.selected_size) {
+        cartData.selected_size = data.selected_size;
+      }
+      if (data.selected_type) {
+        cartData.selected_type = data.selected_type;
+      }
+
+      console.log('Sending to API:', cartData);
+
+      // Add to cart
       await axios.post(
         `${API_CONFIG.BASE_URL}/cart/add`,
         cartData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      Toast.show({
-        type: 'success',
-        text1: 'Added to Cart',
-        text2: `${data.quantity} item(s) added to your cart`,
-      });
+
+      // Remove from wishlist since it's moved to cart
+      const wishlistItem = wishlist.find(item => item.product.id === data.product_id);
+      if (wishlistItem) {
+        await axios.delete(`${API_CONFIG.BASE_URL}/wishlist/${data.product_id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        // Update local state to remove from wishlist
+        setWishlist(wishlist.filter((item) => item.wishlist_id !== wishlistItem.wishlist_id));
+        
+        Toast.show({
+          type: 'success',
+          text1: 'Moved to Cart',
+          text2: `${data.quantity} item(s) moved from wishlist to cart`,
+        });
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: 'Added to Cart',
+          text2: `${data.quantity} item(s) added to your cart`,
+        });
+      }
+      
       setShowAddToCartModal(false);
       setSelectedProduct(null);
       setQuantity(1);
@@ -144,7 +187,19 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
       onCartUpdate?.();
     } catch (error: any) {
       console.error('Error adding to cart:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to add item to cart';
+      console.error('Error response:', error?.response?.data);
+      console.error('Error status:', error?.response?.status);
+      console.error('Error headers:', error?.response?.headers);
+      
+      let errorMessage = 'Failed to add item to cart';
+      
+      // Check for specific database errors
+      if (error?.response?.data?.error?.includes('column') && error?.response?.data?.error?.includes('does not exist')) {
+        errorMessage = 'Server database error. Please try again later or contact support.';
+      } else if (error?.response?.data?.message) {
+        errorMessage = error?.response?.data?.message;
+      }
+      
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -157,15 +212,41 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
     if (!token) return;
     try {
       setLoadingMultiple(true);
+      
+      // Add items to cart
       await axios.post(
         `${API_CONFIG.BASE_URL}/cart/batch`,
         { items },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Remove items from wishlist
+      const wishlistIdsToRemove: number[] = [];
+      items.forEach(item => {
+        const wishlistItem = wishlist.find(w => w.product.id === item.product_id);
+        if (wishlistItem) {
+          wishlistIdsToRemove.push(wishlistItem.wishlist_id);
+        }
+      });
+
+      // Remove each item from wishlist via API
+      for (const item of items) {
+        try {
+          await axios.delete(`${API_CONFIG.BASE_URL}/wishlist/${item.product_id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (error) {
+          console.error(`Failed to remove product ${item.product_id} from wishlist:`, error);
+        }
+      }
+
+      // Update local state to remove from wishlist
+      setWishlist(wishlist.filter((item) => !wishlistIdsToRemove.includes(item.wishlist_id)));
+
       Toast.show({
         type: 'success',
-        text1: 'Added to Cart',
-        text2: `${items.length} items added to your cart`,
+        text1: 'Moved to Cart',
+        text2: `${items.length} items moved from wishlist to cart`,
       });
       setShowModal(false);
       setSelectedItems(new Set());
@@ -197,7 +278,6 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
 
       // Update local state
       setWishlist(wishlist.filter((item) => item.wishlist_id !== wishlistId));
-      setWishlistCount(prev => Math.max(0, prev - 1));
 
       Toast.show({
         type: 'success',
@@ -359,6 +439,7 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
             product={{
               id: selectedProduct.product.id,
               name: selectedProduct.product.name,
+              brand: selectedProduct.product.brand,
               image: selectedProduct.product.image,
               priceMember: selectedProduct.product.priceMember,
               priceSrp: selectedProduct.product.priceSrp,

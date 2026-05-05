@@ -293,6 +293,9 @@ export default function ProductDetailScreen({
     product_id: number;
     variant_id?: number;
     quantity: number;
+    selected_color?: string | null;
+    selected_size?: string | null;
+    selected_type?: string | null;
   }) => {
     if (!token) {
       console.log('Missing token');
@@ -301,14 +304,30 @@ export default function ProductDetailScreen({
 
     setAddingToCart(true);
     try {
-      const requestData = {
+      console.log('Add to cart data received:', cartData);
+      
+      const requestData: any = {
         product_id: cartData.product_id,
-        variant_id: cartData.variant_id || null,
         quantity: cartData.quantity,
-        selected_color: null,
-        selected_size: null,
-        selected_type: null,
       };
+
+      // Only include variant_id if it exists and is not null
+      if (cartData.variant_id) {
+        requestData.variant_id = cartData.variant_id;
+      }
+
+      // Include variant details if they exist
+      if (cartData.selected_color) {
+        requestData.selected_color = cartData.selected_color;
+      }
+      if (cartData.selected_size) {
+        requestData.selected_size = cartData.selected_size;
+      }
+      if (cartData.selected_type) {
+        requestData.selected_type = cartData.selected_type;
+      }
+
+      console.log('Sending to API:', requestData);
 
       const response = await axios.post(
         `${API_CONFIG.BASE_URL}/cart/add`,
@@ -325,7 +344,19 @@ export default function ProductDetailScreen({
       }
     } catch (error: any) {
       console.error('Failed to add to cart:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to add item to cart';
+      console.error('Error response:', error?.response?.data);
+      console.error('Error status:', error?.response?.status);
+      console.error('Error headers:', error?.response?.headers);
+      
+      let errorMessage = 'Failed to add item to cart';
+      
+      // Check for specific database errors
+      if (error?.response?.data?.error?.includes('column') && error?.response?.data?.error?.includes('does not exist')) {
+        errorMessage = 'Server database error. Please try again later or contact support.';
+      } else if (error?.response?.data?.message) {
+        errorMessage = error?.response?.data?.message;
+      }
+      
       console.error('Error details:', errorMessage);
     } finally {
       setAddingToCart(false);
@@ -380,7 +411,13 @@ export default function ProductDetailScreen({
             pointerEvents={showHeaderOnScroll ? 'auto' : 'none'}
           >
             <AppHeader
-              user={user || undefined}
+              user={user ? {
+                name: user.name || '',
+                username: user.username,
+                avatar_url: user.avatar_url,
+                badge_name: user.badge_name,
+                monthly_activation: user.monthly_activation,
+              } : undefined}
               cartCount={cartCount}
               onCartPress={() => console.log('Cart pressed')}
               onSearchPress={onSearch}
@@ -654,7 +691,7 @@ export default function ProductDetailScreen({
                 <View style={styles.trustGridRow}>
                   <View style={styles.trustItem}>
                     <View style={styles.trustIconBox}>
-                      <Ionicons name="checkmark-shield" size={16} color={Colors.sky} />
+                      <Ionicons name="shield-checkmark" size={16} color={Colors.sky} />
                     </View>
                     <Text style={styles.trustItemLabel}>Authentic</Text>
                     <Text style={styles.trustItemSubtext}>100% Original</Text>
@@ -2995,5 +3032,13 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 12,
     fontWeight: '700',
+  },
+  stockInStock: {
+    color: Colors.forest,
+    fontWeight: '600',
+  },
+  stockOutOfStock: {
+    color: '#ef4444',
+    fontWeight: '600',
   },
 });
