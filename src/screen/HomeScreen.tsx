@@ -88,6 +88,7 @@ function getCategoryImages(category: CategoryItem) {
 }
 
 function getBrandImage(brand: BrandItem) {
+  if (brand.logo) return brand.logo;
   if (brand.image) return brand.image;
   const seed = encodeURIComponent(brand.name);
   return `https://picsum.photos/seed/${seed}/320/180`;
@@ -115,6 +116,7 @@ function getBrandImageLayout(imageCount: number) {
 }
 
 function getBrandLogo(brand: BrandItem) {
+  if (brand.logo) return brand.logo;
   if (brand.brand_image) return brand.brand_image;
   if (brand.image) return brand.image;
   return null;
@@ -241,7 +243,7 @@ function RoomItemComponent({ item }: { item: RoomType }) {
   );
 }
 
-export default function HomeScreen({
+function HomeScreen({
   token,
   user,
   isDarkMode = false,
@@ -260,6 +262,8 @@ export default function HomeScreen({
   wishlistItems = [],
   onWishlistChange = () => {},
 }: HomeScreenProps) {
+  console.log('📱 HomeScreen MOUNTED - Categories:', categories.length, 'Brands:', brands.length, 'Rooms:', roomTypes.length);
+
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f8fbff',
     card: isDarkMode ? '#1e293b' : Colors.white,
@@ -393,8 +397,10 @@ export default function HomeScreen({
     setActiveBanner(index);
   }
 
+  console.log('🎨 HomeScreen RENDERING...');
+
   return (
-    <ScrollView 
+    <ScrollView
       style={[styles.container, { backgroundColor: colors.bg }]} 
       contentContainerStyle={styles.content} 
       showsVerticalScrollIndicator={false}
@@ -632,6 +638,8 @@ export default function HomeScreen({
 
   );
 }
+
+export default React.memo(HomeScreen);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fbff' },

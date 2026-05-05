@@ -52,6 +52,7 @@ export interface BrandItem {
   id: number;
   name: string;
   image?: string | null;
+  logo?: string | null;
   status?: number;
   total_products?: number;
   images?: string[];
