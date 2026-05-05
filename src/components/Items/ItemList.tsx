@@ -127,11 +127,12 @@ export default function ItemList({
             </LinearGradient>
             {product.variants && product.variants.length > 0 && (
               <LinearGradient
-                colors={['#ef4444', '#dc2626']}
+                colors={['#8b5cf6', '#7c3aed']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.variantBadge}
               >
+                <Ionicons name="layers" size={10} color={Colors.white} />
                 <Text style={styles.variantText}>{product.variants.length} variants</Text>
               </LinearGradient>
             )}
@@ -317,6 +318,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   variantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 20,
