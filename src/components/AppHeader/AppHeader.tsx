@@ -29,7 +29,6 @@ interface AppHeaderProps {
   onCameraPress?: () => void;
   searchPlaceholder?: string;
   cartCount?: number;
-  cartButtonColor?: string;
 }
 
 const MARQUEE_ITEMS = [
@@ -145,7 +144,6 @@ export default function AppHeader({
   onCameraPress,
   searchPlaceholder = 'Search...',
   cartCount = 0,
-  cartButtonColor,
 }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
   const photoUrl = user?.avatar_url ?? null;
@@ -248,16 +246,18 @@ export default function AppHeader({
                 {showBalance ? `₱${moneyBalance.toLocaleString()}` : '••••'}
               </Text>
             </TouchableOpacity>
-            <View style={[styles.iconBtn, cartButtonColor && { backgroundColor: cartButtonColor }]}>
-              <TouchableOpacity onPress={onCartPress} activeOpacity={0.7}>
-                <Ionicons name="cart-outline" size={20} color={cartButtonColor ? Colors.white : Colors.text} />
-                {cartCount > 0 && (
-                  <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={onCartPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="cart" size={20} color={Colors.text} />
+              {cartCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -511,22 +511,27 @@ const styles = StyleSheet.create({
   },
   cartBadge: {
     position: 'absolute',
-    top: -4,
-    right: -6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.error,
+    top: -6,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#ef4444',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
+    paddingHorizontal: 4,
+    borderWidth: 2,
     borderColor: Colors.white,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cartBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     color: Colors.white,
-    lineHeight: 11,
+    lineHeight: 12,
   },
 });
