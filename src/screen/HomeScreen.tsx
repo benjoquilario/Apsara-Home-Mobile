@@ -46,6 +46,8 @@ interface HomeScreenProps {
   loadingFeatured?: boolean;
   setLoadingFeatured?: (loading: boolean) => void;
   dataFetchedRef?: React.MutableRefObject<boolean>;
+  wishlistItems?: any[];
+  onWishlistChange?: () => void;
 }
 
 interface RoomType {
@@ -255,6 +257,8 @@ export default function HomeScreen({
   loadingFeatured = false,
   setLoadingFeatured = () => {},
   dataFetchedRef,
+  wishlistItems = [],
+  onWishlistChange = () => {},
 }: HomeScreenProps) {
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f8fbff',
@@ -599,18 +603,24 @@ export default function HomeScreen({
           ) : featuredProducts.length > 0 ? (
             <View style={styles.masonryGrid}>
               <View style={styles.masonryColumn}>
-                {masonryColumns.leftColumn.map((item) => (
-                  <View key={item.id} style={styles.featuredProductItem}>
-                    {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} />}
-                  </View>
-                ))}
+                {masonryColumns.leftColumn.map((item) => {
+                  const wishlistItem = wishlistItems?.find(w => w.product.id === item.id);
+                  return (
+                    <View key={item.id} style={styles.featuredProductItem}>
+                      {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} token={token} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} isWishlisted={!!wishlistItem} wishlistId={wishlistItem?.wishlist_id} onWishlistToggle={onWishlistChange} />}
+                    </View>
+                  );
+                })}
               </View>
               <View style={styles.masonryColumn}>
-                {masonryColumns.rightColumn.map((item) => (
-                  <View key={item.id} style={styles.featuredProductItem}>
-                    {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} />}
-                  </View>
-                ))}
+                {masonryColumns.rightColumn.map((item) => {
+                  const wishlistItem = wishlistItems?.find(w => w.product.id === item.id);
+                  return (
+                    <View key={item.id} style={styles.featuredProductItem}>
+                      {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} token={token} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} isWishlisted={!!wishlistItem} wishlistId={wishlistItem?.wishlist_id} onWishlistToggle={onWishlistChange} />}
+                    </View>
+                  );
+                })}
               </View>
             </View>
           ) : (

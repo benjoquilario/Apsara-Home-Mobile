@@ -14,6 +14,7 @@ import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import ItemList from '../components/Items/ItemList';
+import SelectedItemsModal from '../components/Items/SelectedItemsModal';
 
 interface WishlistItem {
   wishlist_id: number;
@@ -46,6 +47,8 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
   const [discountFilter, setDiscountFilter] = useState<'all' | 'discount'>('all');
+  const [showModal, setShowModal] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   useEffect(() => {
     setWishlist(wishlistItems);
@@ -98,11 +101,58 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
     }, 0);
   };
 
+  const getSelectedItemsForModal = () => {
+    return Array.from(selectedItems)
+      .map(wishlistId => wishlist.find(w => w.wishlist_id === wishlistId))
+      .filter((item): item is WishlistItem => item !== undefined);
+  };
+
+  const handleAddSelectedToCart = async () => {
+    if (!token) return;
+
+    try {
+      setAddingToCart(true);
+      const selectedItemsList = getSelectedItemsForModal();
+
+      // Add each selected item to cart via /wishlist endpoint
+      await Promise.all(
+        selectedItemsList.map(item =>
+          axios.post(
+            `${API_CONFIG.BASE_URL}/wishlist`,
+            { product_id: item.product.id },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+        )
+      );
+
+      Toast.show({
+        type: 'success',
+        text1: 'Added to Cart',
+        text2: `${selectedItemsList.length} items added to cart`,
+      });
+
+      setShowModal(false);
+      setSelectedItems(new Set());
+    } catch (error: any) {
+      console.error('Error adding to cart:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to add items to cart',
+      });
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
   const removeFromWishlist = async (wishlistId: number) => {
     try {
+      const wishlistItem = wishlist.find(item => item.wishlist_id === wishlistId);
+      const productId = wishlistItem?.product.id;
+
       // Call DELETE API to remove from wishlist
-      if (token) {
-        await axios.delete(`${API_CONFIG.BASE_URL}/cart/${wishlistId}`, {
+      if (token && productId) {
+        await axios.delete(`${API_CONFIG.BASE_URL}/wishlist/${productId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
@@ -170,14 +220,15 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity
-            style={[styles.selectAllBtn, selectedItems.size > 0 && styles.selectAllBtnActive]}
+            style={styles.selectAllBtn}
             onPress={handleSelectAll}
+            activeOpacity={0.7}
           >
-            <Ionicons
-              name={selectedItems.size === wishlist.length && wishlist.length > 0 ? "checkbox" : "checkbox-outline"}
-              size={18}
-              color={selectedItems.size > 0 ? Colors.sky : Colors.textSecondary}
-            />
+            <View style={[styles.selectAllCheckbox, selectedItems.size > 0 && styles.selectAllCheckboxChecked]}>
+              {selectedItems.size > 0 && (
+                <Ionicons name="checkmark" size={14} color={Colors.white} />
+              )}
+            </View>
             <Text style={[styles.selectAllText, selectedItems.size > 0 && styles.selectAllTextActive]}>
               {selectedItems.size > 0 ? `${selectedItems.size} selected` : 'Select All'}
             </Text>
@@ -228,11 +279,25 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
             <Text style={styles.totalLabel}>Total ({selectedItems.size}):</Text>
             <Text style={styles.totalPrice}>₱{getSelectedTotal().toLocaleString()}</Text>
           </View>
-          <TouchableOpacity style={styles.checkoutBtn}>
+          <TouchableOpacity
+            style={[styles.checkoutBtn, addingToCart && { opacity: 0.6 }]}
+            onPress={() => setShowModal(true)}
+            disabled={addingToCart}
+          >
             <Text style={styles.checkoutBtnText}>Add Selected to Cart</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      <SelectedItemsModal
+        visible={showModal}
+        selectedItems={getSelectedItemsForModal()}
+        selectedCount={selectedItems.size}
+        totalPrice={getSelectedTotal()}
+        onClose={() => setShowModal(false)}
+        onAddToCart={handleAddSelectedToCart}
+        loading={addingToCart}
+      />
     </View>
   );
 }
@@ -282,11 +347,22 @@ const styles = StyleSheet.create({
   selectAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
-  selectAllBtnActive: {
+  selectAllCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectAllCheckboxChecked: {
+    backgroundColor: Colors.sky,
+    borderColor: Colors.sky,
   },
   selectAllText: {
     fontSize: 12,
