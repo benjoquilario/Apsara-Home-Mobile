@@ -133,9 +133,16 @@ export default function ItemList({
         </View>
 
         <View style={styles.detailsContainer}>
-          <Text style={styles.brand} numberOfLines={1}>
-            {product.brand}
-          </Text>
+          <View style={styles.brandRow}>
+            <Text style={styles.brand} numberOfLines={1}>
+              {product.brand}
+            </Text>
+            {inStock && (
+              <View style={styles.itemStockBadge}>
+                <Text style={styles.itemStockText}>{product.qty} left</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.productName} numberOfLines={2}>
             {product.name}
           </Text>
@@ -197,28 +204,7 @@ export default function ItemList({
             </Text>
           </View>
 
-          <View style={styles.buttonsRow}>
-            <TouchableOpacity
-              style={[styles.button, styles.cartButton]}
-              onPress={() => onAddToCart?.(wishlist_id)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="cart-outline" size={14} color={Colors.white} />
-              <Text style={styles.cartButtonText}>Add to Cart</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.button, styles.heartButton]}
-              onPress={handleRemoveFromWishlist}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={isWishlisted ? "heart" : "heart-outline"}
-                size={16}
-                color={isWishlisted ? Colors.error : Colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
         </View>
       </TouchableOpacity>
     </View>
@@ -235,7 +221,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 10,
     alignItems: 'flex-start',
-    marginBottom: 1,
     position: 'relative',
   },
   containerGradient: {
@@ -319,11 +304,29 @@ const styles = StyleSheet.create({
     gap: 5,
     justifyContent: 'space-between',
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
   brand: {
     fontSize: 10,
     fontWeight: '600',
     color: Colors.textSecondary,
     textTransform: 'uppercase',
+    flex: 1,
+  },
+  itemStockBadge: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  itemStockText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   productName: {
     fontSize: 12,
@@ -414,30 +417,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textSecondary,
   },
-  buttonsRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    gap: 4,
-  },
-  cartButton: {
-    flex: 1,
-    backgroundColor: Colors.sky,
-  },
-  cartButtonText: {
-    color: Colors.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  heartButton: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-  },
+
 });

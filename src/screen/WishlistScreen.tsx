@@ -57,6 +57,7 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setWishlist(wishlistItems);
@@ -266,9 +267,14 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
   };
 
   const removeFromWishlist = async (wishlistId: number) => {
+    if (deletingIds.has(wishlistId)) return;
+    
     try {
+      setDeletingIds(prev => new Set(prev).add(wishlistId));
+      
       const wishlistItem = wishlist.find(item => item.wishlist_id === wishlistId);
       const productId = wishlistItem?.product.id;
+      const productName = wishlistItem?.product.name || 'Item';
 
       // Call DELETE API to remove from wishlist
       if (token && productId) {
@@ -283,7 +289,7 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
       Toast.show({
         type: 'success',
         text1: 'Removed',
-        text2: 'Item removed from wishlist',
+        text2: `${productName} removed from wishlist`,
       });
     } catch (error: any) {
       console.error('Error removing from wishlist:', error);
@@ -291,6 +297,12 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
         type: 'error',
         text1: 'Error',
         text2: 'Failed to remove item',
+      });
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(wishlistId);
+        return next;
       });
     }
   };
@@ -314,32 +326,41 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
     />
   );
 
-  const renderHiddenItem = (data: { item: WishlistItem }) => (
-    <View style={styles.rowBack}>
-      <TouchableOpacity
-        style={[styles.backLeftBtn, styles.backLeftBtnLeft]}
-        onPress={() => {
-          setSelectedProduct(data.item);
-          setShowAddToCartModal(true);
-        }}
-      >
-        <View style={styles.cartActionInner}>
-          <Ionicons name="cart-outline" size={22} color={Colors.white} />
-          <Text style={styles.backTextWhite}>Add to Cart</Text>
-        </View>
-      </TouchableOpacity>
+  const renderHiddenItem = (data: { item: WishlistItem }) => {
+    const isDeleting = deletingIds.has(data.item.wishlist_id);
+    
+    return (
+      <View style={styles.rowBack}>
+        <TouchableOpacity
+          style={[styles.backLeftBtn, styles.backLeftBtnLeft]}
+          onPress={() => {
+            setSelectedProduct(data.item);
+            setShowAddToCartModal(true);
+          }}
+        >
+          <View style={styles.cartActionInner}>
+            <Ionicons name="cart-outline" size={22} color={Colors.white} />
+            <Text style={styles.backTextWhite}>Add to Cart</Text>
+          </View>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.backRightBtn, styles.backRightBtnRight]}
-        onPress={() => removeFromWishlist(data.item.wishlist_id)}
-      >
-        <View style={styles.deleteActionInner}>
-          <Ionicons name="trash-outline" size={22} color={Colors.white} />
-          <Text style={styles.backTextWhite}>Delete</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+        <TouchableOpacity
+          style={[styles.backRightBtn, styles.backRightBtnRight]}
+          onPress={() => removeFromWishlist(data.item.wishlist_id)}
+          disabled={isDeleting}
+        >
+          <View style={styles.deleteActionInner}>
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Ionicons name="trash-outline" size={22} color={Colors.white} />
+            )}
+            <Text style={styles.backTextWhite}>{isDeleting ? 'Deleting...' : 'Delete'}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -414,8 +435,8 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
         data={sortedWishlist}
         renderItem={renderWishlistItem}
         renderHiddenItem={renderHiddenItem}
-        leftOpenValue={85}
-        rightOpenValue={-85}
+        leftOpenValue={90}
+        rightOpenValue={-90}
         swipeToOpenPercent={30}
         swipeToClosePercent={30}
         useNativeDriver={false}
@@ -648,20 +669,18 @@ const styles = StyleSheet.create({
   },
   rowBack: {
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 1,
-    marginBottom: 2,
+    overflow: 'hidden',
   },
   backLeftBtn: {
     alignItems: 'center',
-    bottom: 0,
     justifyContent: 'center',
     position: 'absolute',
     top: 0,
-    width: 85,
+    bottom: 0,
+    width: 90,
   },
   backLeftBtnLeft: {
     backgroundColor: Colors.sky,
@@ -669,11 +688,11 @@ const styles = StyleSheet.create({
   },
   backRightBtn: {
     alignItems: 'center',
-    bottom: 0,
     justifyContent: 'center',
     position: 'absolute',
     top: 0,
-    width: 85,
+    bottom: 0,
+    width: 90,
   },
   backRightBtnRight: {
     backgroundColor: '#ef4444',
@@ -682,12 +701,14 @@ const styles = StyleSheet.create({
   cartActionInner: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 4,
+    width: 90,
   },
   deleteActionInner: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 4,
+    width: 90,
   },
   backTextWhite: {
     color: Colors.white,
