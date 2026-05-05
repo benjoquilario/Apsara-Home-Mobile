@@ -94,7 +94,15 @@ function MarqueeBanner() {
   };
 
   useEffect(() => {
+    // Keep the interval alive even if component remounts
+    const checkInterval = setInterval(() => {
+      if (!intervalRef.current && contentWidthRef.current > 0) {
+        startScrolling(contentWidthRef.current);
+      }
+    }, 1000);
+
     return () => {
+      clearInterval(checkInterval);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
@@ -103,6 +111,9 @@ function MarqueeBanner() {
     const w = e.nativeEvent.layout.width;
     if (w && w !== contentWidthRef.current) {
       contentWidthRef.current = w;
+      startScrolling(w);
+    } else if (w && !intervalRef.current) {
+      // Restart scrolling if interval was cleared (e.g., after navigation)
       startScrolling(w);
     }
   };

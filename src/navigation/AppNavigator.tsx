@@ -133,10 +133,11 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     try {
       console.log('🔄 Fetching home data...');
       setHomeLoadingFeatured(true);
-      const [categoryData, brandData, productData, roomData] = await Promise.all([
+      const [categoryData, brandData, roomData] = await Promise.all([
         authService.getCategories(token),
         authService.getBrandsWithProducts(token, 6),
-        productService.getProductCards(token),
+        // TEMPORARILY DISABLED: Featured products causing slow load
+        // productService.getProductCards(token),
         axios.get(`${API_CONFIG.BASE_URL}/room-types`, {
           headers: { Authorization: `Bearer ${token}` },
         }).then(res => res.data?.data || []).catch(() => []),
@@ -144,9 +145,9 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
       setHomeCategories(categoryData.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)));
       setHomeBrands(brandData);
-      setHomeFeaturedProducts(Array.isArray(productData) ? productData.slice(0, 4) : []);
+      setHomeFeaturedProducts([]); // TEMPORARILY DISABLED
       setHomeRoomTypes(roomData);
-      console.log('✅ Home data loaded');
+      console.log('✅ Home data loaded (featured products disabled)');
     } catch (error: any) {
       console.error('Home data fetch error:', error);
     } finally {
