@@ -14,6 +14,8 @@ interface AppHeaderProps {
     username?: string;
     avatar_url?: string;
     badge_name?: string;
+    money_balance?: number;
+    wallet_balance?: number;
     monthly_activation?: {
       current_month_pv: number;
       threshold_pv: number;
@@ -146,11 +148,12 @@ export default function AppHeader({
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : null;
   const fullName = user?.name || 'Guest';
   const badgeName = user?.badge_name;
-  const remainingPV = user?.monthly_activation?.remaining_pv ?? 0;
+  const moneyBalance = user?.money_balance ?? user?.wallet_balance ?? 0;
 
   const [dynamicPlaceholder, setDynamicPlaceholder] = useState(searchPlaceholder);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showFilter, setShowFilter] = useState(false);
+  const [showBalance, setShowBalance] = useState(true);
   const currentIndex = useRef(0);
 
   useEffect(() => {
@@ -231,10 +234,16 @@ export default function AppHeader({
           </View>
 
           <View style={styles.rightActions}>
-            <View style={styles.pvBadge}>
-              <Ionicons name="trending-up" size={12} color={Colors.white} />
-              <Text style={styles.pvText}>{remainingPV} PV</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.pvBadge}
+              onPress={() => setShowBalance(!showBalance)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={showBalance ? "eye" : "eye-off"} size={12} color={Colors.white} />
+              <Text style={styles.pvText}>
+                {showBalance ? `₱${moneyBalance.toLocaleString()}` : '••••'}
+              </Text>
+            </TouchableOpacity>
             <View style={[styles.iconBtn, cartButtonColor && { backgroundColor: cartButtonColor }]}>
               <TouchableOpacity onPress={onCartPress} activeOpacity={0.7}>
                 <Ionicons name="cart-outline" size={20} color={cartButtonColor ? Colors.white : Colors.text} />
