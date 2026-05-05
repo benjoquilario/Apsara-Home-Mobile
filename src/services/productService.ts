@@ -243,13 +243,34 @@ export const productService = {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    
+
     try {
       const response = await api.get(`/products/${productId}/reviews`, { headers });
       return response.data || null;
     } catch (error) {
       console.error('Error fetching product reviews:', error);
       return null;
+    }
+  },
+
+  async getWishlist(token: string): Promise<any[]> {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    try {
+      const response = await api.get('/wishlist', { headers });
+      const data = response.data?.data || [];
+
+      // Convert object to array if needed
+      if (typeof data === 'object' && !Array.isArray(data)) {
+        return Object.values(data);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
+      throw error;
     }
   },
 };
