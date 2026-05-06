@@ -386,6 +386,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
       onMoveShouldSetPanResponder: (_, g) => {
         // Disable swipe navigation on Wishlist screen to allow item swiping
         if (activeTabRef.current === 'wishlist') return false;
+        // Disable swipe navigation while Shop By Brand is open
+        if (activeTabRef.current === 'shop' && selectedBrandId !== null && selectedBrand !== null) return false;
         return Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 12;
       },
       onPanResponderRelease: (_, g) => {
@@ -558,7 +560,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 onBack={() => {
                   setSelectedBrandId(null);
                   setSelectedBrand(null);
-                  navigateTo(previousTab);
+                  setActiveTab(previousTab);
+                  activeTabRef.current = previousTab;
                 }}
                 onProductPress={(id) => {
                   setPreviousSearchQuery(null);
@@ -685,7 +688,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           )}
         </View>
 
-        {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !referralNetworkFromTab && (
+        {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !referralNetworkFromTab && !(activeTab === 'shop' && selectedBrandId !== null && selectedBrand !== null) && (
           <View style={styles.navBar}>
             {TABS.map(key => {
               const active = activeTab === key;
