@@ -479,6 +479,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   setPreviousTab(activeTabRef.current);
                   setSearchVisible(true);
                 }}
+                onProfilePress={() => navigateTo('profile')}
+                onLogout={onLogout}
               />
               <WishlistScreen
                 token={token}
@@ -505,6 +507,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           ) : activeTab === 'profile' ? (
             <ProfileScreen
               user={user}
+              token={token}
               onLogout={onLogout}
               onNavigateSettings={() => navigateTo('settings')}
               onCartPress={() => setShowCart(true)}
