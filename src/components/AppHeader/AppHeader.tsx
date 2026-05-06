@@ -14,6 +14,7 @@ interface AppHeaderProps {
     username?: string;
     avatar_url?: string;
     badge_name?: string;
+    badge_image?: string;
     money_balance?: number;
     wallet_balance?: number;
     monthly_activation?: {
@@ -207,7 +208,11 @@ export default function AppHeader({
 
       <View style={styles.innerContent}>
         <View style={styles.topRow}>
-          <View style={styles.profileSection} pointerEvents="none">
+          <TouchableOpacity
+            style={styles.profileSection}
+            onPress={onProfilePress}
+            activeOpacity={0.7}
+          >
             <View style={styles.avatar}>
               {photoUrl ? (
                 <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
@@ -221,6 +226,7 @@ export default function AppHeader({
               <Text style={styles.welcomeText}>Welcome back,</Text>
               <View style={styles.nameRow}>
                 <Text style={styles.nameText} numberOfLines={1}>{fullName}</Text>
+                <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} style={styles.profileIcon} />
               </View>
               {user?.username && (
                 <View style={styles.usernameRow}>
@@ -229,15 +235,21 @@ export default function AppHeader({
                     <>
                       <View style={styles.usernameDot} />
                       <View style={styles.userBadge}>
-                        <Ionicons name="shield-checkmark-outline" size={10} color={Colors.white} />
-                        <Text style={styles.userBadgeText}>{badgeName}</Text>
+                        {user.badge_image ? (
+                          <Image source={{ uri: user.badge_image }} style={styles.badgeImageSmall} />
+                        ) : (
+                          <>
+                            <Ionicons name="shield-checkmark-outline" size={10} color={Colors.white} />
+                            <Text style={styles.userBadgeText}>{badgeName}</Text>
+                          </>
+                        )}
                       </View>
                     </>
                   )}
                 </View>
               )}
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.rightActions}>
             <TouchableOpacity
@@ -422,13 +434,16 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   nameText: {
     fontSize: 15,
     fontWeight: '800',
     color: Colors.text,
     flexShrink: 1,
+  },
+  profileIcon: {
+    marginLeft: 4,
   },
   usernameRow: {
     flexDirection: 'row',
@@ -458,8 +473,15 @@ const styles = StyleSheet.create({
     gap: 3,
     backgroundColor: '#f59e0b',
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 8,
+    overflow: 'hidden',
+    height: 18,
+  },
+  badgeImageSmall: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
   },
   userBadgeText: {
     fontSize: 9,
