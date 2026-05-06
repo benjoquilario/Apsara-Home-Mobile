@@ -7,20 +7,22 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
-  SafeAreaView,
   TouchableOpacity,
   Image,
-  TextInput,
-  ActivityIndicator,
   Animated,
+  BackHandler,
+  TextInput,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { productService, Product } from '../services/productService';
 import ItemCard from '../components/Items/ItemCard';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { Skeleton } from '../components/SkeletonLoader/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 
@@ -42,6 +44,8 @@ interface BrandInfo {
   brand_image?: string;
   image?: string;
   total_products?: number;
+  supplier_name?: string;
+  tagline?: string;
 }
 
 interface ShopByBrandScreenProps {
@@ -83,6 +87,7 @@ export default function ShopByBrandScreen({
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
   const perPage = 20;
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
   const selectedRoom = useMemo(
     () => selectedRoomId ? ROOMS.find(r => r.room_id === selectedRoomId) : null,
@@ -103,6 +108,8 @@ export default function ShopByBrandScreen({
 
     return { leftColumn, rightColumn };
   }, [products]);
+
+  const featuredProducts = useMemo(() => products.slice(0, 4), [products]);
 
   const fetchProducts = useCallback(async (page: number = 1) => {
     if (!token || !brandId) return;
@@ -205,6 +212,39 @@ export default function ShopByBrandScreen({
     );
   };
 
+  const renderFeaturedItem = (item: Product) => {
+    const wishlistItem = wishlistItems?.find(w => w.product.id === item.id);
+    const productCard = {
+      id: item.id,
+      name: item.name,
+      image: item.image,
+      soldCount: item.soldCount,
+      originalPrice: item.priceSrp,
+      memberPrice: item.priceMember,
+      pv: item.prodpv,
+      brandName: item.brand,
+      variantCount: item.variants?.length ?? 0,
+      badges: {
+        musthave: item.musthave,
+        bestseller: item.bestseller,
+        salespromo: item.salespromo,
+      },
+    };
+
+    return (
+      <View key={`featured-${item.id}`} style={styles.featuredItemWrap}>
+        <ItemCard
+          product={productCard}
+          token={token}
+          onPress={(product) => onProductPress(product.id)}
+          isWishlisted={!!wishlistItem}
+          wishlistId={wishlistItem?.wishlist_id}
+          onWishlistToggle={onWishlistChange}
+        />
+      </View>
+    );
+  };
+
   const getBrandLogo = () => {
     if (brand?.logo) return brand.logo;
     if (brand?.brand_image) return brand.brand_image;
@@ -216,117 +256,97 @@ export default function ShopByBrandScreen({
     return brand?.name?.trim()?.charAt(0)?.toUpperCase() || '?';
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Brand Header */}
-      <View style={styles.brandHeader}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
-        </TouchableOpacity>
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onBack();
+      return true;
+    });
 
-        <View style={styles.brandInfo}>
-          <View style={styles.brandLogoContainer}>
-            {getBrandLogo() ? (
-              <Image source={{ uri: getBrandLogo() }} style={styles.brandLogoImage} />
-            ) : (
-              <View style={styles.brandLogoFallback}>
-                <Text style={styles.brandInitial}>{getBrandInitial()}</Text>
+    return () => sub.remove();
+  }, [onBack]);
+
+  return (
+    <View style={styles.container}>
+      {/* Custom Header with Brand Info */}
+      <LinearGradient
+        colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[styles.customHeader, { paddingTop: insets.top }]}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={onBack} style={styles.backIconButton}>
+            <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          </TouchableOpacity>
+
+          <View style={styles.brandHeaderContent}>
+            <View style={styles.brandLogoHeader}>
+              {getBrandLogo() ? (
+                <Image source={{ uri: getBrandLogo() }} style={styles.brandLogoImageHeader} />
+              ) : (
+                <View style={styles.brandLogoFallbackHeader}>
+                  <Text style={styles.brandInitialHeader}>{getBrandInitial()}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.brandHeaderText}>
+              <Text style={styles.brandHeaderLabel} numberOfLines={1}>Official Brand Store</Text>
+              <Text style={styles.brandHeaderName} numberOfLines={1}>{brand?.name || 'Brand'}</Text>
+              {brand?.supplier_name ? (
+                <Text style={styles.brandHeaderSupplier} numberOfLines={1}>{brand.supplier_name}</Text>
+              ) : null}
+              {brand?.tagline ? (
+                <Text style={styles.brandHeaderTagline} numberOfLines={1}>{brand.tagline}</Text>
+              ) : null}
+              <View style={styles.brandMetaRow}>
+                {brand?.total_products !== undefined ? (
+                  <Text style={styles.brandHeaderProducts} numberOfLines={1}>{brand.total_products} listed</Text>
+                ) : null}
+                <Text style={styles.brandMetaDot}>•</Text>
+                <Text style={styles.brandHeaderProducts} numberOfLines={1}>{totalProducts} matched</Text>
+                {brandId ? (
+                  <>
+                    <Text style={styles.brandMetaDot}>•</Text>
+                    <Text style={styles.brandHeaderProducts} numberOfLines={1}>ID #{brandId}</Text>
+                  </>
+                ) : null}
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity onPress={onCartPress} style={styles.cartIconButton}>
+            <Ionicons name="cart-outline" size={22} color={Colors.text} />
+            {cartCount > 0 && (
+              <View style={styles.cartBadgeHeader}>
+                <Text style={styles.cartBadgeTextHeader}>{cartCount > 99 ? '99+' : cartCount}</Text>
               </View>
             )}
-          </View>
-          <View style={styles.brandDetails}>
-            <Text style={styles.brandName}>{brand?.name || 'Brand'}</Text>
-            {brand?.total_products !== undefined && (
-              <Text style={styles.brandProductCount}>{brand.total_products} products</Text>
-            )}
-          </View>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={onCartPress} style={styles.cartButton}>
-          <Ionicons name="cart-outline" size={22} color={Colors.text} />
-          {cartCount > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+        <View style={styles.searchRow}>
+          <View style={styles.searchWrapper}>
+            <Ionicons name="search-outline" size={16} color={Colors.textSecondary} style={styles.searchIconLeft} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products in this brand"
+              placeholderTextColor={Colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {!!searchQuery && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
+                <Ionicons name="close-circle" size={16} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-      {/* Search Field */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color={Colors.textSecondary} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search in brand..."
-          placeholderTextColor={Colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
+          <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.7}>
+            <Ionicons name="options-outline" size={20} color={Colors.text} />
           </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Filters */}
-      <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            selectedRoomId !== null && styles.filterButtonActive,
-          ]}
-          onPress={() => {
-            if (selectedRoomId === null) {
-              handleRoomSelect(1);
-            } else {
-              handleRoomSelect(null);
-            }
-          }}
-        >
-          <Text
-            style={[
-              styles.filterButtonText,
-              selectedRoomId !== null && styles.filterButtonTextActive,
-            ]}
-          >
-            {selectedRoom?.room_name || 'Room Type'}
-          </Text>
-          <Ionicons
-            name={selectedRoomId !== null ? 'filter' : 'filter-outline'}
-            size={14}
-            color={selectedRoomId !== null ? Colors.white : Colors.text}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            selectedCategoryId !== null && styles.filterButtonActive,
-          ]}
-          onPress={() => {
-            if (selectedCategoryId === null) {
-              setSelectedCategoryId(categories[0]?.id || null);
-            } else {
-              setSelectedCategoryId(null);
-            }
-          }}
-        >
-          <Text
-            style={[
-              styles.filterButtonText,
-              selectedCategoryId !== null && styles.filterButtonTextActive,
-            ]}
-          >
-            {selectedCategoryId ? categories.find(c => c.id === selectedCategoryId)?.name : 'Category'}
-          </Text>
-          <Ionicons
-            name={selectedCategoryId !== null ? 'filter' : 'filter-outline'}
-            size={14}
-            color={selectedCategoryId !== null ? Colors.white : Colors.text}
-          />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         ref={scrollViewRef}
@@ -337,45 +357,35 @@ export default function ShopByBrandScreen({
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* View Toggle */}
-        <View style={styles.filterInfoContainer}>
-          <TouchableOpacity
-            style={[
-              styles.viewToggleButton,
-              viewType === 'grid' && styles.viewToggleButtonActive,
-            ]}
-            onPress={() => setViewType('grid')}
-          >
-            <Ionicons
-              name="apps-outline"
-              size={14}
-              color={viewType === 'grid' ? Colors.white : Colors.text}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.viewToggleButton,
-              viewType === 'list' && styles.viewToggleButtonActive,
-            ]}
-            onPress={() => setViewType('list')}
-          >
-            <Ionicons
-              name="reader-outline"
-              size={14}
-              color={viewType === 'list' ? Colors.white : Colors.text}
-            />
-          </TouchableOpacity>
-
-          <Text style={styles.productCountInfo}>
-            {(currentPage - 1) * perPage + 1} - {Math.min(currentPage * perPage, totalProducts)} of {totalProducts}
-          </Text>
-        </View>
+        {featuredProducts.length > 0 && (
+          <View style={styles.featuredSection}>
+            <View style={styles.featuredHeaderRow}>
+              <Text style={styles.featuredTitle}>Featured Products</Text>
+              <Text style={styles.featuredSubtitle}>Top picks from this brand</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.featuredGrid}
+            >
+              {featuredProducts.map((item) => renderFeaturedItem(item))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Products Grid */}
         {loading && !refreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.sky} />
-            <Text style={styles.loadingText}>Loading products...</Text>
+          <View style={styles.masonryGrid}>
+            <View style={styles.masonryColumn}>
+              <Skeleton width="100%" height={220} borderRadius={8} />
+              <Skeleton width="100%" height={260} borderRadius={8} style={{ marginTop: 8 }} />
+              <Skeleton width="100%" height={240} borderRadius={8} style={{ marginTop: 8 }} />
+            </View>
+            <View style={styles.masonryColumn}>
+              <Skeleton width="100%" height={260} borderRadius={8} />
+              <Skeleton width="100%" height={220} borderRadius={8} style={{ marginTop: 8 }} />
+              <Skeleton width="100%" height={250} borderRadius={8} style={{ marginTop: 8 }} />
+            </View>
           </View>
         ) : products.length > 0 ? (
           <View style={styles.masonryGrid}>
@@ -434,7 +444,7 @@ export default function ShopByBrandScreen({
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -443,136 +453,178 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fbff',
   },
-  brandHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+  customHeader: {
+    paddingTop: 18,
+    paddingBottom: 16,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    gap: 12,
+    borderBottomColor: '#e0f2fe',
   },
-  backButton: {
-    padding: 4,
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
   },
-  brandInfo: {
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 8,
+    marginTop: 10,
+  },
+  searchWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  brandLogoContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  brandLogoImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-  brandLogoFallback: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: Colors.sky,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandInitial: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  brandDetails: {
-    flex: 1,
-  },
-  brandName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  brandProductCount: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  cartButton: {
-    padding: 8,
-    position: 'relative',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.error,
-    borderWidth: 1.5,
-    borderColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 12,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    height: 40,
   },
-  searchIcon: {
+  searchIconLeft: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: Colors.text,
+    paddingVertical: 0,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+  clearSearchButton: {
+    marginLeft: 6,
   },
-  filterButton: {
-    flex: 1,
-    flexDirection: 'row',
+  filterIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  backIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
-  filterButtonActive: {
+  brandHeaderContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 8,
+  },
+  brandLogoHeader: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#0ea5e9',
+  },
+  brandLogoImageHeader: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  brandLogoFallbackHeader: {
+    width: '100%',
+    height: '100%',
     backgroundColor: Colors.sky,
-    borderColor: Colors.sky,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  filterButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  filterButtonTextActive: {
+  brandInitialHeader: {
+    fontSize: 14,
+    fontWeight: '700',
     color: Colors.white,
+  },
+  brandHeaderText: {
+    flex: 1,
+  },
+  brandHeaderLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.sky,
+    lineHeight: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  brandHeaderName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.text,
+    lineHeight: 14,
+  },
+  brandHeaderSupplier: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    lineHeight: 12,
+  },
+  brandHeaderTagline: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    lineHeight: 12,
+    fontStyle: 'italic',
+  },
+  brandMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 1,
+  },
+  brandMetaDot: {
+    fontSize: 9,
+    color: Colors.textSecondary,
+  },
+  brandHeaderProducts: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    marginTop: 0,
+    lineHeight: 12,
+  },
+  cartIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    position: 'relative',
+  },
+  cartBadgeHeader: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+  },
+  cartBadgeTextHeader: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: Colors.white,
+    lineHeight: 11,
   },
   scrollView: {
     flex: 1,
@@ -580,40 +632,49 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 32,
   },
-  filterInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  viewToggleButton: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  viewToggleButtonActive: {
-    backgroundColor: Colors.sky,
-    borderColor: Colors.sky,
-  },
-  productCountInfo: {
-    flex: 1,
-    fontSize: 12,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-    textAlign: 'right',
-  },
   masonryGrid: {
     flexDirection: 'row',
     gap: 6,
     paddingHorizontal: 8,
     paddingVertical: 16,
+  },
+  featuredSection: {
+    marginHorizontal: 8,
+    marginTop: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    paddingHorizontal: 8,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  featuredHeaderRow: {
+    paddingHorizontal: 4,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eef2f7',
+    paddingBottom: 8,
+  },
+  featuredTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  featuredSubtitle: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  featuredGrid: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+    paddingTop: 2,
+    paddingRight: 4,
+  },
+  featuredItemWrap: {
+    width: width * 0.46,
   },
   masonryColumn: {
     flex: 1,
@@ -621,16 +682,6 @@ const styles = StyleSheet.create({
   },
   masonryItem: {
     width: '100%',
-  },
-  loadingContainer: {
-    minHeight: 300,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
   },
   emptyContainer: {
     minHeight: 300,
