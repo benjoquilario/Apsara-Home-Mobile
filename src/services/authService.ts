@@ -424,4 +424,19 @@ export const authService = {
       } as AuthError;
     }
   },
+
+  async getCurrentUser(token: string): Promise<any> {
+    try {
+      const response = await api.get('/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    } catch (error: any) {
+      throw {
+        message: error.response?.data?.message || 'Failed to load user profile',
+        details: error.response?.data,
+        status: error.response?.status,
+      } as AuthError;
+    }
+  },
 };
