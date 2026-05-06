@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking, Share, Clipboard,
+  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking, Share, Clipboard, Modal, ActivityIndicator,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
+import PrimaryButton from '../components/Button/PrimaryButton';
+import OutlineButton from '../components/Button/OutlineButton';
+import { referralService, ReferralTree } from '../services/referralService';
+import ReferralNetworkScreen from './ReferralNetworkScreen';
 
 interface User {
   id: string;
@@ -26,6 +30,7 @@ interface ProfileScreenProps {
   onNavigateSettings?: () => void;
   onCartPress?: () => void;
   cartCount?: number;
+  token?: string | null;
 }
 
 const REFERRAL_STATS = [
@@ -53,8 +58,12 @@ const MENU_ITEMS = [
   { icon: 'log-out-outline' as const, label: 'Log Out', chevron: false, danger: true, key: 'logout' },
 ];
 
-export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0 }: ProfileScreenProps) {
+export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
+  const [enlargedQR, setEnlargedQR] = useState<'signup' | 'shopping' | null>(null);
+  const [referralTree, setReferralTree] = useState<ReferralTree | null>(null);
+  const [showReferralNetwork, setShowReferralNetwork] = useState(false);
+  const [loadingReferral, setLoadingReferral] = useState(false);
   const photoUrl = user?.avatar_url ?? null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : '?';
   const firstName = user?.name?.split(' ')[0] ?? 'User';
@@ -71,10 +80,51 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
     });
   };
 
-  const handleShare = async (url: string) => {
+  useEffect(() => {
+    if (token) {
+      fetchReferralTree();
+    }
+  }, [token]);
+
+  const fetchReferralTree = async () => {
+    if (!token) return;
     try {
+      const data = await referralService.getReferralTree(token);
+      setReferralTree(data);
+    } catch (error: any) {
+      console.error('Error fetching referral tree:', error);
+    }
+  };
+
+  const handleViewNetwork = async () => {
+    if (!referralTree) {
+      setLoadingReferral(true);
+      try {
+        const data = await referralService.getReferralTree(token!);
+        setReferralTree(data);
+      } catch (error: any) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: error.message || 'Failed to load referral network',
+        });
+      } finally {
+        setLoadingReferral(false);
+      }
+    }
+    setShowReferralNetwork(true);
+  };
+
+  const handleShare = async (url: string, type?: 'signup' | 'shopping') => {
+    try {
+      let message = `Check out AF Home! ${url}`;
+      if (type === 'signup') {
+        message = `Join me as an AF Home member and start earning rewards! Register here: ${url}`;
+      } else if (type === 'shopping') {
+        message = `Shop with me on AF Home and enjoy amazing products! Use my link: ${url}`;
+      }
       await Share.share({
-        message: `Check out AF Home! ${url}`,
+        message: message,
         url: url,
       });
     } catch (error) {
@@ -167,21 +217,61 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
         <View style={styles.section}>
           <View style={styles.purchasesHeader}>
             <Text style={styles.purchasesTitle}>My Referrals</Text>
-            <TouchableOpacity style={styles.purchasesViewAll}>
-              <Text style={styles.purchasesViewAllText}>View Network</Text>
-              <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} />
+            <TouchableOpacity
+              style={styles.purchasesViewAll}
+              onPress={handleViewNetwork}
+              disabled={loadingReferral}
+            >
+              {loadingReferral ? (
+                <ActivityIndicator size="small" color={Colors.textSecondary} />
+              ) : (
+                <>
+                  <Text style={styles.purchasesViewAllText}>View Network</Text>
+                  <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} />
+                </>
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.purchasesGrid}>
-            {REFERRAL_STATS.map((item) => (
-              <TouchableOpacity key={item.label} style={styles.purchaseItem} activeOpacity={0.7}>
-                <View style={styles.purchaseIconContainer}>
-                  <Ionicons name={item.icon} size={22} color={Colors.sky} />
-                </View>
-                <Text style={styles.referralValue}>{item.value}</Text>
-                <Text style={styles.purchaseLabel}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {referralTree ? (
+              <>
+                <TouchableOpacity
+                  style={styles.purchaseItem}
+                  activeOpacity={0.7}
+                  onPress={handleViewNetwork}
+                >
+                  <View style={styles.purchaseIconContainer}>
+                    <Ionicons name="people-outline" size={22} color={Colors.sky} />
+                  </View>
+                  <Text style={styles.referralValue}>{referralTree.summary.total_network}</Text>
+                  <Text style={styles.purchaseLabel}>Total</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.purchaseItem}
+                  activeOpacity={0.7}
+                  onPress={handleViewNetwork}
+                >
+                  <View style={styles.purchaseIconContainer}>
+                    <Ionicons name="time-outline" size={22} color={Colors.sky} />
+                  </View>
+                  <Text style={styles.referralValue}>{referralTree.summary.direct_count}</Text>
+                  <Text style={styles.purchaseLabel}>Direct</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.purchaseItem}
+                  activeOpacity={0.7}
+                  onPress={handleViewNetwork}
+                >
+                  <View style={styles.purchaseIconContainer}>
+                    <Ionicons name="cash-outline" size={22} color={Colors.sky} />
+                  </View>
+                  <Text style={styles.referralValue}>₱{referralTree.root.total_earnings}</Text>
+                  <Text style={styles.purchaseLabel}>Earned</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <ActivityIndicator size="large" color={Colors.sky} />
+            )}
           </View>
         </View>
 
@@ -207,8 +297,14 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                 Use this link when someone wants to register as your referral.
               </Text>
 
+              <Text style={styles.qrTopLabel}>Signup referral QR code</Text>
+
               <View style={styles.qrMain}>
-                <View style={styles.qrImageWrapper}>
+                <TouchableOpacity
+                  style={styles.qrImageWrapper}
+                  activeOpacity={0.7}
+                  onPress={() => setEnlargedQR('signup')}
+                >
                   <Image
                     source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent(signupUrl)}&size=200` }}
                     style={styles.qrImage}
@@ -217,10 +313,9 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                   <View style={styles.qrImageTag}>
                     <Text style={styles.qrImageTagText}>Signup</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.qrInfo}>
-                  <Text style={styles.qrLabel}>Signup referral QR code</Text>
                   <Text style={styles.qrLabel}>Member signup link</Text>
                   <View style={styles.qrLinkBox}>
                     <Text style={styles.qrLinkText} numberOfLines={2}>{signupUrl}</Text>
@@ -229,18 +324,19 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
               </View>
 
               <View style={styles.qrActions}>
-                <TouchableOpacity style={styles.qrActionBtn} activeOpacity={0.8} onPress={() => handleShare(signupUrl)}>
-                  <Ionicons name="share-social" size={16} color={Colors.white} />
-                  <Text style={styles.qrActionText}>Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.qrActionBtn, styles.qrActionBtnOutline]}
-                  activeOpacity={0.8}
+                <PrimaryButton
+                  title="Share"
+                  icon="share-social"
+                  onPress={() => handleShare(signupUrl, 'signup')}
+                  style={{ flex: 1 }}
+                />
+                <OutlineButton
+                  title="Copy Link"
+                  icon="copy-outline"
                   onPress={() => handleCopy(signupUrl)}
-                >
-                  <Ionicons name="copy-outline" size={16} color={Colors.sky} />
-                  <Text style={[styles.qrActionText, { color: Colors.sky }]}>Copy Link</Text>
-                </TouchableOpacity>
+                  color={Colors.sky}
+                  style={{ flex: 1 }}
+                />
               </View>
             </View>
 
@@ -258,8 +354,14 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                 Use this link for non-members who only want to shop. Their checkout will carry your referral automatically.
               </Text>
 
+              <Text style={[styles.qrTopLabel, { color: '#16a34a' }]}>Shopping referral QR code</Text>
+
               <View style={styles.qrMain}>
-                <View style={styles.qrImageWrapper}>
+                <TouchableOpacity
+                  style={styles.qrImageWrapper}
+                  activeOpacity={0.7}
+                  onPress={() => setEnlargedQR('shopping')}
+                >
                   <Image
                     source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent(shoppingUrl)}&size=200` }}
                     style={styles.qrImage}
@@ -268,10 +370,9 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                   <View style={[styles.qrImageTag, { backgroundColor: '#16a34a' }]}>
                     <Text style={styles.qrImageTagText}>Shopping</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.qrInfo}>
-                  <Text style={styles.qrLabel}>Shopping referral QR code</Text>
                   <Text style={styles.qrLabel}>Shopping referral link</Text>
                   <View style={styles.qrLinkBox}>
                     <Text style={styles.qrLinkText} numberOfLines={2}>{shoppingUrl}</Text>
@@ -280,18 +381,19 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
               </View>
 
               <View style={styles.qrActions}>
-                <TouchableOpacity style={[styles.qrActionBtn, { backgroundColor: '#16a34a' }]} activeOpacity={0.8} onPress={() => handleShare(shoppingUrl)}>
-                  <Ionicons name="share-social" size={16} color={Colors.white} />
-                  <Text style={styles.qrActionText}>Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.qrActionBtn, styles.qrActionBtnOutline, { borderColor: '#16a34a' }]}
-                  activeOpacity={0.8}
+                <PrimaryButton
+                  title="Share"
+                  icon="share-social"
+                  onPress={() => handleShare(shoppingUrl, 'shopping')}
+                  style={{ backgroundColor: '#16a34a', flex: 1 }}
+                />
+                <OutlineButton
+                  title="Copy Link"
+                  icon="copy-outline"
                   onPress={() => handleCopy(shoppingUrl)}
-                >
-                  <Ionicons name="copy-outline" size={16} color="#16a34a" />
-                  <Text style={[styles.qrActionText, { color: '#16a34a' }]}>Copy Link</Text>
-                </TouchableOpacity>
+                  color="#16a34a"
+                  style={{ flex: 1 }}
+                />
               </View>
             </View>
           </View>
@@ -351,6 +453,62 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
           </View>
         </View>
       </ScrollView>
+
+      {/* Enlarged QR Modal */}
+      <Modal
+        visible={enlargedQR !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEnlargedQR(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setEnlargedQR(null)}
+            >
+              <Ionicons name="close" size={24} color={Colors.white} />
+            </TouchableOpacity>
+
+            <Image
+              source={{
+                uri: enlargedQR === 'signup'
+                  ? `https://quickchart.io/qr?text=${encodeURIComponent(signupUrl)}&size=400`
+                  : `https://quickchart.io/qr?text=${encodeURIComponent(shoppingUrl)}&size=400`,
+              }}
+              style={styles.modalQrImage}
+              resizeMode="contain"
+            />
+
+            <Text style={styles.modalQrUrl}>
+              {enlargedQR === 'signup' ? signupUrl : shoppingUrl}
+            </Text>
+
+            <PrimaryButton
+              title={enlargedQR === 'signup' ? 'Share Signup Link' : 'Share Shopping Link'}
+              icon="share-social"
+              onPress={() => {
+                const url = enlargedQR === 'signup' ? signupUrl : shoppingUrl;
+                handleShare(url, enlargedQR);
+              }}
+              style={{ marginTop: 20, width: '80%' }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Referral Network Modal */}
+      <Modal
+        visible={showReferralNetwork}
+        animationType="slide"
+        onRequestClose={() => setShowReferralNetwork(false)}
+      >
+        <ReferralNetworkScreen
+          token={token}
+          tree={referralTree}
+          onBack={() => setShowReferralNetwork(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -463,8 +621,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -6,
-    right: -8,
+    top: 2,
+    right: 2,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -648,6 +806,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 16,
   },
+  qrTopLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.sky,
+    marginBottom: 12,
+    marginLeft: 16,
+    marginRight: 16,
+  },
   qrMain: {
     flexDirection: 'row',
     gap: 16,
@@ -660,8 +826,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     padding: 8,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -708,27 +872,9 @@ const styles = StyleSheet.create({
   },
   qrActions: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  qrActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
+    gap: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Colors.sky,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  qrActionBtnOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.sky,
-  },
-  qrActionText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    marginTop: 8,
   },
   qrSeparator: {
     height: 1,
@@ -774,5 +920,47 @@ const styles = StyleSheet.create({
   },
   menuLabelDanger: {
     color: Colors.error,
+  },
+
+  // ── Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    maxWidth: 380,
+    width: '100%',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  modalQrImage: {
+    width: 280,
+    height: 280,
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  modalQrUrl: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 4,
   },
 });
