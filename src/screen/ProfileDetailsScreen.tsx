@@ -338,6 +338,10 @@ export default function ProfileDetailsScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.white,
+  },
+  scrollView: {
+    flex: 1,
     backgroundColor: '#f0f9ff',
   },
   headerGradient: {
@@ -353,24 +357,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: '#e0f2fe',
+    borderColor: '#e5e7eb',
   },
   headerIconCart: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: '#e0f2fe',
+    borderColor: '#e5e7eb',
     position: 'relative',
   },
   cartBadge: {
@@ -402,9 +406,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Colors.text,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
     padding: 16,
