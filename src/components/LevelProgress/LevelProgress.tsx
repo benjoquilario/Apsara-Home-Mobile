@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Modal,
   Share,
   Linking,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
@@ -47,7 +50,7 @@ export default function LevelProgress({
   onViewDetails,
   loading = false,
 }: LevelProgressProps) {
-  const [enlargedBadge, setEnlargedBadge] = useState<'current' | 'next' | null>(null);
+  const [enlargedBadge, setEnlargedBadge] = useState<number | null>(null);
   const currentTierReq = TIER_REQUIREMENTS[currentRank];
   const nextRank = Math.min(5, currentRank + 1);
   const nextTierReq = TIER_REQUIREMENTS[nextRank];
@@ -172,52 +175,59 @@ export default function LevelProgress({
         </TouchableOpacity>
       </View>
 
-      {/* Badges Section */}
-      <View style={styles.badgesContainer}>
-        <TouchableOpacity
-          style={styles.badgeColumn}
-          onPress={() => setEnlargedBadge('current')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.badgeWrapper}>
-            <Image
-              source={BADGE_IMAGES[currentRank]}
-              style={styles.badgeImage}
-              resizeMode="contain"
-            />
-            <View style={[styles.activeBadge, { backgroundColor: tierColor }]}>
-              <Ionicons name="checkmark" size={12} color={Colors.white} />
-            </View>
-          </View>
-          <Text style={styles.rankLabel}>Rank {currentRank}</Text>
-          <Text style={styles.tierLabel}>{currentTier}</Text>
-          <View style={[styles.activeLabel, { backgroundColor: tierColor }]}>
-            <Text style={styles.activeLabelText}>CURRENT</Text>
-          </View>
-        </TouchableOpacity>
+      {/* Badges Section - Horizontal Scroll */}
+      <View style={styles.badgesScrollContainer}>
+        <FlatList
+          data={Array.from({ length: 5 }, (_, i) => i + 1)}
+          renderItem={({ item: rank }) => {
+            const tierReq = TIER_REQUIREMENTS[rank];
+            const isCurrentRank = rank === currentRank;
+            const tierCol = getTierColor(tierReq.tier);
 
-        <View style={styles.arrowColumn}>
-          <Ionicons name="chevron-forward" size={24} color="#cbd5e1" />
-        </View>
-
-        <TouchableOpacity
-          style={styles.badgeColumn}
-          onPress={() => setEnlargedBadge('next')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.badgeWrapper}>
-            <Image
-              source={BADGE_IMAGES[nextRank]}
-              style={styles.badgeImage}
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={styles.rankLabel}>Rank {nextRank}</Text>
-          <Text style={styles.tierLabel}>{nextTierReq.tier}</Text>
-          <View style={styles.nextLabel}>
-            <Text style={styles.nextLabelText}>NEXT</Text>
-          </View>
-        </TouchableOpacity>
+            return (
+              <TouchableOpacity
+                style={styles.badgeCard}
+                onPress={() => setEnlargedBadge(rank)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.badgeWrapper}>
+                  <Image
+                    source={BADGE_IMAGES[rank]}
+                    style={styles.badgeImage}
+                    resizeMode="contain"
+                  />
+                  {isCurrentRank && (
+                    <View style={[styles.activeBadge, { backgroundColor: tierCol }]}>
+                      <Ionicons name="checkmark" size={12} color={Colors.white} />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.rankLabel}>Rank {rank}</Text>
+                <Text style={styles.tierLabel}>{tierReq.tier}</Text>
+                {isCurrentRank ? (
+                  <View style={[styles.activeLabel, { backgroundColor: tierCol }]}>
+                    <Text style={styles.activeLabelText}>CURRENT</Text>
+                  </View>
+                ) : rank < currentRank ? (
+                  <View style={styles.completedLabel}>
+                    <Text style={styles.completedLabelText}>ACHIEVED</Text>
+                  </View>
+                ) : (
+                  <View style={styles.nextLabel}>
+                    <Text style={styles.nextLabelText}>UPCOMING</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          keyExtractor={(item) => item.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          snapToInterval={110}
+          decelerationRate="fast"
+          contentContainerStyle={styles.badgesScrollContent}
+        />
       </View>
 
       {/* Progress Section */}
@@ -241,79 +251,77 @@ export default function LevelProgress({
       </View>
 
       {/* Badge Detail Modal */}
-      <Modal
-        visible={enlargedBadge !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEnlargedBadge(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setEnlargedBadge(null)}
-            >
-              <Ionicons name="close" size={24} color={Colors.white} />
-            </TouchableOpacity>
-
-            {/* Badge Image */}
-            <Image
-              source={
-                enlargedBadge === 'current'
-                  ? BADGE_IMAGES[currentRank]
-                  : BADGE_IMAGES[nextRank]
-              }
-              style={styles.modalBadgeImage}
-              resizeMode="contain"
-            />
-
-            {/* Achievement Info */}
-            <View style={styles.achievementInfo}>
-              <Text style={styles.achievementRank}>
-                Rank {enlargedBadge === 'current' ? currentRank : nextRank}
-              </Text>
-              <Text style={styles.achievementTier}>
-                {enlargedBadge === 'current' ? currentTier : nextTierReq.tier}
-              </Text>
-              <Text style={styles.achievementDescription}>
-                {getTierDescription(
-                  enlargedBadge === 'current' ? currentTier : nextTierReq.tier,
-                  enlargedBadge === 'current'
-                )}
-              </Text>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
+      {enlargedBadge !== null && (
+        <Modal
+          visible={enlargedBadge !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setEnlargedBadge(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
               <TouchableOpacity
-                style={[styles.shareButton, { borderColor: tierColor }]}
-                onPress={() => {
-                  handleShareBadge(
-                    enlargedBadge === 'current' ? currentTier : nextTierReq.tier,
-                    enlargedBadge === 'current' ? currentRank : nextRank,
-                    enlargedBadge === 'current'
-                  );
-                }}
-                activeOpacity={0.7}
+                style={styles.modalCloseBtn}
+                onPress={() => setEnlargedBadge(null)}
               >
-                <Ionicons name="share-social" size={18} color={tierColor} />
-                <Text style={[styles.shareButtonText, { color: tierColor }]}>
-                  {enlargedBadge === 'current' ? 'Share Achievement' : 'Share Goal'}
+                <Ionicons name="close" size={24} color={Colors.white} />
+              </TouchableOpacity>
+
+              {/* Badge Image */}
+              <Image
+                source={BADGE_IMAGES[enlargedBadge]}
+                style={styles.modalBadgeImage}
+                resizeMode="contain"
+              />
+
+              {/* Achievement Info */}
+              <View style={styles.achievementInfo}>
+                <Text style={styles.achievementRank}>
+                  Rank {enlargedBadge}
                 </Text>
-              </TouchableOpacity>
+                <Text style={styles.achievementTier}>
+                  {TIER_REQUIREMENTS[enlargedBadge].tier}
+                </Text>
+                <Text style={styles.achievementDescription}>
+                  {getTierDescription(
+                    TIER_REQUIREMENTS[enlargedBadge].tier,
+                    enlargedBadge === currentRank
+                  )}
+                </Text>
+              </View>
 
-              <TouchableOpacity
-                style={[styles.visitButton, { backgroundColor: tierColor }]}
-                onPress={() => Linking.openURL('https://www.afhome.ph')}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="globe" size={18} color={Colors.white} />
-                <Text style={styles.visitButtonText}>Visit AF Home Website</Text>
-              </TouchableOpacity>
+              {/* Action Buttons */}
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.shareButton, { borderColor: getTierColor(TIER_REQUIREMENTS[enlargedBadge].tier) }]}
+                  onPress={() => {
+                    handleShareBadge(
+                      TIER_REQUIREMENTS[enlargedBadge].tier,
+                      enlargedBadge,
+                      enlargedBadge === currentRank
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="share-social" size={18} color={getTierColor(TIER_REQUIREMENTS[enlargedBadge].tier)} />
+                  <Text style={[styles.shareButtonText, { color: getTierColor(TIER_REQUIREMENTS[enlargedBadge].tier) }]}>
+                    {enlargedBadge === currentRank ? 'Share Achievement' : 'Share Goal'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.visitButton, { backgroundColor: getTierColor(TIER_REQUIREMENTS[enlargedBadge].tier) }]}
+                  onPress={() => Linking.openURL('https://www.afhome.ph')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="globe" size={18} color={Colors.white} />
+                  <Text style={styles.visitButtonText}>Visit AF Home Website</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -363,18 +371,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '500',
   },
-  badgesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+  badgesScrollContainer: {
     paddingVertical: 16,
+  },
+  badgesScrollContent: {
+    paddingHorizontal: 16,
     gap: 8,
   },
-  badgeColumn: {
-    flex: 1,
+  badgeCard: {
     alignItems: 'center',
     gap: 6,
+    width: 110,
   },
   badgeWrapper: {
     position: 'relative',
@@ -420,6 +427,19 @@ const styles = StyleSheet.create({
     color: Colors.white,
     letterSpacing: 0.5,
   },
+  completedLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 2,
+    backgroundColor: '#d1fae5',
+  },
+  completedLabelText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#10b981',
+    letterSpacing: 0.5,
+  },
   nextLabel: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -441,6 +461,7 @@ const styles = StyleSheet.create({
   progressSection: {
     paddingHorizontal: 16,
     paddingVertical: 16,
+    paddingBottom: 12,
     gap: 8,
   },
   progressHeader: {
