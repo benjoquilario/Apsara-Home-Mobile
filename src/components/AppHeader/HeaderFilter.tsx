@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
@@ -18,6 +19,12 @@ interface HeaderFilterProps {
   onFilterChange?: (filterType: string, value: any) => void;
   showRoomFilter?: boolean;
   selectedRoom?: string;
+  showCategoryFilter?: boolean;
+  selectedCategory?: string;
+  categories?: any[];
+  showBrandFilter?: boolean;
+  selectedBrand?: string;
+  brands?: any[];
 }
 
 const SORT_OPTIONS = ['Relevant', 'A-Z', 'Z-A', 'Price: Low', 'Price: High', 'Newest'];
@@ -37,11 +44,24 @@ const ROOM_OPTIONS = [
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
-export default function HeaderFilter({ onFilterChange, showRoomFilter = false, selectedRoom = 'Bedroom' }: HeaderFilterProps) {
+export default function HeaderFilter({
+  onFilterChange,
+  showRoomFilter = false,
+  selectedRoom = 'Bedroom',
+  showCategoryFilter = false,
+  selectedCategory = 'All Categories',
+  categories = [],
+  showBrandFilter = false,
+  selectedBrand = 'All Brands',
+  brands = []
+}: HeaderFilterProps) {
   const [activeSort, setActiveSort] = useState('Relevant');
   const [activePrice, setActivePrice] = useState('All');
   const [activeRoom, setActiveRoom] = useState(selectedRoom);
+  const [activeCategory, setActiveCategory] = useState(selectedCategory);
+  const [activeBrand, setActiveBrand] = useState(selectedBrand);
   const [expandedFilter, setExpandedFilter] = useState<string | null>(null);
+  const [brandSearch, setBrandSearch] = useState('');
 
   const modalTranslateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   const panResponder = useRef(
@@ -75,7 +95,7 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
   ).current;
 
   useEffect(() => {
-    if (expandedFilter === 'room') {
+    if (expandedFilter === 'room' || expandedFilter === 'category' || expandedFilter === 'brand') {
       modalTranslateY.setValue(0);
     }
   }, [expandedFilter, modalTranslateY]);
@@ -83,6 +103,14 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
   useEffect(() => {
     setActiveRoom(selectedRoom);
   }, [selectedRoom]);
+
+  useEffect(() => {
+    setActiveCategory(selectedCategory);
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    setActiveBrand(selectedBrand);
+  }, [selectedBrand]);
 
   const handleSort = (sort: string) => {
     setActiveSort(sort);
@@ -102,6 +130,13 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
     onFilterChange?.('room', room);
   };
 
+  const filteredBrands = useMemo(() => {
+    if (!brandSearch.trim()) return brands;
+    return brands.filter(brand =>
+      brand.name.toLowerCase().includes(brandSearch.toLowerCase())
+    );
+  }, [brands, brandSearch]);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -115,7 +150,7 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
             <TouchableOpacity
               style={[
                 styles.filterButton,
-                (expandedFilter === 'room' || activeRoom !== 'Bedroom') && styles.filterButtonActive,
+                activeRoom !== 'All Room Types' && styles.filterButtonActive,
               ]}
               onPress={() => setExpandedFilter(expandedFilter === 'room' ? null : 'room')}
             >
@@ -167,7 +202,7 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
                         style={[
                           styles.roomFilterItem,
                           index === ROOM_OPTIONS.length - 1 && styles.roomFilterItemLast,
-                          activeRoom === room.name && styles.roomFilterItemActive,
+                          activeRoom === room.name && room.name !== 'All Room Types' && styles.roomFilterItemActive,
                         ]}
                         onPress={() => {
                           handleRoom(room.name);
@@ -178,19 +213,274 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
                           <Text
                             style={[
                               styles.roomFilterItemText,
-                              activeRoom === room.name && styles.roomFilterItemTextActive,
+                              activeRoom === room.name && room.name !== 'All Room Types' && styles.roomFilterItemTextActive,
                             ]}
                           >
                             {room.name}
                           </Text>
                         </View>
-                        {activeRoom === room.name && (
+                        {activeRoom === room.name && room.name !== 'All Room Types' && (
                           <View style={styles.roomFilterCheckmark}>
                             <Ionicons name="checkmark" size={20} color={Colors.sky} />
                           </View>
                         )}
                       </TouchableOpacity>
                     ))}
+                  </ScrollView>
+                </Animated.View>
+              </View>
+            </Modal>
+          </View>
+        )}
+
+        {/* Category Filter */}
+        {showCategoryFilter && (
+          <View style={styles.filterItem}>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                activeCategory !== 'All Categories' && styles.filterButtonActive,
+              ]}
+              onPress={() => setExpandedFilter(expandedFilter === 'category' ? null : 'category')}
+            >
+              <Ionicons name="list-outline" size={14} color={Colors.text} />
+              <Text style={styles.filterText} numberOfLines={1}>{activeCategory}</Text>
+              <Ionicons
+                name={expandedFilter === 'category' ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color={Colors.text}
+              />
+            </TouchableOpacity>
+
+            <Modal
+              visible={expandedFilter === 'category'}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setExpandedFilter(null)}
+            >
+              <View style={styles.modalContainer}>
+                <Pressable
+                  style={styles.modalOverlay}
+                  onPress={() => setExpandedFilter(null)}
+                />
+                <Animated.View
+                  style={[
+                    styles.roomFilterModal,
+                    {
+                      transform: [{ translateY: modalTranslateY }],
+                    },
+                  ]}
+                  {...panResponder.panHandlers}
+                >
+                  <View style={styles.roomFilterHandleContainer}>
+                    <View style={styles.roomFilterHandle} />
+                  </View>
+                  <View style={styles.roomFilterHeader}>
+                    <Text style={styles.roomFilterTitle}>Categories</Text>
+                    <TouchableOpacity onPress={() => setExpandedFilter(null)}>
+                      <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    style={styles.roomFilterList}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.roomFilterItem,
+                      ]}
+                      onPress={() => {
+                        setActiveCategory('All Categories');
+                        setExpandedFilter(null);
+                        onFilterChange?.('category', null);
+                      }}
+                    >
+                      <View style={styles.roomFilterItemContent}>
+                        <Text
+                          style={[
+                            styles.roomFilterItemText,
+                          ]}
+                        >
+                          All Categories
+                        </Text>
+                      </View>
+                      {activeCategory === 'All Categories' && (
+                        <View style={styles.roomFilterCheckmark}>
+                          <Ionicons name="checkmark" size={20} color={Colors.sky} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    {categories.map((category, index) => (
+                      <TouchableOpacity
+                        key={category.id}
+                        style={[
+                          styles.roomFilterItem,
+                          index === categories.length - 1 && styles.roomFilterItemLast,
+                          activeCategory === category.name && styles.roomFilterItemActive,
+                        ]}
+                        onPress={() => {
+                          setActiveCategory(category.name);
+                          setExpandedFilter(null);
+                          onFilterChange?.('category', category.id);
+                        }}
+                      >
+                        <View style={styles.roomFilterItemContent}>
+                          <Text
+                            style={[
+                              styles.roomFilterItemText,
+                              activeCategory === category.name && styles.roomFilterItemTextActive,
+                            ]}
+                          >
+                            {category.name}
+                          </Text>
+                        </View>
+                        {activeCategory === category.name && (
+                          <View style={styles.roomFilterCheckmark}>
+                            <Ionicons name="checkmark" size={20} color={Colors.sky} />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </Animated.View>
+              </View>
+            </Modal>
+          </View>
+        )}
+
+        {/* Brand Filter */}
+        {showBrandFilter && (
+          <View style={styles.filterItem}>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                activeBrand !== 'All Brands' && styles.filterButtonActive,
+              ]}
+              onPress={() => {
+                setBrandSearch('');
+                setExpandedFilter(expandedFilter === 'brand' ? null : 'brand');
+              }}
+            >
+              <Ionicons name="bag-outline" size={14} color={Colors.text} />
+              <Text style={styles.filterText} numberOfLines={1}>
+                {brands.length === 0 ? 'Loading...' : activeBrand}
+              </Text>
+              <Ionicons
+                name={expandedFilter === 'brand' ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color={Colors.text}
+              />
+            </TouchableOpacity>
+
+            <Modal
+              visible={expandedFilter === 'brand'}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setExpandedFilter(null)}
+            >
+              <View style={styles.modalContainer}>
+                <Pressable
+                  style={styles.modalOverlay}
+                  onPress={() => setExpandedFilter(null)}
+                />
+                <Animated.View
+                  style={[
+                    styles.roomFilterModal,
+                    {
+                      transform: [{ translateY: modalTranslateY }],
+                    },
+                  ]}
+                  {...panResponder.panHandlers}
+                >
+                  <View style={styles.roomFilterHandleContainer}>
+                    <View style={styles.roomFilterHandle} />
+                  </View>
+                  <View style={styles.roomFilterHeader}>
+                    <Text style={styles.roomFilterTitle}>Brands</Text>
+                    <TouchableOpacity onPress={() => setExpandedFilter(null)}>
+                      <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.brandSearchContainer}>
+                    <Ionicons name="search" size={16} color={Colors.textSecondary} style={styles.brandSearchIcon} />
+                    <TextInput
+                      style={styles.brandSearchInput}
+                      placeholder="Search brands..."
+                      placeholderTextColor={Colors.textSecondary}
+                      value={brandSearch}
+                      onChangeText={setBrandSearch}
+                    />
+                    {brandSearch.length > 0 && (
+                      <TouchableOpacity onPress={() => setBrandSearch('')} style={styles.brandSearchClear}>
+                        <Ionicons name="close-circle" size={16} color={Colors.textSecondary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <ScrollView
+                    style={styles.roomFilterList}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.roomFilterItem,
+                      ]}
+                      onPress={() => {
+                        setActiveBrand('All Brands');
+                        setExpandedFilter(null);
+                        onFilterChange?.('brand', null);
+                      }}
+                    >
+                      <View style={styles.roomFilterItemContent}>
+                        <Text
+                          style={[
+                            styles.roomFilterItemText,
+                          ]}
+                        >
+                          All Brands
+                        </Text>
+                      </View>
+                      {activeBrand === 'All Brands' && (
+                        <View style={styles.roomFilterCheckmark}>
+                          <Ionicons name="checkmark" size={20} color={Colors.sky} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    {filteredBrands.length > 0 ? filteredBrands.map((brand, index) => (
+                      <TouchableOpacity
+                        key={brand.id}
+                        style={[
+                          styles.roomFilterItem,
+                          index === filteredBrands.length - 1 && styles.roomFilterItemLast,
+                          activeBrand === brand.name && styles.roomFilterItemActive,
+                        ]}
+                        onPress={() => {
+                          setActiveBrand(brand.name);
+                          setBrandSearch('');
+                          setExpandedFilter(null);
+                          onFilterChange?.('brand', brand.id);
+                        }}
+                      >
+                        <View style={styles.roomFilterItemContent}>
+                          <Text
+                            style={[
+                              styles.roomFilterItemText,
+                              activeBrand === brand.name && styles.roomFilterItemTextActive,
+                            ]}
+                          >
+                            {brand.name}
+                          </Text>
+                        </View>
+                        {activeBrand === brand.name && (
+                          <View style={styles.roomFilterCheckmark}>
+                            <Ionicons name="checkmark" size={20} color={Colors.sky} />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    )) : (
+                      <View style={styles.noResultsContainer}>
+                        <Text style={styles.noResultsText}>No brands found</Text>
+                      </View>
+                    )}
                   </ScrollView>
                 </Animated.View>
               </View>
@@ -376,7 +666,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '75%',
+    height: MODAL_HEIGHT,
+    width: '100%',
     paddingBottom: 20,
   },
   roomFilterHandleContainer: {
@@ -405,6 +696,7 @@ const styles = StyleSheet.create({
   },
   roomFilterList: {
     paddingHorizontal: 0,
+    flex: 1,
   },
   roomFilterItem: {
     flexDirection: 'row',
@@ -435,5 +727,35 @@ const styles = StyleSheet.create({
   },
   roomFilterCheckmark: {
     marginLeft: 12,
+  },
+  brandSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    backgroundColor: '#f9fafb',
+  },
+  brandSearchIcon: {
+    marginRight: 8,
+  },
+  brandSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text,
+    paddingVertical: 6,
+  },
+  brandSearchClear: {
+    padding: 4,
+  },
+  noResultsContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
 });
