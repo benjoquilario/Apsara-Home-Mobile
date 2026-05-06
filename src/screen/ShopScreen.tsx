@@ -360,9 +360,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 12,
-    gap: 12,
+    gap: 8,
   },
   viewToggleWrapper: {
     flexDirection: 'row',
