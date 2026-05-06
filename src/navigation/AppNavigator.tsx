@@ -450,7 +450,10 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             <SearchResultScreen
               token={token}
               query={searchQuery}
-              onBack={() => setSearchQuery(null)}
+              onBack={() => {
+                setSearchQuery(null);
+                setSearchVisible(true);
+              }}
               onProductPress={(product) => {
                 setPreviousSearchQuery(searchQuery);
                 setSelectedProductId(product.id);
