@@ -114,6 +114,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [showCart, setShowCart] = useState(false);
   const [showProfileDetails, setShowProfileDetails] = useState(false);
   const [profileDetailsFromTab, setProfileDetailsFromTab] = useState(false);
+  const [referralNetworkFromTab, setReferralNetworkFromTab] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [previousTab, setPreviousTab] = useState<TabKey>('home');
@@ -516,6 +517,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               onCartPress={() => setShowCart(true)}
               cartCount={cartCount}
               onShowProfileDetails={(show) => setProfileDetailsFromTab(show)}
+              onShowReferralNetwork={(show) => setReferralNetworkFromTab(show)}
             />
           ) : activeTab === 'home' ? (
             <>
@@ -585,7 +587,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           )}
         </View>
 
-        {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && (
+        {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !referralNetworkFromTab && (
           <View style={styles.navBar}>
             {TABS.map(key => {
               const active = activeTab === key;
