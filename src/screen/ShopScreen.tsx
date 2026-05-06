@@ -197,17 +197,8 @@ export default function ShopScreen({
         onSearchPress={() => console.log('Search pressed')}
         onProfilePress={() => console.log('Profile pressed')}
         showRoomFilter={true}
-        selectedRoom={selectedRoom?.room_name || 'All Products'}
-        onRoomFilterChange={(filterType, value) => {
-          if (filterType === 'room') {
-            const room = ROOMS.find(r => r.room_name === value);
-            if (room) {
-              handleRoomSelect(room.room_id);
-            } else if (value === 'All Products') {
-              handleRoomSelect(null);
-            }
-          }
-        }}
+        selectedRoom={selectedRoom?.room_name || 'All Room Types'}
+        onRoomFilterChange={(filterType, value) => filterType === 'room' && handleRoomSelect(value === 'All Room Types' ? null : ROOMS.find(r => r.room_name === value)?.room_id || null)}
       />
 
       <ScrollView
