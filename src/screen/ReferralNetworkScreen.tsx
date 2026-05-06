@@ -186,18 +186,24 @@ export default function ReferralNetworkScreen({ token, onBack, tree }: ReferralN
 
   return (
     <View style={styles.root}>
-      {/* Header */}
+      {/* Header with Gradient extending to top */}
       <LinearGradient
         colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
+        style={[styles.headerGradient, { paddingTop: insets.top }]}
       >
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Referral Network</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            onPress={onBack}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back-outline" size={20} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Referral Network</Text>
+          <View style={{ width: 40 }} />
+        </View>
       </LinearGradient>
 
       <ScrollView
@@ -246,15 +252,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f9ff',
   },
 
+  headerGradient: {
+    paddingBottom: 12,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e7eb',
+  },
+
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
 
   headerTitle: {
