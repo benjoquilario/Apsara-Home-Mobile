@@ -23,6 +23,7 @@ interface HeaderFilterProps {
 const SORT_OPTIONS = ['Relevant', 'A-Z', 'Z-A', 'Price: Low', 'Price: High', 'Newest'];
 const PRICE_OPTIONS = ['All', 'Under ₱5k', '₱5k-₱20k', '₱20k-₱50k', 'Over ₱50k'];
 const ROOM_OPTIONS = [
+  { id: 0, name: 'All Products' },
   { id: 1, name: 'Bedroom' },
   { id: 2, name: 'Kitchen' },
   { id: 3, name: 'Living Room' },
@@ -47,7 +48,7 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return Math.abs(gestureState.dy) > 10;
+        return Math.abs(gestureState.dy) > 5;
       },
       onPanResponderMove: (evt, gestureState) => {
         if (gestureState.dy > 0) {
@@ -58,12 +59,14 @@ export default function HeaderFilter({ onFilterChange, showRoomFilter = false, s
         if (gestureState.dy > 100) {
           Animated.timing(modalTranslateY, {
             toValue: MODAL_HEIGHT,
-            duration: 300,
+            duration: 200,
             useNativeDriver: true,
           }).start(() => setExpandedFilter(null));
         } else {
           Animated.spring(modalTranslateY, {
             toValue: 0,
+            friction: 8,
+            tension: 60,
             useNativeDriver: true,
           }).start();
         }
