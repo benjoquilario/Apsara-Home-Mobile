@@ -32,6 +32,8 @@ const SLIDE_DISTANCE = 30;
 const OUT_DURATION = 0;
 const IN_DURATION = 0;
 
+let screenTapTime = 0;
+
 // Cache utilities using expo-file-system
 const CACHE_DIR = FileSystem.cacheDirectory + 'apsara_cache/';
 const cacheUtils = {
@@ -128,6 +130,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<BrandItem | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   // const [deviceToken, setDeviceToken] = useState<string | null>(null);
   // const [showTokenModal, setShowTokenModal] = useState(false);
 
@@ -205,6 +208,14 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
   //   setupNotifications();
   // }, []);
+
+  useEffect(() => {
+    if (screenTapTime) {
+      const elapsed = Date.now() - screenTapTime;
+      console.log(`✅ [RENDER] ${labelMap[activeTab]} screen displayed in ${elapsed}ms`);
+      screenTapTime = 0;
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!token) return;
@@ -349,6 +360,16 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     return () => sub.remove();
   }, [selectedProductId, previousTab, previousSearchQuery]);
 
+  // Global back button handler for exit confirmation on main screens
+  useEffect(() => {
+    if (selectedProductId !== null || searchVisible || searchQuery) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setShowExitConfirm(true);
+      return true;
+    });
+    return () => sub.remove();
+  }, [selectedProductId, searchVisible, searchQuery]);
+
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const activeTabRef = useRef<TabKey>('home');
@@ -356,28 +377,12 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   function navigateTo(key: TabKey) {
     if (key === activeTabRef.current) return;
 
+    screenTapTime = Date.now();
+    console.log(`⏱️ [TAP] ${labelMap[key]} screen tapped`);
+
     setPreviousTab(activeTabRef.current);
-    const direction = TABS.indexOf(key) > TABS.indexOf(activeTabRef.current) ? 1 : -1;
-
-    // Update ref immediately so rapid taps don't double-fire
     activeTabRef.current = key;
-
-    // Stop any in-progress animation cleanly
-    fadeAnim.stopAnimation();
-    slideAnim.stopAnimation();
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 0, duration: OUT_DURATION, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: -direction * SLIDE_DISTANCE, duration: OUT_DURATION, useNativeDriver: true }),
-    ]).start(({ finished }) => {
-      if (!finished) return;
-      setActiveTab(key);
-      slideAnim.setValue(direction * SLIDE_DISTANCE);
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: IN_DURATION, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: IN_DURATION, useNativeDriver: true }),
-      ]).start();
-    });
+    setActiveTab(key);
   }
 
   const panResponder = useRef(
@@ -593,6 +598,11 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   setSelectedProductId(id);
                 }}
                 onCartPress={() => setShowCart(true)}
+                onOpenSearch={() => {
+                  setSearchSourceProductId(null);
+                  setPreviousTab(activeTabRef.current);
+                  setSearchVisible(true);
+                }}
                 wishlistItems={wishlistItems}
                 onWishlistChange={() => fetchWishlistData()}
               />
@@ -877,6 +887,37 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           />
         </View>
       )}
+
+      {/* Exit Confirmation Modal */}
+      <Modal
+        visible={showExitConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowExitConfirm(false)}
+      >
+        <Pressable style={styles.exitModalOverlay} onPress={() => setShowExitConfirm(false)} activeOpacity={1}>
+          <View style={styles.exitModalContent}>
+            <Text style={styles.exitModalTitle}>Close App</Text>
+            <Text style={styles.exitModalMessage}>Do you want to close the application?</Text>
+
+            <View style={styles.exitModalButtons}>
+              <Pressable
+                style={[styles.exitModalButton, styles.exitModalButtonCancel]}
+                onPress={() => setShowExitConfirm(false)}
+              >
+                <Text style={styles.exitModalButtonCancelText}>Continue</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.exitModalButton, styles.exitModalButtonClose]}
+                onPress={() => BackHandler.exitApp()}
+              >
+                <Text style={styles.exitModalButtonCloseText}>Close App</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -1136,5 +1177,61 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1000,
     backgroundColor: Colors.white,
+  },
+  exitModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  exitModalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+    gap: 12,
+  },
+  exitModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  exitModalMessage: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  exitModalButtons: {
+    width: '100%',
+    gap: 10,
+  },
+  exitModalButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exitModalButtonCancel: {
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  exitModalButtonCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  exitModalButtonClose: {
+    backgroundColor: Colors.error,
+  },
+  exitModalButtonCloseText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
   },
 });
