@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator, ImageSourcePropType } from 'react-native';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator, ImageSourcePropType, Modal, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
@@ -49,11 +49,33 @@ function ItemCard({
   isWishlisted = false,
   wishlistId,
   onWishlistToggle,
+  onAddToCart,
+  onHideItem,
+  onReportItem,
   isDarkMode = false,
 }: ItemCardProps) {
   const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuScaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (showMenu) {
+      Animated.spring(menuScaleAnim, {
+        toValue: 1,
+        friction: 7,
+        tension: 100,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(menuScaleAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showMenu, menuScaleAnim]);
 
   // Debug logging
   console.log(`🎨 ItemCard rendering: ${product.name} (ID: ${product.id})`);
@@ -134,14 +156,21 @@ function ItemCard({
   };
 
   return (
-    <TouchableOpacity style={[styles.container, { backgroundColor: colors.bg, borderColor: colors.border }]} onPress={handlePress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={[styles.container, { backgroundColor: colors.bg, borderColor: colors.border }]}
+      onPress={handlePress}
+      onLongPress={() => setShowMenu(true)}
+      activeOpacity={0.8}
+    >
 
       {/* Image */}
       <View style={styles.imageContainer}>
         {imageError || !product.image ? (
-          <View style={[styles.productImage, styles.imagePlaceholder, { backgroundColor: colors.imageBg }]}>
-            <Ionicons name="image-outline" size={48} color={colors.textSec} />
-          </View>
+          <Image
+            source={require('../../../assets/af_home_logo.png')}
+            style={[styles.productImage, styles.imagePlaceholder, { tintColor: isDarkMode ? '#cbd5e1' : '#4b5563' }]}
+            resizeMode="contain"
+          />
         ) : (
           <Image
             source={getValidImageUrl(product.image) || require('../../../assets/af_home_logo.png')}
@@ -276,6 +305,90 @@ function ItemCard({
         </View>
 
       </View>
+
+      {/* Options Menu Overlay - On Image Section */}
+      {showMenu && (
+        <TouchableOpacity
+          style={styles.imageMenuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        >
+          <Animated.View
+            style={[
+              styles.menuContainer,
+              {
+                backgroundColor: isDarkMode ? '#1e293b' : Colors.white,
+                transform: [
+                  {
+                    scale: menuScaleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+                opacity: menuScaleAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
+                }),
+              },
+            ]}
+          >
+            {/* Add to Wishlist */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                handleWishlistToggle();
+              }}
+            >
+              <Ionicons
+                name={wishlisted ? "heart" : "heart-outline"}
+                size={18}
+                color={wishlisted ? "#ef4444" : (isDarkMode ? '#0ea5e9' : Colors.sky)}
+              />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                {wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Add to Cart */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                onAddToCart?.(product.id);
+              }}
+            >
+              <Ionicons name="cart-outline" size={18} color={isDarkMode ? '#0ea5e9' : Colors.sky} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Add to Cart</Text>
+            </TouchableOpacity>
+
+            {/* Hide Item */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                onHideItem?.(product.id);
+              }}
+            >
+              <Ionicons name="eye-off-outline" size={18} color={isDarkMode ? '#0ea5e9' : Colors.sky} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Hide Item</Text>
+            </TouchableOpacity>
+
+            {/* Delete Item */}
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemDanger]}
+              onPress={() => {
+                setShowMenu(false);
+                onReportItem?.(product.id);
+              }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#ef4444" />
+              <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete Item</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 }
@@ -302,7 +415,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   imagePlaceholder: {
-    backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -429,5 +541,47 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 10,
     fontWeight: '700',
+  },
+  imageMenuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  menuContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    overflow: 'hidden',
+    minWidth: 200,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  menuItemDanger: {
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  menuItemText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.text,
   },
 });
