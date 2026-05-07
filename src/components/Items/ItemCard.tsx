@@ -375,17 +375,15 @@ function ItemCard({
               <Text style={[styles.menuItemText, { color: colors.text }]}>Hide Item</Text>
             </TouchableOpacity>
 
-            {/* Delete Item */}
+            {/* Close Button */}
             <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemDanger]}
-              onPress={() => {
-                setShowMenu(false);
-                onReportItem?.(product.id);
-              }}
+              style={[styles.menuItem, styles.closeMenuItem, { borderTopColor: isDarkMode ? '#334155' : '#e5e7eb' }]}
+              onPress={() => setShowMenu(false)}
             >
-              <Ionicons name="trash-outline" size={18} color="#ef4444" />
-              <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete Item</Text>
+              <Ionicons name="close" size={18} color={isDarkMode ? '#94a3b8' : '#6b7280'} />
+              <Text style={[styles.menuItemText, { color: isDarkMode ? '#94a3b8' : '#6b7280' }]}>Close</Text>
             </TouchableOpacity>
+
           </Animated.View>
         </TouchableOpacity>
       )}
@@ -575,9 +573,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  menuItemDanger: {
+  closeMenuItem: {
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: '#e5e7eb',
+    marginTop: 4,
   },
   menuItemText: {
     fontSize: 13,
