@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+// Suppress the "Text strings must be rendered within a <Text> component" error
+LogBox.ignoreLogs(['Text strings must be rendered within a <Text> component']);
 import Toast from 'react-native-toast-message';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
