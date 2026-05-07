@@ -1,23 +1,23 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, memo } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   RefreshControl,
   StyleSheet,
   Dimensions,
   Pressable,
-  SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { productService, Product } from '../services/productService';
 import ItemCard from '../components/Items/ItemCard';
 import AppHeader from '../components/AppHeader/AppHeader';
 import Toast from 'react-native-toast-message';
-import axios from 'axios';
-import { API_CONFIG } from '../config/api';
+import { useOptimizedProducts } from '../hooks/useOptimizedProducts';
 import { Skeleton } from '../components/SkeletonLoader/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
@@ -45,11 +45,12 @@ interface ShopScreenProps {
   onBack?: () => void;
   onProductPress?: (id: number) => void;
   onCartPress?: () => void;
+  onOpenSearch?: () => void;
   wishlistItems?: any[];
   onWishlistChange?: () => void;
 }
 
-export default function ShopScreen({
+function ShopScreen({
   token,
   user,
   cartCount = 0,
@@ -61,32 +62,122 @@ export default function ShopScreen({
   onBack = () => {},
   onProductPress = () => {},
   onCartPress = () => {},
+  onOpenSearch = () => {},
   wishlistItems = [],
   onWishlistChange = () => {},
 }: ShopScreenProps) {
+  const shopScreenLoadStartRef = useRef(Date.now());
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    console.log('🛍️ ShopScreen MOUNTED');
+  }, []);
+
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(roomId);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(categoryId);
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(brandId);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
-  const perPage = 20;
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const prefetchedPageRef = useRef(2);
 
   const selectedRoom = useMemo(
     () => selectedRoomId ? ROOMS.find(r => r.room_id === selectedRoomId) : null,
     [selectedRoomId]
   );
 
-  const masonryColumns = useMemo(() => {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch,
+    isRefetching,
+    isTransitioning,
+  } = useOptimizedProducts({
+    token,
+    roomId: selectedRoomId,
+    categoryId: selectedCategoryId,
+    brandId: selectedBrandId,
+  });
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, [currentPage]);
+
+  // Background prefetch ONLY the next page (not multiple pages)
+  useEffect(() => {
+    if (!data?.pages) return;
+
+    const lastPage = data.pages[data.pages.length - 1];
+    const totalPages = lastPage?.totalPages || 0;
+
+    // Only prefetch if the next page hasn't been fetched yet AND it exists
+    if (currentPage + 1 <= totalPages && data.pages.length <= currentPage) {
+      console.log(`🔮 Prefetching page ${currentPage + 1}...`);
+      prefetchedPageRef.current = currentPage + 1;
+      fetchNextPage();
+    }
+  }, [currentPage, data, fetchNextPage]);
+
+  const handleRoomSelect = useCallback((roomId: number | null) => {
+    setSelectedRoomId(roomId);
+    setCurrentPage(1);
+    prefetchedPageRef.current = 2;
+    console.log(`🏠 Room filter changed to: ${roomId}`);
+  }, []);
+
+  const handleCategorySelect = useCallback((categoryId: number | null) => {
+    setSelectedCategoryId(categoryId);
+    setCurrentPage(1);
+    prefetchedPageRef.current = 2;
+    console.log(`📂 Category filter changed to: ${categoryId}`);
+  }, []);
+
+  const handleBrandSelect = useCallback((brandId: number | null) => {
+    setSelectedBrandId(brandId);
+    setCurrentPage(1);
+    prefetchedPageRef.current = 2;
+    console.log(`🏷️ Brand filter changed to: ${brandId}`);
+  }, []);
+
+  // Get products from current page only
+  const currentPageProducts = useMemo(() => {
+    const products = data?.pages?.[currentPage - 1]?.products || [];
+    if (products.length > 0) {
+      const loadTime = Date.now() - shopScreenLoadStartRef.current;
+      console.log(`⚡ ShopScreen READY: ${products.length} products (page ${currentPage}) loaded in ${loadTime}ms`);
+    }
+    return products;
+  }, [data?.pages, currentPage]);
+
+  // Get pagination info
+  const paginationInfo = useMemo(() => {
+    if (!data?.pages?.length) {
+      return { currentPage: 0, totalPages: 0, total: 0, startProduct: 0, endProduct: 0 };
+    }
+    const lastPage = data.pages[data.pages.length - 1];
+    const total = lastPage.total;
+    const startProduct = ((currentPage - 1) * 20) + 1;
+    const endProduct = Math.min(currentPage * 20, total);
+    return {
+      currentPage,
+      totalPages: lastPage.totalPages,
+      total,
+      startProduct,
+      endProduct,
+    };
+  }, [data, currentPage]);
+
+  // Prepare data for masonry layout
+  const masonryData = useMemo(() => {
     const leftColumn: Product[] = [];
     const rightColumn: Product[] = [];
 
-    products.forEach((product, index) => {
+    currentPageProducts.forEach((product, index) => {
       if (index % 2 === 0) {
         leftColumn.push(product);
       } else {
@@ -95,75 +186,25 @@ export default function ShopScreen({
     });
 
     return { leftColumn, rightColumn };
-  }, [products]);
+  }, [currentPageProducts]);
 
-  const fetchProducts = useCallback(async (page: number = 1) => {
-    if (!token) return;
-
-    try {
-      setLoading(page === 1);
-      const headers = { Authorization: `Bearer ${token}` };
-
-      let url = `${API_CONFIG.BASE_URL}/products?status=1&page=${page}&per_page=${perPage}`;
-      if (selectedRoomId) url += `&room_type=${selectedRoomId}`;
-      if (selectedCategoryId) url += `&cat_id=${selectedCategoryId}`;
-      if (selectedBrandId) url += `&brand_type=${selectedBrandId}`;
-
-      const response = await axios.get(url, { headers });
-
-      let data = response.data?.data || response.data?.products || [];
-      if (!Array.isArray(data)) {
-        data = [];
-      }
-
-      const total = response.data?.meta?.total || response.data?.total || response.data?.pagination?.total || data.length;
-      const pages = Math.ceil(total / perPage);
-
-      setProducts(data);
-      setTotalProducts(total);
-      setTotalPages(pages);
-      setCurrentPage(page);
-    } catch (error: any) {
-      console.error('Error fetching products:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to load products',
-        text2: error.message || 'Please try again',
-      });
-      setProducts([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [token, selectedRoomId, selectedCategoryId, selectedBrandId, perPage]);
-
-  useEffect(() => {
+  const handleRefresh = useCallback(() => {
     setCurrentPage(1);
-    fetchProducts(1);
-  }, [selectedRoomId, selectedCategoryId, selectedBrandId, fetchProducts]);
+    prefetchedPageRef.current = 2;
+    refetch();
+  }, [refetch]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchProducts(currentPage);
-  };
-
-  const handleRoomSelect = (roomId: number | null) => {
-    setSelectedRoomId(roomId);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      fetchProducts(currentPage + 1);
+  const handleNextPage = useCallback(() => {
+    if (currentPage < paginationInfo.totalPages) {
+      setCurrentPage(prev => prev + 1);
     }
-  };
+  }, [currentPage, paginationInfo.totalPages]);
 
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      fetchProducts(currentPage - 1);
+      setCurrentPage(prev => prev - 1);
     }
-  };
+  }, [currentPage]);
 
   const renderItem = (item: Product) => {
     const wishlistItem = wishlistItems?.find(w => w.product.id === item.id);
@@ -185,7 +226,7 @@ export default function ShopScreen({
     };
 
     return (
-      <View key={`product-${item.id}`} style={styles.masonryItem}>
+      <View style={styles.masonryItem}>
         <ItemCard
           product={productCard}
           token={token}
@@ -198,14 +239,154 @@ export default function ShopScreen({
     );
   };
 
+  const renderLoadingPlaceholders = () => (
+    <View style={styles.masonryGrid}>
+      <View style={styles.masonryColumn}>
+        <Skeleton width="100%" height={220} borderRadius={8} />
+        <Skeleton width="100%" height={260} borderRadius={8} style={{ marginTop: 8 }} />
+        <Skeleton width="100%" height={240} borderRadius={8} style={{ marginTop: 8 }} />
+      </View>
+      <View style={styles.masonryColumn}>
+        <Skeleton width="100%" height={260} borderRadius={8} />
+        <Skeleton width="100%" height={220} borderRadius={8} style={{ marginTop: 8 }} />
+        <Skeleton width="100%" height={250} borderRadius={8} style={{ marginTop: 8 }} />
+      </View>
+    </View>
+  );
+
+  const renderHeader = () => (
+    <View style={styles.filterInfoContainer}>
+      <View style={styles.viewToggleWrapper}>
+        <TouchableOpacity
+          style={[
+            styles.viewToggleButton,
+            viewType === 'grid' && styles.viewToggleButtonActive,
+          ]}
+          onPress={() => setViewType('grid')}
+        >
+          <Ionicons
+            name="apps-outline"
+            size={14}
+            color={viewType === 'grid' ? Colors.white : Colors.text}
+          />
+          <Text
+            style={[
+              styles.viewToggleText,
+              viewType === 'grid' && styles.viewToggleTextActive,
+            ]}
+          >
+            Card
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.viewToggleButton,
+            styles.viewToggleButtonLast,
+            viewType === 'list' && styles.viewToggleButtonActive,
+          ]}
+          onPress={() => setViewType('list')}
+        >
+          <Ionicons
+            name="reader-outline"
+            size={14}
+            color={viewType === 'list' ? Colors.white : Colors.text}
+          />
+          <Text
+            style={[
+              styles.viewToggleText,
+              viewType === 'list' && styles.viewToggleTextActive,
+            ]}
+          >
+            List
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.productCountContainer}>
+        <Text style={styles.productCountInfo}>
+          {paginationInfo.startProduct} to {paginationInfo.endProduct} of {paginationInfo.total} products
+        </Text>
+        {isTransitioning && (
+          <ActivityIndicator size="small" color={Colors.sky} style={styles.filterLoadingIndicator} />
+        )}
+      </View>
+    </View>
+  );
+
+  const renderContent = () => {
+    if (currentPageProducts.length === 0 && isLoading) {
+      return renderLoadingPlaceholders();
+    }
+
+    if (currentPageProducts.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cube-outline" size={48} color={Colors.textSecondary} />
+          <Text style={styles.emptyText}>No products found</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.masonryGrid}>
+        <View style={styles.masonryColumn}>
+          {masonryData.leftColumn.map((product) => (
+            <View key={`left-${product.id}`} style={styles.masonryItem}>
+              {renderItem(product)}
+            </View>
+          ))}
+        </View>
+        <View style={styles.masonryColumn}>
+          {masonryData.rightColumn.map((product) => (
+            <View key={`right-${product.id}`} style={styles.masonryItem}>
+              {renderItem(product)}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderFooter = () => {
+    if (currentPageProducts.length === 0) return null;
+
+    return (
+      <View style={styles.paginationContainer}>
+        <Pressable
+          onPress={handlePreviousPage}
+          disabled={currentPage === 1}
+          style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+        >
+          <Ionicons name="chevron-back" size={18} color={currentPage === 1 ? Colors.textSecondary : Colors.sky} />
+          <Text style={[styles.paginationText, currentPage === 1 && styles.paginationTextDisabled]}>Prev</Text>
+        </Pressable>
+
+        <Text style={styles.paginationInfo}>
+          {paginationInfo.currentPage} / {paginationInfo.totalPages}
+        </Text>
+
+        <Pressable
+          onPress={handleNextPage}
+          disabled={currentPage >= paginationInfo.totalPages}
+          style={[styles.paginationButton, currentPage >= paginationInfo.totalPages && styles.paginationButtonDisabled]}
+        >
+          <Text style={[styles.paginationText, currentPage >= paginationInfo.totalPages && styles.paginationTextDisabled]}>
+            Next
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={currentPage >= paginationInfo.totalPages ? Colors.textSecondary : Colors.sky} />
+        </Pressable>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <AppHeader
         user={user}
         cartCount={cartCount}
         onCartPress={onCartPress}
         onCameraPress={() => console.log('Camera pressed')}
-        onSearchPress={() => console.log('Search pressed')}
+        onSearchPress={onOpenSearch}
         onProfilePress={() => console.log('Profile pressed')}
         showRoomFilter={true}
         selectedRoom={selectedRoom?.room_name || 'All Room Types'}
@@ -216,170 +397,61 @@ export default function ShopScreen({
         selectedBrand={selectedBrandId ? brands.find(b => b.id === selectedBrandId)?.name : 'All Brands'}
         brands={brands}
         onRoomFilterChange={(filterType, value) => {
-          if (filterType === 'room') handleRoomSelect(value === 'All Room Types' ? null : ROOMS.find(r => r.room_name === value)?.room_id || null);
-          if (filterType === 'category') setSelectedCategoryId(value || null);
-          if (filterType === 'brand') setSelectedBrandId(value || null);
+          if (filterType === 'room') {
+            handleRoomSelect(value === 'All Room Types' ? null : ROOMS.find(r => r.room_name === value)?.room_id || null);
+          }
+          if (filterType === 'category') {
+            handleCategorySelect(value || null);
+          }
+          if (filterType === 'brand') {
+            handleBrandSelect(value || null);
+          }
         }}
       />
 
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        ref={flatListRef}
+        style={styles.flatList}
+        contentContainerStyle={styles.flatListContent}
+        data={[{ type: 'header' }, { type: 'content' }, { type: 'footer' }]}
+        renderItem={({ item }) => {
+          if (item.type === 'header') return renderHeader();
+          if (item.type === 'content') return renderContent();
+          if (item.type === 'footer') return renderFooter();
+          return null;
+        }}
+        keyExtractor={(item, index) => `${item.type}-${index}`}
+        scrollEnabled={true}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />
         }
         showsVerticalScrollIndicator={false}
-      >
-        {/* Filter Info Section - Scrolls with content */}
-        <View style={styles.filterInfoContainer}>
-          <View style={styles.viewToggleWrapper}>
-            <TouchableOpacity
-              style={[
-                styles.viewToggleButton,
-                viewType === 'grid' && styles.viewToggleButtonActive,
-              ]}
-              onPress={() => setViewType('grid')}
-            >
-              <Ionicons
-                name="apps-outline"
-                size={14}
-                color={viewType === 'grid' ? Colors.white : Colors.text}
-              />
-              <Text
-                style={[
-                  styles.viewToggleText,
-                  viewType === 'grid' && styles.viewToggleTextActive,
-                ]}
-              >
-                Card
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.viewToggleButton,
-                styles.viewToggleButtonLast,
-                viewType === 'list' && styles.viewToggleButtonActive,
-              ]}
-              onPress={() => setViewType('list')}
-            >
-              <Ionicons
-                name="reader-outline"
-                size={14}
-                color={viewType === 'list' ? Colors.white : Colors.text}
-              />
-              <Text
-                style={[
-                  styles.viewToggleText,
-                  viewType === 'list' && styles.viewToggleTextActive,
-                ]}
-              >
-                List
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.productCountInfo}>
-            {(currentPage - 1) * perPage + 1} - {Math.min(currentPage * perPage, totalProducts)} of {totalProducts} products
-          </Text>
-        </View>
-
-        {/* Products Grid */}
-        {loading && !refreshing ? (
-          <View style={styles.masonryGrid}>
-            <View style={styles.masonryColumn}>
-              <Skeleton width="100%" height={220} borderRadius={8} />
-              <Skeleton width="100%" height={260} borderRadius={8} style={{ marginTop: 8 }} />
-              <Skeleton width="100%" height={240} borderRadius={8} style={{ marginTop: 8 }} />
-            </View>
-            <View style={styles.masonryColumn}>
-              <Skeleton width="100%" height={260} borderRadius={8} />
-              <Skeleton width="100%" height={220} borderRadius={8} style={{ marginTop: 8 }} />
-              <Skeleton width="100%" height={250} borderRadius={8} style={{ marginTop: 8 }} />
-            </View>
-          </View>
-        ) : products.length > 0 ? (
-          <View style={styles.masonryGrid}>
-            <View style={styles.masonryColumn}>
-              {masonryColumns.leftColumn.map((product) => renderItem(product))}
-            </View>
-            <View style={styles.masonryColumn}>
-              {masonryColumns.rightColumn.map((product) => renderItem(product))}
-            </View>
-          </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={48} color={Colors.textSecondary} />
-            <Text style={styles.emptyText}>No products found</Text>
-          </View>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <View style={styles.paginationContainer}>
-            <Pressable
-              onPress={handlePreviousPage}
-              disabled={currentPage === 1}
-              style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={currentPage === 1 ? Colors.textSecondary : Colors.sky}
-              />
-              <Text style={[styles.paginationButtonText, currentPage === 1 && styles.paginationButtonTextDisabled]}>
-                Previous
-              </Text>
-            </Pressable>
-
-            <View style={styles.pageInfo}>
-              <Text style={styles.pageNumber}>
-                Page {currentPage} of {totalPages}
-              </Text>
-              <Text style={styles.pageDetails}>
-                {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, totalProducts)} of {totalProducts}
-              </Text>
-            </View>
-
-            <Pressable
-              onPress={handleNextPage}
-              disabled={currentPage >= totalPages}
-              style={[styles.paginationButton, currentPage >= totalPages && styles.paginationButtonDisabled]}
-            >
-              <Text style={[styles.paginationButtonText, currentPage >= totalPages && styles.paginationButtonTextDisabled]}>
-                Next
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={currentPage >= totalPages ? Colors.textSecondary : Colors.sky}
-              />
-            </Pressable>
-          </View>
-        )}
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 }
 
+export default memo(ShopScreen);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fbff',
+    backgroundColor: 'transparent',
   },
-  scrollView: {
+  flatList: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
-  scrollContent: {
+  flatListContent: {
     paddingBottom: 32,
+    backgroundColor: 'transparent',
   },
   filterInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
     paddingHorizontal: 8,
     paddingVertical: 12,
     gap: 8,
@@ -387,9 +459,8 @@ const styles = StyleSheet.create({
   viewToggleWrapper: {
     flexDirection: 'row',
     gap: 0,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   viewToggleButton: {
     flexDirection: 'row',
@@ -398,13 +469,11 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRightWidth: 1,
-    borderRightColor: '#e5e7eb',
-    backgroundColor: Colors.white,
+    borderRightWidth: 0,
+    backgroundColor: 'transparent',
   },
   viewToggleButtonActive: {
     backgroundColor: Colors.sky,
-    borderRightColor: Colors.sky,
   },
   viewToggleButtonLast: {
     borderRightWidth: 0,
@@ -417,10 +486,18 @@ const styles = StyleSheet.create({
   viewToggleTextActive: {
     color: Colors.white,
   },
+  productCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   productCountInfo: {
     fontSize: 12,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  filterLoadingIndicator: {
+    marginLeft: 4,
   },
   masonryGrid: {
     flexDirection: 'row',
@@ -450,13 +527,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f8fbff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
-    marginTop: 16,
   },
   paginationButton: {
     flexDirection: 'row',
@@ -471,29 +544,19 @@ const styles = StyleSheet.create({
   },
   paginationButtonDisabled: {
     backgroundColor: '#f3f4f6',
-    borderColor: '#e5e7eb',
+    borderColor: '#d1d5db',
   },
-  paginationButtonText: {
+  paginationText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.sky,
   },
-  paginationButtonTextDisabled: {
+  paginationTextDisabled: {
     color: Colors.textSecondary,
   },
-  pageInfo: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  pageNumber: {
+  paginationInfo: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.text,
-  },
-  pageDetails: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
   },
 });
