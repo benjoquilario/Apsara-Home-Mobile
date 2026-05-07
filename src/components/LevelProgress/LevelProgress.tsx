@@ -38,6 +38,7 @@ interface LevelProgressProps {
   username?: string;
   onViewDetails?: () => void;
   loading?: boolean;
+  isDarkMode?: boolean;
 }
 
 export default function LevelProgress({
@@ -51,7 +52,16 @@ export default function LevelProgress({
   username,
   onViewDetails,
   loading = false,
+  isDarkMode = false,
 }: LevelProgressProps) {
+  const colors = {
+    bg: isDarkMode ? '#1e293b' : Colors.white,
+    text: isDarkMode ? '#f8fafc' : Colors.text,
+    textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
+    border: isDarkMode ? '#334155' : '#e5e7eb',
+    borderLight: isDarkMode ? '#475569' : '#f1f5f9',
+    progressBg: isDarkMode ? '#334155' : '#f1f5f9',
+  };
   const [enlargedBadge, setEnlargedBadge] = useState<number | null>(null);
   const panResponder = useRef(
     PanResponder.create({
@@ -176,7 +186,7 @@ export default function LevelProgress({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg, borderColor: colors.border }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: tierColor }]}>
         <Ionicons name="trophy-outline" size={16} color={Colors.white} />
@@ -184,15 +194,15 @@ export default function LevelProgress({
       </View>
 
       {/* Title with View Details Link */}
-      <View style={styles.titleSection}>
-        <Text style={styles.sectionTitle}>Your Level Path</Text>
+      <View style={[styles.titleSection, { borderBottomColor: colors.borderLight }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Level Path</Text>
         <TouchableOpacity
           style={styles.viewDetailsLink}
           onPress={onViewDetails}
           activeOpacity={0.7}
         >
-          <Text style={styles.viewDetailsText}>View Details</Text>
-          <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} />
+          <Text style={[styles.viewDetailsText, { color: colors.textSec }]}>View Details</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.textSec} />
         </TouchableOpacity>
       </View>
 
@@ -223,8 +233,8 @@ export default function LevelProgress({
                     </View>
                   )}
                 </View>
-                <Text style={styles.rankLabel}>Rank {rank}</Text>
-                <Text style={styles.tierLabel}>{tierReq.tier}</Text>
+                <Text style={[styles.rankLabel, { color: colors.textSec }]}>Rank {rank}</Text>
+                <Text style={[styles.tierLabel, { color: colors.text }]}>{tierReq.tier}</Text>
                 {isCurrentRank ? (
                   <View style={[styles.activeLabel, { backgroundColor: tierCol }]}>
                     <Text style={styles.activeLabelText}>CURRENT</Text>
@@ -254,11 +264,11 @@ export default function LevelProgress({
       {/* Progress Section */}
       <View style={styles.progressSection}>
         <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>Overall Progress</Text>
-          <Text style={styles.progressPercentage}>{progressPct}%</Text>
+          <Text style={[styles.progressLabel, { color: colors.textSec }]}>Overall Progress</Text>
+          <Text style={[styles.progressPercentage, { color: colors.text }]}>{progressPct}%</Text>
         </View>
 
-        <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBarContainer, { backgroundColor: colors.progressBg }]}>
           <View
             style={[
               styles.progressBar,
@@ -285,7 +295,7 @@ export default function LevelProgress({
             onPress={() => setEnlargedBadge(null)}
           >
             <TouchableOpacity
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: colors.bg }]}
               activeOpacity={1}
               onPress={(e) => e.stopPropagation()}
               {...panResponder.panHandlers}
@@ -351,13 +361,13 @@ export default function LevelProgress({
 
               {/* Achievement Info */}
               <View style={styles.achievementInfo}>
-                <Text style={styles.achievementRank}>
+                <Text style={[styles.achievementRank, { color: colors.textSec }]}>
                   Rank {enlargedBadge}
                 </Text>
-                <Text style={styles.achievementTier}>
+                <Text style={[styles.achievementTier, { color: colors.text }]}>
                   {TIER_REQUIREMENTS[enlargedBadge].tier}
                 </Text>
-                <Text style={styles.achievementDescription}>
+                <Text style={[styles.achievementDescription, { color: colors.textSec }]}>
                   {getTierDescription(
                     TIER_REQUIREMENTS[enlargedBadge].tier,
                     enlargedBadge === currentRank
