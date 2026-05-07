@@ -127,7 +127,7 @@ function getBrandLogo(brand: BrandItem) {
   return null;
 }
 
-function CategoryCircle({ category, index, onPress }: { category: CategoryItem, index: number, onPress?: (categoryId: number) => void }) {
+function CategoryCircle({ category, index, onPress, isDarkMode, colors }: { category: CategoryItem, index: number, onPress?: (categoryId: number) => void, isDarkMode?: boolean, colors?: any }) {
   const image = useMemo(() => getCategoryImages(category)[0], [category]);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -165,7 +165,7 @@ function CategoryCircle({ category, index, onPress }: { category: CategoryItem, 
         onPressOut={handlePressOut}
         onPress={() => onPress?.(category.id)}
       >
-        <View style={[styles.circleImageWrap, styles.categoryCircle]}>
+        <View style={[styles.circleImageWrap, styles.categoryCircle, { backgroundColor: isDarkMode ? colors?.card : Colors.white }]}>
           <Image
             source={{ uri: image }}
             style={styles.circleImage}
@@ -173,6 +173,7 @@ function CategoryCircle({ category, index, onPress }: { category: CategoryItem, 
           {badgeType && (
             <Animated.View style={[
               styles.categoryBadge,
+              isDarkMode && styles.categoryBadgeDark,
               badgeType === 'Hot' ? { backgroundColor: '#ef4444' } : { backgroundColor: '#3b82f6' },
               { transform: [{ scale: pulseAnim }] }
             ]}>
@@ -180,7 +181,7 @@ function CategoryCircle({ category, index, onPress }: { category: CategoryItem, 
             </Animated.View>
           )}
         </View>
-        <Text style={styles.circleLabel} numberOfLines={2}>{category.name}</Text>
+        <Text style={[styles.circleLabel, { color: colors?.text || Colors.text }]} numberOfLines={2}>{category.name}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -217,7 +218,7 @@ function SampleAdCard({ title, subtitle }: { title: string, subtitle: string }) 
   );
 }
 
-function RoomItemComponent({ item, onPress }: { item: RoomType; onPress?: (roomId: number) => void }) {
+function RoomItemComponent({ item, onPress, isDarkMode, colors }: { item: RoomType; onPress?: (roomId: number) => void, isDarkMode?: boolean, colors?: any }) {
   const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -237,7 +238,7 @@ function RoomItemComponent({ item, onPress }: { item: RoomType; onPress?: (roomI
   const badge = item.room_id === 1 ? 'New' : item.room_id === 3 ? 'Hot' : null;
 
   return (
-    <Animated.View style={[styles.roomItem, { transform: [{ scale }] }]}>
+    <Animated.View style={[styles.roomItem, { transform: [{ scale }], borderColor: isDarkMode ? colors?.border : '#e5e7eb' }]}>
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -245,7 +246,7 @@ function RoomItemComponent({ item, onPress }: { item: RoomType; onPress?: (roomI
         style={{ alignItems: 'center', width: '100%', gap: 6 }}
       >
         <View style={styles.roomCircleContainer}>
-          <View style={styles.roomCircleWrap}>
+          <View style={[styles.roomCircleWrap, { borderColor: isDarkMode ? colors?.border : '#e0f2fe' }]}>
             {item.images && item.images.length > 0 ? (
               <Image
                 source={{ uri: item.images[0] }}
@@ -253,18 +254,18 @@ function RoomItemComponent({ item, onPress }: { item: RoomType; onPress?: (roomI
                 resizeMode="cover"
               />
             ) : (
-              <View style={styles.roomCircleFallback}>
+              <View style={[styles.roomCircleFallback, { backgroundColor: isDarkMode ? colors?.sectionEven : '#eff6ff' }]}>
                 <Ionicons name="home-outline" size={24} color={Colors.sky} />
               </View>
             )}
           </View>
           {badge && (
-            <View style={[styles.roomBadge, badge === 'Hot' ? { backgroundColor: '#ef4444' } : {}]}>
+            <View style={[styles.roomBadge, isDarkMode && styles.roomBadgeDark, badge === 'Hot' ? { backgroundColor: '#ef4444' } : {}]}>
               <Text style={styles.roomBadgeText}>{badge}</Text>
             </View>
           )}
         </View>
-        <Text style={styles.circleLabel} numberOfLines={2}>{item.room_name}</Text>
+        <Text style={[styles.circleLabel, { color: colors?.text || Colors.text }]} numberOfLines={2}>{item.room_name}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -306,6 +307,9 @@ function HomeScreen({
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalCart, setTotalCart] = useState(0);
+  const [totalReferrals, setTotalReferrals] = useState(0);
   const bannerRef = useRef<ScrollView>(null);
 
   // Prefetch products in background for instant Shop screen load
@@ -351,6 +355,32 @@ function HomeScreen({
   const onRefresh = () => {
     fetchHomeData(true);
   };
+
+  // Fetch stats from API
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!token) return;
+      try {
+        const { orderService } = require('../services/orderService');
+        const { referralService } = require('../services/referralService');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [orderCounts, referralData, cartRes] = await Promise.all([
+          orderService.getOrderCounts(token),
+          referralService.getReferralTree(token),
+          axios.get(`${API_CONFIG.BASE_URL}/cart`, { headers }),
+        ]);
+
+        setTotalOrders(orderCounts?.all || 0);
+        setTotalReferrals(referralData?.summary?.direct_count || 0);
+        setTotalCart(cartRes?.data?.cart_items?.length || 0);
+      } catch (error) {
+        console.log('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [token]);
 
   // Data fetching is handled by parent (AppNavigator)
   // HomeScreen only handles pull-to-refresh
@@ -451,21 +481,21 @@ function HomeScreen({
         <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
           <View style={styles.statsMain}>
             <Ionicons name="receipt-outline" size={18} color="#f97316" />
-            <Text style={[styles.statsValue, { color: colors.text }]}>14</Text>
+            <Text style={[styles.statsValue, { color: colors.text }]}>{totalOrders}</Text>
           </View>
           <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
           <View style={styles.statsMain}>
             <Ionicons name="cart-outline" size={18} color="#0ea5e9" />
-            <Text style={[styles.statsValue, { color: colors.text }]}>3</Text>
+            <Text style={[styles.statsValue, { color: colors.text }]}>{totalCart}</Text>
           </View>
           <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Cart</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.statsItem, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={0.7}>
           <View style={styles.statsMain}>
             <Ionicons name="people-outline" size={18} color="#22c55e" />
-            <Text style={[styles.statsValue, { color: colors.text }]}>5</Text>
+            <Text style={[styles.statsValue, { color: colors.text }]}>{totalReferrals}</Text>
           </View>
           <Text style={[styles.statsLabel, { color: colors.textSec }]}>Total Referrals</Text>
         </TouchableOpacity>
@@ -526,7 +556,11 @@ function HomeScreen({
           {banners.map((_, index) => (
             <View
               key={`dot-${index}`}
-              style={[styles.dot, activeBanner === index && styles.dotActive]}
+              style={[
+                styles.dot,
+                { backgroundColor: isDarkMode ? '#475569' : '#cbd5e1' },
+                activeBanner === index && [styles.dotActive, { backgroundColor: Colors.sky }]
+              ]}
             />
           ))}
         </View>
@@ -542,7 +576,7 @@ function HomeScreen({
         </View>
         <FlatList
           data={roomTypes.length > 0 ? roomTypes : FALLBACK_ROOMS}
-          renderItem={({ item }) => <RoomItemComponent item={item} onPress={onShopByRoomPress} />}
+          renderItem={({ item }) => <RoomItemComponent item={item} onPress={onShopByRoomPress} isDarkMode={isDarkMode} colors={colors} />}
           keyExtractor={item => `room-${item.room_id}`}
           numColumns={4}
           contentContainerStyle={styles.roomGrid}
@@ -563,7 +597,7 @@ function HomeScreen({
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circleRow}>
             {categories.map((category, index) => (
-              <CategoryCircle key={`category-${category.id}`} category={category} index={index} onPress={onShopByCategoryPress} />
+              <CategoryCircle key={`category-${category.id}`} category={category} index={index} onPress={onShopByCategoryPress} isDarkMode={isDarkMode} colors={colors} />
             ))}
           </ScrollView>
         )}
@@ -666,14 +700,14 @@ function HomeScreen({
               </View>
             </View>
           ) : (
-            <Text style={styles.noProductsText}>No featured products available</Text>
+            <Text style={[styles.noProductsText, { color: colors.textSec }]}>No featured products available</Text>
           )}
         </View>
       </View>
       </ScrollView>
 
       {/* Chat Bot Icon */}
-      <ChatBotIcon position="bottom-right" visible={true} />
+      <ChatBotIcon position="bottom-right" visible={true} isDarkMode={isDarkMode} />
     </View>
   );
 }
@@ -884,6 +918,9 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
     zIndex: 10,
   },
+  categoryBadgeDark: {
+    borderColor: '#111827',
+  },
   categoryBadgeText: {
     color: '#ffffff',
     fontSize: 8,
@@ -916,6 +953,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#ffffff',
     zIndex: 10,
+  },
+  roomBadgeDark: {
+    borderColor: '#111827',
   },
   roomBadgeText: {
     color: '#ffffff',
