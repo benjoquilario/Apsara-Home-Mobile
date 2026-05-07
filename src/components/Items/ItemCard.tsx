@@ -15,6 +15,7 @@ interface ItemCardProps {
   isWishlisted?: boolean;
   wishlistId?: number;
   onWishlistToggle?: (productId: number, isWishlisted: boolean) => void;
+  isDarkMode?: boolean;
 }
 
 const BADGE_CONFIG = [
@@ -48,10 +49,19 @@ function ItemCard({
   isWishlisted = false,
   wishlistId,
   onWishlistToggle,
+  isDarkMode = false,
 }: ItemCardProps) {
   const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  const colors = {
+    bg: isDarkMode ? '#1e293b' : '#f8f9fa',
+    border: isDarkMode ? '#334155' : '#e5e7eb',
+    text: isDarkMode ? '#f8fafc' : Colors.text,
+    textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
+    imageBg: isDarkMode ? '#0f172a' : '#f1f5f9',
+  };
 
   // Memoize price calculations
   const priceData = useMemo(() => {
@@ -116,13 +126,13 @@ function ItemCard({
   }, [token, product.id, wishlisted, onWishlistToggle]);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={() => onPress?.(product)} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.container, { backgroundColor: colors.bg, borderColor: colors.border }]} onPress={() => onPress?.(product)} activeOpacity={0.8}>
 
       {/* Image */}
       <View style={styles.imageContainer}>
         {imageError || !product.image ? (
-          <View style={[styles.productImage, styles.imagePlaceholder]}>
-            <Ionicons name="image-outline" size={48} color={Colors.textSecondary} />
+          <View style={[styles.productImage, styles.imagePlaceholder, { backgroundColor: colors.imageBg }]}>
+            <Ionicons name="image-outline" size={48} color={colors.textSec} />
           </View>
         ) : (
           <Image
@@ -164,7 +174,7 @@ function ItemCard({
       </View>
 
       {/* Border Below Image */}
-      <View style={styles.imageBorder} />
+      <View style={[styles.imageBorder, { backgroundColor: colors.border }]} />
 
       {/* Info */}
       <View style={styles.infoContainer}>
@@ -180,17 +190,17 @@ function ItemCard({
 
         {/* Brand + Sold Count */}
         <View style={styles.brandRow}>
-          <Text style={styles.brandText} numberOfLines={1}>{product.brandName}</Text>
+          <Text style={[styles.brandText, { color: colors.textSec }]} numberOfLines={1}>{product.brandName}</Text>
           {product.soldCount > 0 && (
             <View style={styles.soldRow}>
-              <Ionicons name="bag-check-outline" size={10} color={Colors.textSecondary} />
-              <Text style={styles.soldCountText}>{product.soldCount} sold</Text>
+              <Ionicons name="bag-check-outline" size={10} color={colors.textSec} />
+              <Text style={[styles.soldCountText, { color: colors.textSec }]}>{product.soldCount} sold</Text>
             </View>
           )}
         </View>
 
         {/* Product Name */}
-        <Text style={styles.productName} numberOfLines={2} ellipsizeMode="tail">
+        <Text style={[styles.productName, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
           {product.name}
         </Text>
 
@@ -251,9 +261,9 @@ function ItemCard({
 
         {/* Price */}
         <View style={styles.priceRow}>
-          <Text style={styles.currentPrice}>₱{displayPrice.toLocaleString()}</Text>
+          <Text style={[styles.currentPrice]}>₱{displayPrice.toLocaleString()}</Text>
           {hasDiscount && (
-            <Text style={styles.originalPrice}>₱{(product.originalPrice || 0).toLocaleString()}</Text>
+            <Text style={[styles.originalPrice, { color: colors.textSec }]}>₱{(product.originalPrice || 0).toLocaleString()}</Text>
           )}
         </View>
 
