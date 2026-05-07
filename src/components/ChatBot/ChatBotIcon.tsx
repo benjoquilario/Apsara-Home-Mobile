@@ -19,6 +19,7 @@ interface ChatBotIconProps {
   onPress?: () => void;
   position?: 'bottom-right' | 'bottom-left';
   visible?: boolean;
+  isDarkMode?: boolean;
 }
 
 interface ChatMessage {
@@ -46,7 +47,7 @@ const SUGGESTED_QUESTIONS = [
   "How can I track my order?",
 ];
 
-export default function ChatBotIcon({ onPress, position = 'bottom-right', visible = true }: ChatBotIconProps) {
+export default function ChatBotIcon({ onPress, position = 'bottom-right', visible = true, isDarkMode = false }: ChatBotIconProps) {
   const [chatVisible, setChatVisible] = useState(false);
   const [bubbleMessageIndex, setBubbleMessageIndex] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -307,8 +308,8 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
             },
           ]}
         >
-          <View style={styles.floatingMessageBubble}>
-            <Text style={styles.messageBubbleText}>
+          <View style={[styles.floatingMessageBubble, isDarkMode && styles.floatingMessageBubbleDark]}>
+            <Text style={[styles.messageBubbleText, isDarkMode && styles.messageBubbleTextDark]}>
               {BUBBLE_MESSAGES[bubbleMessageIndex]}
             </Text>
           </View>
@@ -316,6 +317,7 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
             style={[
               styles.bubblePointer,
               position === 'bottom-right' ? styles.bubblePointerRight : styles.bubblePointerLeft,
+              isDarkMode && styles.bubblePointerDark,
             ]}
           />
         </View>
@@ -338,7 +340,7 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
       >
 
         <TouchableOpacity
-          style={styles.chatButton}
+          style={[styles.chatButton, isDarkMode && styles.chatButtonDark]}
           onPress={openChat}
           activeOpacity={0.8}
         >
@@ -363,12 +365,12 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
         onRequestClose={closeChat}
       >
         <Pressable style={styles.modalOverlay} onPress={closeChat}>
-          <Animated.View style={[styles.chatModalContainer, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
+          <Animated.View style={[styles.chatModalContainer, isDarkMode && styles.chatModalContainerDark, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
             {/* Chat Header */}
-            <View style={styles.sheetHandleArea}>
-              <View style={styles.sheetHandle} />
+            <View style={[styles.sheetHandleArea, isDarkMode && styles.sheetHandleAreaDark]}>
+              <View style={[styles.sheetHandle, isDarkMode && styles.sheetHandleDark]} />
             </View>
-            <View style={styles.chatHeader}>
+            <View style={[styles.chatHeader, isDarkMode && styles.chatHeaderDark]}>
               <View style={styles.headerContent}>
                 <Image
                   source={require('../../../assets/sir.png')}
@@ -376,8 +378,8 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
                   resizeMode="contain"
                 />
                 <View style={styles.headerTextContainer}>
-                  <Text style={styles.chatTitle}>AF Home Shop AI</Text>
-                  <Text style={styles.onlineStatus}>Online • Always here to help</Text>
+                  <Text style={[styles.chatTitle, isDarkMode && styles.chatTitleDark]}>AF Home Shop AI</Text>
+                  <Text style={[styles.onlineStatus, isDarkMode && styles.onlineStatusDark]}>Online • Always here to help</Text>
                 </View>
               </View>
             </View>
@@ -409,16 +411,16 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
 
             {/* Suggested Questions */}
             {messages.length === 1 && (
-              <View style={styles.questionsContainer}>
-                <Text style={styles.questionsTitle}>Popular questions:</Text>
+              <View style={[styles.questionsContainer, isDarkMode && styles.questionsContainerDark]}>
+                <Text style={[styles.questionsTitle, isDarkMode && styles.questionsTitleDark]}>Popular questions:</Text>
                 <View style={styles.questionsList}>
                   {SUGGESTED_QUESTIONS.map((question, index) => (
                     <Pressable
                       key={index}
-                      style={styles.questionTag}
+                      style={[styles.questionTag, isDarkMode && styles.questionTagDark]}
                       onPress={() => setInputText(question)}
                     >
-                      <Text style={styles.questionTagText}>{question}</Text>
+                      <Text style={[styles.questionTagText, isDarkMode && styles.questionTagTextDark]}>{question}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -426,11 +428,11 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
             )}
 
             {/* Input Area */}
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, isDarkMode && styles.inputContainerDark]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, isDarkMode && styles.textInputDark]}
                 placeholder="Type your message..."
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={isDarkMode ? '#9ca3af' : Colors.textSecondary}
                 value={inputText}
                 onChangeText={setInputText}
                 editable={!isLoading}
@@ -777,6 +779,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.sky,
     fontWeight: '500',
+  },
+  // Dark mode styles
+  floatingMessageBubbleDark: {
+    backgroundColor: '#374151',
+    borderColor: '#0284c7',
+  },
+  messageBubbleTextDark: {
+    color: '#f8fafc',
+  },
+  bubblePointerDark: {
+    borderTopColor: '#0284c7',
+  },
+  chatButtonDark: {
+    backgroundColor: '#374151',
+    borderColor: '#0284c7',
+  },
+  chatModalContainerDark: {
+    backgroundColor: '#1f2937',
+  },
+  sheetHandleAreaDark: {
+    backgroundColor: '#1f2937',
+  },
+  sheetHandleDark: {
+    backgroundColor: '#4b5563',
+  },
+  chatHeaderDark: {
+    backgroundColor: '#1f2937',
+    borderBottomColor: '#374151',
+  },
+  chatTitleDark: {
+    color: '#f8fafc',
+  },
+  onlineStatusDark: {
+    color: '#9ca3af',
+  },
+  questionsContainerDark: {
+    backgroundColor: '#111827',
+    borderTopColor: '#374151',
+  },
+  questionsTitleDark: {
+    color: '#9ca3af',
+  },
+  questionTagDark: {
+    backgroundColor: '#374151',
+    borderColor: '#0284c7',
+  },
+  questionTagTextDark: {
+    color: '#38bdf8',
+  },
+  inputContainerDark: {
+    backgroundColor: '#1f2937',
+    borderTopColor: '#374151',
+  },
+  textInputDark: {
+    backgroundColor: '#374151',
+    color: '#f8fafc',
+    borderColor: '#4b5563',
   },
 });
 
