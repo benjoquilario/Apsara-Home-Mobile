@@ -24,6 +24,8 @@ import CartScreen from '../screen/CartScreen';
 import ProfileDetailsScreen from '../screen/ProfileDetailsScreen';
 import ShopScreen from '../screen/ShopScreen';
 import ShopByBrandScreen from '../screen/ShopByBrandScreen';
+import NotificationsScreen from '../screen/NotificationsScreen';
+import { orderService } from '../services/orderService';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
 
@@ -131,6 +133,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<BrandItem | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+  const [notificationTotalCount, setNotificationTotalCount] = useState(0);
   // const [deviceToken, setDeviceToken] = useState<string | null>(null);
   // const [showTokenModal, setShowTokenModal] = useState(false);
 
@@ -224,6 +228,14 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     const headers = { Authorization: `Bearer ${token}` };
     axios.get(`${API_CONFIG.BASE_URL}/cart`, { headers })
       .then(cartRes => setCartCount(extractCount(cartRes.data)))
+      .catch(() => {});
+
+    // Fetch notifications
+    orderService.getNotifications(token)
+      .then(data => {
+        setNotificationUnreadCount(data.unread_count || 0);
+        setNotificationTotalCount(data.items?.length || 0);
+      })
       .catch(() => {});
 
     // Fetch home screen data ONCE when token becomes available
@@ -435,7 +447,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   };
 
   const badgeCount: Partial<Record<TabKey, number>> = {
-    notification: cartCount, // Using cartCount for notification count
+    notification: notificationTotalCount,
     wishlist: wishlistCount,
   };
 
@@ -497,7 +509,29 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 setSelectedProductId(product.id);
               }}
             />
-           ) : activeTab === 'settings' ? (
+          ) : activeTab === 'notification' ? (
+            <>
+              <AppHeader
+                user={user}
+                cartCount={cartCount}
+                onCartPress={() => setShowCart(true)}
+                onCameraPress={() => {
+                  console.log('Camera pressed');
+                }}
+                onSearchPress={() => {
+                  setSearchSourceProductId(null);
+                  setPreviousTab(activeTabRef.current);
+                  setSearchVisible(true);
+                }}
+                onProfilePress={() => setShowProfileDetails(true)}
+                onLogout={onLogout}
+              />
+              <NotificationsScreen
+                token={token}
+              />
+            </>
+
+          ) : activeTab === 'settings' ? (
             <SettingsScreen
               isDarkMode={isDarkMode}
               setIsDarkMode={setIsDarkMode}
