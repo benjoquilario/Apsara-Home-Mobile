@@ -38,6 +38,14 @@ const BUBBLE_MESSAGES = [
   "Let's chat!",
 ];
 
+const SUGGESTED_QUESTIONS = [
+  "What products do you have?",
+  "How do I place an order?",
+  "What's your return policy?",
+  "Do you offer free shipping?",
+  "How can I track my order?",
+];
+
 export default function ChatBotIcon({ onPress, position = 'bottom-right', visible = true }: ChatBotIconProps) {
   const [chatVisible, setChatVisible] = useState(false);
   const [bubbleMessageIndex, setBubbleMessageIndex] = useState(0);
@@ -399,6 +407,24 @@ export default function ChatBotIcon({ onPress, position = 'bottom-right', visibl
               </View>
             )}
 
+            {/* Suggested Questions */}
+            {messages.length === 1 && (
+              <View style={styles.questionsContainer}>
+                <Text style={styles.questionsTitle}>Popular questions:</Text>
+                <View style={styles.questionsList}>
+                  {SUGGESTED_QUESTIONS.map((question, index) => (
+                    <Pressable
+                      key={index}
+                      style={styles.questionTag}
+                      onPress={() => setInputText(question)}
+                    >
+                      <Text style={styles.questionTagText}>{question}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {/* Input Area */}
             <View style={styles.inputContainer}>
               <TextInput
@@ -713,6 +739,38 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#d1d5db',
+  },
+  questionsContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+  },
+  questionsTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 10,
+  },
+  questionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  questionTag: {
+    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.sky,
+    marginBottom: 8,
+  },
+  questionTagText: {
+    fontSize: 12,
+    color: Colors.sky,
+    fontWeight: '500',
   },
 });
 
