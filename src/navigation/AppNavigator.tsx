@@ -441,7 +441,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+      <SafeAreaView style={styles.safe} edges={['left', 'right']}>
         <View style={styles.body} {...panResponder.panHandlers}>
           {selectedProductId !== null ? (
             <ProductDetailScreen
@@ -700,8 +700,9 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         </View>
 
         {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !referralNetworkFromTab && !(activeTab === 'shop' && selectedBrandId !== null && selectedBrand !== null) && (
-          <View style={styles.navBar}>
-            {TABS.map(key => {
+          <SafeAreaView edges={['bottom']} style={styles.navBarContainer}>
+            <View style={styles.navBar}>
+              {TABS.map(key => {
               const active = activeTab === key;
 
             if (key === 'shop') {
@@ -783,7 +784,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               </Pressable>
             );
           })}
-        </View>
+            </View>
+          </SafeAreaView>
         )}
 
         <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
@@ -947,6 +949,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
+  navBarContainer: {
+    backgroundColor: Colors.white,
+  },
   navBar: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -954,7 +959,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingBottom: 0,
     overflow: 'visible',
   },
   navItem: {
