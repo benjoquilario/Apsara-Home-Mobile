@@ -573,6 +573,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   setWishlistItems(prev => prev.filter(item => item.product_id !== productId));
                 }
               }}
+              isDarkMode={isDarkMode}
             />
           ) : searchQuery ? (
             <SearchResultScreen
@@ -994,6 +995,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             token={token}
             user={user}
             wishlistCount={wishlistCount}
+            isDarkMode={isDarkMode}
             onBack={() => setShowCart(false)}
             onProfilePress={() => {
               setShowCart(false);
