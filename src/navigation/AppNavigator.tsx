@@ -159,16 +159,21 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   useEffect(() => {
     const init = async () => {
       await cacheUtils.init();
-      // Preload cached home data immediately
+      // Preload cached home data and dark mode preference immediately
       try {
-        const [cachedCats, cachedBrands, cachedRooms] = await Promise.all([
+        const [cachedCats, cachedBrands, cachedRooms, cachedDarkMode] = await Promise.all([
           cacheUtils.get<CategoryItem[]>('home_categories'),
           cacheUtils.get<BrandItem[]>('home_brands'),
           cacheUtils.get<RoomType[]>('home_rooms'),
+          cacheUtils.get<boolean>('dark_mode_pref'),
         ]);
         if (cachedCats?.length) setHomeCategories(cachedCats);
         if (cachedBrands?.length) setHomeBrands(cachedBrands);
         if (cachedRooms?.length) setHomeRoomTypes(cachedRooms);
+        if (cachedDarkMode !== null && typeof cachedDarkMode === 'boolean') {
+          console.log('📱 LOADED DARK MODE:', cachedDarkMode);
+          setIsDarkMode(cachedDarkMode);
+        }
         console.log('✅ PRELOADED CACHE ON APP START');
       } catch (error) {
         console.log('Preload error:', error);
@@ -212,6 +217,19 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
   //   setupNotifications();
   // }, []);
+
+  // Save dark mode preference to cache whenever it changes
+  useEffect(() => {
+    const saveDarkMode = async () => {
+      try {
+        await cacheUtils.set('dark_mode_pref', isDarkMode);
+        console.log('💾 SAVED DARK MODE:', isDarkMode);
+      } catch (error) {
+        console.log('Error saving dark mode:', error);
+      }
+    };
+    saveDarkMode();
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (screenTapTime) {
@@ -514,6 +532,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
+                isDarkMode={isDarkMode}
                 onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   console.log('Camera pressed');
@@ -542,6 +561,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
+                isDarkMode={isDarkMode}
                 onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   console.log('Camera pressed');
@@ -646,6 +666,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
+                isDarkMode={isDarkMode}
                 onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   // TODO: Implement camera functionality
@@ -712,6 +733,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               <AppHeader
                 user={user}
                 cartCount={cartCount}
+                isDarkMode={isDarkMode}
                 onCartPress={() => setShowCart(true)}
                 onCameraPress={() => {
                   // TODO: Implement camera functionality
@@ -734,8 +756,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         </View>
 
         {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !referralNetworkFromTab && !(activeTab === 'shop' && selectedBrandId !== null && selectedBrand !== null) && (
-          <SafeAreaView edges={['bottom']} style={styles.navBarContainer}>
-            <View style={styles.navBar}>
+          <SafeAreaView edges={['bottom']} style={[styles.navBarContainer, isDarkMode && styles.navBarContainerDark]}>
+            <View style={[styles.navBar, isDarkMode && styles.navBarDark]}>
               {TABS.map(key => {
               const active = activeTab === key;
 
@@ -782,7 +804,12 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                       <Ionicons name="person" size={14} color={active ? Colors.sky : Colors.textSecondary} />
                     )}
                   </View>
-                  <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                  <Text style={[
+                    styles.navLabel,
+                    active && styles.navLabelActive,
+                    isDarkMode && styles.navLabelDark,
+                    isDarkMode && active && styles.navLabelActiveDark,
+                  ]}>
                     {labelMap[key]}
                   </Text>
                 </Pressable>
@@ -804,15 +831,20 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   <Ionicons
                     name={active ? iconActive[key] : iconInactive[key]}
                     size={24}
-                    color={active ? Colors.sky : Colors.textSecondary}
+                    color={active ? (isDarkMode ? '#38bdf8' : Colors.sky) : (isDarkMode ? '#d1d5db' : Colors.textSecondary)}
                   />
                   {count > 0 && (
-                    <View style={styles.badge}>
+                    <View style={[styles.badge, isDarkMode && styles.badgeDark]}>
                       <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
                     </View>
                   )}
                 </View>
-                <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                <Text style={[
+                  styles.navLabel,
+                  active && styles.navLabelActive,
+                  isDarkMode && styles.navLabelDark,
+                  isDarkMode && active && styles.navLabelActiveDark,
+                ]}>
                   {labelMap[key]}
                 </Text>
               </Pressable>
@@ -986,6 +1018,9 @@ const styles = StyleSheet.create({
   navBarContainer: {
     backgroundColor: Colors.white,
   },
+  navBarContainerDark: {
+    backgroundColor: '#1f2937',
+  },
   navBar: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -994,6 +1029,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     overflow: 'visible',
+  },
+  navBarDark: {
+    backgroundColor: '#1f2937',
+    borderTopColor: '#374151',
   },
   navItem: {
     flex: 1,
@@ -1032,6 +1071,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.white,
   },
+  badgeDark: {
+    borderColor: '#111827',
+  },
   badgeText: {
     fontSize: 9,
     fontWeight: '800',
@@ -1046,6 +1088,12 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: Colors.sky,
     fontWeight: '700',
+  },
+  navLabelDark: {
+    color: '#d1d5db',
+  },
+  navLabelActiveDark: {
+    color: '#38bdf8',
   },
   avatar: {
     width: 26,
