@@ -15,14 +15,15 @@ import type { ProductCard } from '../services/productService';
 import { API_CONFIG } from '../config/api';
 import ItemCard from '../components/Items/ItemCard';
 import Toast from 'react-native-toast-message';
-import { 
-  HomeScreenSkeleton, 
-  BannerSkeleton, 
+import {
+  HomeScreenSkeleton,
+  BannerSkeleton,
   SectionHeaderSkeleton,
   RoomGridSkeleton,
   CategoryRowSkeleton,
   BrandCardSkeleton
 } from '../components/SkeletonLoader/SkeletonLoader';
+import { usePrefetchProducts } from '../hooks/usePrefetchProducts';
 
 interface HomeScreenProps {
   token?: string | null;
@@ -305,6 +306,9 @@ function HomeScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
   const bannerRef = useRef<ScrollView>(null);
+
+  // Prefetch products in background for instant Shop screen load
+  usePrefetchProducts(token);
 
 
   const fetchHomeData = async (isRefreshing = false) => {
