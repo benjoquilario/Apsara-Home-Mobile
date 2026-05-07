@@ -25,6 +25,7 @@ interface HeaderFilterProps {
   showBrandFilter?: boolean;
   selectedBrand?: string;
   brands?: any[];
+  isDarkMode?: boolean;
 }
 
 const SORT_OPTIONS = ['Relevant', 'A-Z', 'Z-A', 'Price: Low', 'Price: High', 'Newest'];
@@ -53,7 +54,8 @@ export default function HeaderFilter({
   categories = [],
   showBrandFilter = false,
   selectedBrand = 'All Brands',
-  brands = []
+  brands = [],
+  isDarkMode = false,
 }: HeaderFilterProps) {
   const [activeSort, setActiveSort] = useState('Relevant');
   const [activePrice, setActivePrice] = useState('All');
@@ -62,6 +64,21 @@ export default function HeaderFilter({
   const [activeBrand, setActiveBrand] = useState(selectedBrand);
   const [expandedFilter, setExpandedFilter] = useState<string | null>(null);
   const [brandSearch, setBrandSearch] = useState('');
+
+  const colors = {
+    bg: isDarkMode ? '#1e293b' : Colors.white,
+    text: isDarkMode ? '#f8fafc' : Colors.text,
+    textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
+    border: isDarkMode ? '#334155' : '#e5e7eb',
+    buttonBg: isDarkMode ? '#334155' : '#f3f4f6',
+    buttonBgActive: isDarkMode ? '#0f4c7f' : '#eff6ff',
+    buttonBorderActive: isDarkMode ? '#0284c7' : Colors.sky,
+    dropdownBg: isDarkMode ? '#1e293b' : Colors.white,
+    dropdownBorder: isDarkMode ? '#334155' : '#e5e7eb',
+    dropdownItem: isDarkMode ? '#293548' : '#f3f4f6',
+    modalBg: isDarkMode ? '#1e293b' : Colors.white,
+    handle: isDarkMode ? '#475569' : '#cbd5e1',
+  };
 
   const modalTranslateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   const panResponder = useRef(
@@ -138,7 +155,7 @@ export default function HeaderFilter({
   }, [brands, brandSearch]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg, borderBottomColor: colors.border }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -150,16 +167,17 @@ export default function HeaderFilter({
             <TouchableOpacity
               style={[
                 styles.filterButton,
-                activeRoom !== 'All Room Types' && styles.filterButtonActive,
+                { backgroundColor: colors.buttonBg, borderColor: colors.border },
+                activeRoom !== 'All Room Types' && { backgroundColor: colors.buttonBgActive, borderColor: colors.buttonBorderActive },
               ]}
               onPress={() => setExpandedFilter(expandedFilter === 'room' ? null : 'room')}
             >
-              <Ionicons name="home-outline" size={14} color={Colors.text} />
-              <Text style={styles.filterText} numberOfLines={1}>{activeRoom}</Text>
+              <Ionicons name="home-outline" size={14} color={colors.text} />
+              <Text style={[styles.filterText, { color: colors.text }]} numberOfLines={1}>{activeRoom}</Text>
               <Ionicons
                 name={expandedFilter === 'room' ? 'chevron-up' : 'chevron-down'}
                 size={12}
-                color={Colors.text}
+                color={colors.text}
               />
             </TouchableOpacity>
 
@@ -177,6 +195,7 @@ export default function HeaderFilter({
                 <Animated.View
                   style={[
                     styles.roomFilterModal,
+                    { backgroundColor: colors.modalBg },
                     {
                       transform: [{ translateY: modalTranslateY }],
                     },
@@ -184,12 +203,12 @@ export default function HeaderFilter({
                   {...panResponder.panHandlers}
                 >
                   <View style={styles.roomFilterHandleContainer}>
-                    <View style={styles.roomFilterHandle} />
+                    <View style={[styles.roomFilterHandle, { backgroundColor: colors.handle }]} />
                   </View>
-                  <View style={styles.roomFilterHeader}>
-                    <Text style={styles.roomFilterTitle}>Room Type</Text>
+                  <View style={[styles.roomFilterHeader, { borderBottomColor: colors.dropdownItem }]}>
+                    <Text style={[styles.roomFilterTitle, { color: colors.text }]}>Room Type</Text>
                     <TouchableOpacity onPress={() => setExpandedFilter(null)}>
-                      <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
+                      <Ionicons name="close-circle" size={28} color={colors.textSec} />
                     </TouchableOpacity>
                   </View>
                   <ScrollView
@@ -201,8 +220,9 @@ export default function HeaderFilter({
                         key={room.id}
                         style={[
                           styles.roomFilterItem,
+                          { borderBottomColor: colors.dropdownItem },
                           index === ROOM_OPTIONS.length - 1 && styles.roomFilterItemLast,
-                          activeRoom === room.name && room.name !== 'All Room Types' && styles.roomFilterItemActive,
+                          activeRoom === room.name && room.name !== 'All Room Types' && { backgroundColor: colors.buttonBgActive },
                         ]}
                         onPress={() => {
                           handleRoom(room.name);
@@ -213,7 +233,8 @@ export default function HeaderFilter({
                           <Text
                             style={[
                               styles.roomFilterItemText,
-                              activeRoom === room.name && room.name !== 'All Room Types' && styles.roomFilterItemTextActive,
+                              { color: colors.text },
+                              activeRoom === room.name && room.name !== 'All Room Types' && { fontWeight: '700', color: Colors.sky },
                             ]}
                           >
                             {room.name}
@@ -239,16 +260,17 @@ export default function HeaderFilter({
             <TouchableOpacity
               style={[
                 styles.filterButton,
-                activeCategory !== 'All Categories' && styles.filterButtonActive,
+                { backgroundColor: colors.buttonBg, borderColor: colors.border },
+                activeCategory !== 'All Categories' && { backgroundColor: colors.buttonBgActive, borderColor: colors.buttonBorderActive },
               ]}
               onPress={() => setExpandedFilter(expandedFilter === 'category' ? null : 'category')}
             >
-              <Ionicons name="list-outline" size={14} color={Colors.text} />
-              <Text style={styles.filterText} numberOfLines={1}>{activeCategory}</Text>
+              <Ionicons name="list-outline" size={14} color={colors.text} />
+              <Text style={[styles.filterText, { color: colors.text }]} numberOfLines={1}>{activeCategory}</Text>
               <Ionicons
                 name={expandedFilter === 'category' ? 'chevron-up' : 'chevron-down'}
                 size={12}
-                color={Colors.text}
+                color={colors.text}
               />
             </TouchableOpacity>
 
@@ -266,6 +288,7 @@ export default function HeaderFilter({
                 <Animated.View
                   style={[
                     styles.roomFilterModal,
+                    { backgroundColor: colors.modalBg },
                     {
                       transform: [{ translateY: modalTranslateY }],
                     },
@@ -273,12 +296,12 @@ export default function HeaderFilter({
                   {...panResponder.panHandlers}
                 >
                   <View style={styles.roomFilterHandleContainer}>
-                    <View style={styles.roomFilterHandle} />
+                    <View style={[styles.roomFilterHandle, { backgroundColor: colors.handle }]} />
                   </View>
-                  <View style={styles.roomFilterHeader}>
-                    <Text style={styles.roomFilterTitle}>Categories</Text>
+                  <View style={[styles.roomFilterHeader, { borderBottomColor: colors.dropdownItem }]}>
+                    <Text style={[styles.roomFilterTitle, { color: colors.text }]}>Categories</Text>
                     <TouchableOpacity onPress={() => setExpandedFilter(null)}>
-                      <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
+                      <Ionicons name="close-circle" size={28} color={colors.textSec} />
                     </TouchableOpacity>
                   </View>
                   <ScrollView
@@ -288,6 +311,7 @@ export default function HeaderFilter({
                     <TouchableOpacity
                       style={[
                         styles.roomFilterItem,
+                        { borderBottomColor: colors.dropdownItem },
                       ]}
                       onPress={() => {
                         setActiveCategory('All Categories');
@@ -299,6 +323,7 @@ export default function HeaderFilter({
                         <Text
                           style={[
                             styles.roomFilterItemText,
+                            { color: colors.text },
                           ]}
                         >
                           All Categories
@@ -315,8 +340,9 @@ export default function HeaderFilter({
                         key={category.id}
                         style={[
                           styles.roomFilterItem,
+                          { borderBottomColor: colors.dropdownItem },
                           index === categories.length - 1 && styles.roomFilterItemLast,
-                          activeCategory === category.name && styles.roomFilterItemActive,
+                          activeCategory === category.name && { backgroundColor: colors.buttonBgActive },
                         ]}
                         onPress={() => {
                           setActiveCategory(category.name);
@@ -328,7 +354,8 @@ export default function HeaderFilter({
                           <Text
                             style={[
                               styles.roomFilterItemText,
-                              activeCategory === category.name && styles.roomFilterItemTextActive,
+                              { color: colors.text },
+                              activeCategory === category.name && { fontWeight: '700', color: Colors.sky },
                             ]}
                           >
                             {category.name}
@@ -354,21 +381,22 @@ export default function HeaderFilter({
             <TouchableOpacity
               style={[
                 styles.filterButton,
-                activeBrand !== 'All Brands' && styles.filterButtonActive,
+                { backgroundColor: colors.buttonBg, borderColor: colors.border },
+                activeBrand !== 'All Brands' && { backgroundColor: colors.buttonBgActive, borderColor: colors.buttonBorderActive },
               ]}
               onPress={() => {
                 setBrandSearch('');
                 setExpandedFilter(expandedFilter === 'brand' ? null : 'brand');
               }}
             >
-              <Ionicons name="bag-outline" size={14} color={Colors.text} />
-              <Text style={styles.filterText} numberOfLines={1}>
+              <Ionicons name="bag-outline" size={14} color={colors.text} />
+              <Text style={[styles.filterText, { color: colors.text }]} numberOfLines={1}>
                 {brands.length === 0 ? 'Loading...' : activeBrand}
               </Text>
               <Ionicons
                 name={expandedFilter === 'brand' ? 'chevron-up' : 'chevron-down'}
                 size={12}
-                color={Colors.text}
+                color={colors.text}
               />
             </TouchableOpacity>
 
@@ -386,6 +414,7 @@ export default function HeaderFilter({
                 <Animated.View
                   style={[
                     styles.roomFilterModal,
+                    { backgroundColor: colors.modalBg },
                     {
                       transform: [{ translateY: modalTranslateY }],
                     },
@@ -393,26 +422,26 @@ export default function HeaderFilter({
                   {...panResponder.panHandlers}
                 >
                   <View style={styles.roomFilterHandleContainer}>
-                    <View style={styles.roomFilterHandle} />
+                    <View style={[styles.roomFilterHandle, { backgroundColor: colors.handle }]} />
                   </View>
-                  <View style={styles.roomFilterHeader}>
-                    <Text style={styles.roomFilterTitle}>Brands</Text>
+                  <View style={[styles.roomFilterHeader, { borderBottomColor: colors.dropdownItem }]}>
+                    <Text style={[styles.roomFilterTitle, { color: colors.text }]}>Brands</Text>
                     <TouchableOpacity onPress={() => setExpandedFilter(null)}>
-                      <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
+                      <Ionicons name="close-circle" size={28} color={colors.textSec} />
                     </TouchableOpacity>
                   </View>
-                  <View style={styles.brandSearchContainer}>
-                    <Ionicons name="search" size={16} color={Colors.textSecondary} style={styles.brandSearchIcon} />
+                  <View style={[styles.brandSearchContainer, { backgroundColor: colors.dropdownItem, borderBottomColor: colors.dropdownItem }]}>
+                    <Ionicons name="search" size={16} color={colors.textSec} style={styles.brandSearchIcon} />
                     <TextInput
-                      style={styles.brandSearchInput}
+                      style={[styles.brandSearchInput, { color: colors.text }]}
                       placeholder="Search brands..."
-                      placeholderTextColor={Colors.textSecondary}
+                      placeholderTextColor={colors.textSec}
                       value={brandSearch}
                       onChangeText={setBrandSearch}
                     />
                     {brandSearch.length > 0 && (
                       <TouchableOpacity onPress={() => setBrandSearch('')} style={styles.brandSearchClear}>
-                        <Ionicons name="close-circle" size={16} color={Colors.textSecondary} />
+                        <Ionicons name="close-circle" size={16} color={colors.textSec} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -423,6 +452,7 @@ export default function HeaderFilter({
                     <TouchableOpacity
                       style={[
                         styles.roomFilterItem,
+                        { borderBottomColor: colors.dropdownItem },
                       ]}
                       onPress={() => {
                         setActiveBrand('All Brands');
@@ -434,6 +464,7 @@ export default function HeaderFilter({
                         <Text
                           style={[
                             styles.roomFilterItemText,
+                            { color: colors.text },
                           ]}
                         >
                           All Brands
@@ -450,8 +481,9 @@ export default function HeaderFilter({
                         key={brand.id}
                         style={[
                           styles.roomFilterItem,
+                          { borderBottomColor: colors.dropdownItem },
                           index === filteredBrands.length - 1 && styles.roomFilterItemLast,
-                          activeBrand === brand.name && styles.roomFilterItemActive,
+                          activeBrand === brand.name && { backgroundColor: colors.buttonBgActive },
                         ]}
                         onPress={() => {
                           setActiveBrand(brand.name);
@@ -464,7 +496,8 @@ export default function HeaderFilter({
                           <Text
                             style={[
                               styles.roomFilterItemText,
-                              activeBrand === brand.name && styles.roomFilterItemTextActive,
+                              { color: colors.text },
+                              activeBrand === brand.name && { fontWeight: '700', color: Colors.sky },
                             ]}
                           >
                             {brand.name}
@@ -478,7 +511,7 @@ export default function HeaderFilter({
                       </TouchableOpacity>
                     )) : (
                       <View style={styles.noResultsContainer}>
-                        <Text style={styles.noResultsText}>No brands found</Text>
+                        <Text style={[styles.noResultsText, { color: colors.textSec }]}>No brands found</Text>
                       </View>
                     )}
                   </ScrollView>
@@ -493,34 +526,37 @@ export default function HeaderFilter({
           <TouchableOpacity
             style={[
               styles.filterButton,
-              expandedFilter === 'sort' && styles.filterButtonActive,
+              { backgroundColor: colors.buttonBg, borderColor: colors.border },
+              expandedFilter === 'sort' && { backgroundColor: colors.buttonBgActive, borderColor: colors.buttonBorderActive },
             ]}
             onPress={() => setExpandedFilter(expandedFilter === 'sort' ? null : 'sort')}
           >
-            <Ionicons name="swap-vertical" size={14} color={Colors.text} />
-            <Text style={styles.filterText}>{activeSort}</Text>
+            <Ionicons name="swap-vertical" size={14} color={colors.text} />
+            <Text style={[styles.filterText, { color: colors.text }]}>{activeSort}</Text>
             <Ionicons
               name={expandedFilter === 'sort' ? 'chevron-up' : 'chevron-down'}
               size={12}
-              color={Colors.text}
+              color={colors.text}
             />
           </TouchableOpacity>
 
           {expandedFilter === 'sort' && (
-            <View style={styles.dropdown}>
+            <View style={[styles.dropdown, { backgroundColor: colors.dropdownBg, borderColor: colors.dropdownBorder }]}>
               {SORT_OPTIONS.map((sort) => (
                 <TouchableOpacity
                   key={sort}
                   style={[
                     styles.dropdownItem,
-                    activeSort === sort && styles.dropdownItemActive,
+                    { borderBottomColor: colors.dropdownItem },
+                    activeSort === sort && { backgroundColor: colors.buttonBgActive },
                   ]}
                   onPress={() => handleSort(sort)}
                 >
                   <Text
                     style={[
                       styles.dropdownText,
-                      activeSort === sort && styles.dropdownTextActive,
+                      { color: colors.text },
+                      activeSort === sort && { color: Colors.sky, fontWeight: '700' },
                     ]}
                   >
                     {sort}
@@ -536,34 +572,37 @@ export default function HeaderFilter({
           <TouchableOpacity
             style={[
               styles.filterButton,
-              expandedFilter === 'price' && styles.filterButtonActive,
+              { backgroundColor: colors.buttonBg, borderColor: colors.border },
+              expandedFilter === 'price' && { backgroundColor: colors.buttonBgActive, borderColor: colors.buttonBorderActive },
             ]}
             onPress={() => setExpandedFilter(expandedFilter === 'price' ? null : 'price')}
           >
-            <Ionicons name="pricetag-outline" size={14} color={Colors.text} />
-            <Text style={styles.filterText}>{activePrice}</Text>
+            <Ionicons name="pricetag-outline" size={14} color={colors.text} />
+            <Text style={[styles.filterText, { color: colors.text }]}>{activePrice}</Text>
             <Ionicons
               name={expandedFilter === 'price' ? 'chevron-up' : 'chevron-down'}
               size={12}
-              color={Colors.text}
+              color={colors.text}
             />
           </TouchableOpacity>
 
           {expandedFilter === 'price' && (
-            <View style={styles.dropdown}>
+            <View style={[styles.dropdown, { backgroundColor: colors.dropdownBg, borderColor: colors.dropdownBorder }]}>
               {PRICE_OPTIONS.map((price) => (
                 <TouchableOpacity
                   key={price}
                   style={[
                     styles.dropdownItem,
-                    activePrice === price && styles.dropdownItemActive,
+                    { borderBottomColor: colors.dropdownItem },
+                    activePrice === price && { backgroundColor: colors.buttonBgActive },
                   ]}
                   onPress={() => handlePrice(price)}
                 >
                   <Text
                     style={[
                       styles.dropdownText,
-                      activePrice === price && styles.dropdownTextActive,
+                      { color: colors.text },
+                      activePrice === price && { color: Colors.sky, fontWeight: '700' },
                     ]}
                   >
                     {price}
