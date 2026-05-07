@@ -9,6 +9,7 @@ import {
   Pressable,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +19,6 @@ import ItemCard from '../components/Items/ItemCard';
 import AppHeader from '../components/AppHeader/AppHeader';
 import Toast from 'react-native-toast-message';
 import { useOptimizedProducts } from '../hooks/useOptimizedProducts';
-import { Skeleton } from '../components/SkeletonLoader/SkeletonLoader';
 import { ChatBotIcon } from '../components/ChatBot';
 
 const { width } = Dimensions.get('window');
@@ -325,20 +325,56 @@ function ShopScreen({
     );
   };
 
-  const renderLoadingPlaceholders = () => (
-    <View style={styles.masonryGrid}>
-      <View style={styles.masonryColumn}>
-        <Skeleton width="100%" height={220} borderRadius={8} />
-        <Skeleton width="100%" height={260} borderRadius={8} style={{ marginTop: 8 }} />
-        <Skeleton width="100%" height={240} borderRadius={8} style={{ marginTop: 8 }} />
+  const renderLoadingPlaceholders = () => {
+    const dummyProducts = Array.from({ length: 6 }, (_, i) => ({
+      id: i,
+      name: 'Loading...',
+      image: undefined,
+      soldCount: 0,
+      priceSrp: 0,
+      priceMember: 0,
+      prodpv: 0,
+      brand: 'Brand',
+      variants: [],
+      musthave: false,
+      bestseller: false,
+      salespromo: false,
+    }));
+
+    const leftColumn = dummyProducts.filter((_, i) => i % 2 === 0);
+    const rightColumn = dummyProducts.filter((_, i) => i % 2 !== 0);
+
+    const renderDummyCard = (item: any) => (
+      <View key={`loading-${item.id}`} style={styles.masonryItem}>
+        <View style={[styles.dummyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.dummyImageContainer, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9' }]}>
+            <Image
+              source={require('../../assets/af_home_logo.png')}
+              style={styles.dummyImage}
+              resizeMode="contain"
+              tintColor={isDarkMode ? '#cbd5e1' : '#4b5563'}
+            />
+          </View>
+          <View style={styles.dummyContent}>
+            <View style={[styles.dummyLine, { backgroundColor: isDarkMode ? '#334155' : '#e5e7eb' }]} />
+            <View style={[styles.dummyLine, { backgroundColor: isDarkMode ? '#334155' : '#e5e7eb', width: '70%' }]} />
+            <View style={[styles.dummyLine, { backgroundColor: isDarkMode ? '#334155' : '#e5e7eb', width: '50%', marginTop: 8 }]} />
+          </View>
+        </View>
       </View>
-      <View style={styles.masonryColumn}>
-        <Skeleton width="100%" height={260} borderRadius={8} />
-        <Skeleton width="100%" height={220} borderRadius={8} style={{ marginTop: 8 }} />
-        <Skeleton width="100%" height={250} borderRadius={8} style={{ marginTop: 8 }} />
+    );
+
+    return (
+      <View style={styles.masonryGrid}>
+        <View style={styles.masonryColumn}>
+          {leftColumn.map(item => renderDummyCard(item))}
+        </View>
+        <View style={styles.masonryColumn}>
+          {rightColumn.map(item => renderDummyCard(item))}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderHeader = () => (
     <View style={[styles.filterInfoContainer, { backgroundColor: isDarkMode ? '#1e293b' : 'transparent' }]}>
@@ -626,6 +662,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   masonryItem: {
+    width: '100%',
+  },
+  dummyCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  dummyImageContainer: {
+    width: '100%',
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dummyImage: {
+    width: '60%',
+    height: '60%',
+  },
+  dummyContent: {
+    padding: 12,
+    gap: 6,
+  },
+  dummyLine: {
+    height: 8,
+    borderRadius: 4,
     width: '100%',
   },
   emptyContainer: {
