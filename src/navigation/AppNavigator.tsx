@@ -26,6 +26,7 @@ import ShopScreen from '../screen/ShopScreen';
 import ShopByBrandScreen from '../screen/ShopByBrandScreen';
 import NotificationsScreen from '../screen/NotificationsScreen';
 import LoadingScreen from '../screen/LoadingScreen';
+import ReferralNetworkScreen from '../screen/ReferralNetworkScreen';
 import { orderService } from '../services/orderService';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
@@ -133,6 +134,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [showProfileDetails, setShowProfileDetails] = useState(false);
   const [profileDetailsFromTab, setProfileDetailsFromTab] = useState(false);
   const [referralNetworkFromTab, setReferralNetworkFromTab] = useState(false);
+  const [referralTree, setReferralTree] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [previousTab, setPreviousTab] = useState<TabKey>('home');
@@ -823,7 +825,16 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   setActiveTab('shop');
                 }}
                 onCartPress={() => setShowCart(true)}
-                onReferralPress={() => setReferralNetworkFromTab(true)}
+                onReferralPress={async () => {
+                  setReferralNetworkFromTab(true);
+                  try {
+                    const { referralService } = require('../services/referralService');
+                    const data = await referralService.getReferralTree(token);
+                    setReferralTree(data);
+                  } catch (error) {
+                    console.error('Error fetching referral tree:', error);
+                  }
+                }}
               />
             </>
             )
@@ -1092,6 +1103,19 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             onCartPress={() => {
               setShowProfileDetails(false);
               setShowCart(true);
+            }}
+          />
+        </View>
+      )}
+
+      {referralNetworkFromTab && (
+        <View style={styles.cartScreenOverlay}>
+          <ReferralNetworkScreen
+            token={token}
+            tree={referralTree}
+            onBack={() => {
+              setReferralNetworkFromTab(false);
+              setReferralTree(null);
             }}
           />
         </View>
