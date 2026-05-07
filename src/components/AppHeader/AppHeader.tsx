@@ -255,7 +255,7 @@ export default function AppHeader({
                   {badgeName && (
                     <>
                       <View style={styles.usernameDot} />
-                      <View style={styles.userBadge}>
+                      <View style={[styles.userBadge, { borderColor: isDarkMode ? '#1f2937' : Colors.white }]}>
                         {user.badge_image ? (
                           <Image source={{ uri: user.badge_image }} style={styles.badgeImageSmall} />
                         ) : (
