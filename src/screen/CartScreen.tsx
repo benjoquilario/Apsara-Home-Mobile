@@ -189,7 +189,6 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
     const item = cartItems.find(c => c.crt_id === crtId);
     const productName = item?.product_name || 'this item';
 
-    console.log('Delete pressed for:', crtId, productName);
     setItemToDelete({ id: crtId, name: productName });
     setConfirmDeleteModal(true);
   };
