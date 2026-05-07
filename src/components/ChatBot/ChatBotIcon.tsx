@@ -618,6 +618,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
+    borderWidth: 2,
+    borderColor: Colors.sky,
+    opacity: 0.8,
   },
   headerTextContainer: {
     flex: 1,
@@ -655,6 +658,9 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 8,
+    borderWidth: 2,
+    borderColor: Colors.sky,
+    opacity: 0.8,
   },
   messageBubble: {
     maxWidth: '75%',
