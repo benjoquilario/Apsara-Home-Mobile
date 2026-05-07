@@ -168,14 +168,14 @@ export default function SearchResultScreen({
               <View style={styles.masonryColumn}>
                 {masonryColumns.leftColumn.map((product) => (
                   <View key={`search-${product.id}`} style={styles.productItem}>
-                    <ItemCard product={product} onPress={onProductPress} token={token} />
+                    <ItemCard product={product} onPress={onProductPress} token={token} isDarkMode={isDarkMode} />
                   </View>
                 ))}
               </View>
               <View style={styles.masonryColumn}>
                 {masonryColumns.rightColumn.map((product) => (
                   <View key={`search-${product.id}`} style={styles.productItem}>
-                    <ItemCard product={product} onPress={onProductPress} token={token} />
+                    <ItemCard product={product} onPress={onProductPress} token={token} isDarkMode={isDarkMode} />
                   </View>
                 ))}
               </View>
