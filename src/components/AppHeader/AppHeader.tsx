@@ -366,8 +366,8 @@ const marqueeStyles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   logo: {
-    width: 44,
-    height: 14,
+    width: 70,
+    height: 22,
     tintColor: Colors.white,
   },
   text: {
