@@ -51,6 +51,7 @@ interface BuyNowModalProps {
     selected_type?: string | null;
   }) => Promise<void>;
   loading?: boolean;
+  isDarkMode?: boolean;
 }
 
 export default function BuyNowModal({
@@ -65,6 +66,7 @@ export default function BuyNowModal({
   onCheckout,
   onAddToCart,
   loading = false,
+  isDarkMode = false,
 }: BuyNowModalProps) {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(0);
@@ -141,19 +143,19 @@ export default function BuyNowModal({
       <Animated.View
         style={[
           styles.shopeeModal,
-          { paddingBottom: 0, transform: [{ translateY: slideAnim }] },
+          { paddingBottom: 0, transform: [{ translateY: slideAnim }], backgroundColor: isDarkMode ? '#1e293b' : Colors.white },
         ]}
         {...panResponder.panHandlers}
       >
         {/* Drag Handle */}
         <View style={styles.dragHandleContainer}>
-          <View style={styles.dragHandle} />
+          <View style={[styles.dragHandle, { backgroundColor: isDarkMode ? '#334155' : '#cbd5e1' }]} />
         </View>
 
         {/* Header */}
-        <View style={styles.shopeeModalHeader}>
+        <View style={[styles.shopeeModalHeader, { borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
           <View style={{ width: 28 }} />
-          <Text style={styles.shopeeModalHeaderText}>Purchase</Text>
+          <Text style={[styles.shopeeModalHeaderText, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>Purchase</Text>
           <View style={{ width: 28 }} />
         </View>
 
@@ -173,7 +175,7 @@ export default function BuyNowModal({
             {/* Product Card */}
             <View style={styles.shopeeProductCard}>
             {/* Image */}
-            <View style={styles.shopeeProductImage}>
+            <View style={[styles.shopeeProductImage, { backgroundColor: isDarkMode ? '#111827' : '#f1f5f9' }]}>
               <Image
                 source={{
                   uri: selectedVariant
@@ -189,11 +191,11 @@ export default function BuyNowModal({
             <View style={styles.shopeeProductInfo}>
               {/* Brand Name */}
               {product.brand && (
-                <Text style={styles.shopeeBrandName} numberOfLines={1}>
+                <Text style={[styles.shopeeBrandName, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]} numberOfLines={1}>
                   {product.brand}
                 </Text>
               )}
-              <Text style={styles.shopeeProductName} numberOfLines={2}>
+              <Text style={[styles.shopeeProductName, { color: isDarkMode ? '#f8fafc' : Colors.text }]} numberOfLines={2}>
                 {product.name}
               </Text>
 
@@ -209,7 +211,7 @@ export default function BuyNowModal({
                     />
                   ))}
                 </View>
-                <Text style={styles.shopeeRatingText}>({product.soldCount} sold)</Text>
+                <Text style={[styles.shopeeRatingText, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>({product.soldCount} sold)</Text>
               </View>
 
               {/* PV Badge */}
@@ -221,9 +223,9 @@ export default function BuyNowModal({
               {/* Price Section */}
               <View style={styles.shopeePriceSection}>
                 <View>
-                  <Text style={styles.shopeePriceLabel}>Price</Text>
+                  <Text style={[styles.shopeePriceLabel, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Price</Text>
                   <View style={styles.shopeePriceRow}>
-                    <Text style={styles.shopeePrice}>
+                    <Text style={[styles.shopeePrice, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>
                       ₱{(selectedVariant
                         ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
                         : (product.priceMember ?? 0)).toLocaleString()}
@@ -233,7 +235,7 @@ export default function BuyNowModal({
                       : (product.priceSrp ?? 0)) > (selectedVariant
                         ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? 0)
                         : (product.priceMember ?? 0)) && (
-                      <Text style={styles.shopeeOriginalPrice}>
+                      <Text style={[styles.shopeeOriginalPrice, { color: isDarkMode ? '#64748b' : Colors.textSecondary }]}>
                         ₱{(selectedVariant
                           ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? 0)
                           : (product.priceSrp ?? 0)).toLocaleString()}
@@ -247,14 +249,14 @@ export default function BuyNowModal({
             </LinearGradient>
 
           {/* Divider */}
-          <View style={styles.shopeeDivider} />
+          <View style={[styles.shopeeDivider, { backgroundColor: isDarkMode ? '#334155' : '#f1f5f9' }]} />
 
           {/* Variant Selection - Shopee Style */}
           {(product.variants?.length ?? 0) > 0 && (
-            <View style={[styles.shopeeSection, { paddingHorizontal: 16 }]}>
+            <View style={[styles.shopeeSection, { paddingHorizontal: 16, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
               <View style={styles.shopeeSectionHeader}>
-                <Text style={styles.shopeeSectionTitle}>Variant</Text>
-                <Text style={styles.shopeeSectionRequired}>Required</Text>
+                <Text style={[styles.shopeeSectionTitle, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>Variant</Text>
+                <Text style={[styles.shopeeSectionRequired, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Required</Text>
               </View>
               <ScrollView
                 horizontal
@@ -267,7 +269,10 @@ export default function BuyNowModal({
                       key={variant.id}
                       style={[
                         styles.shopeeVariantOption,
-                        selectedVariant === variant.id && styles.shopeeVariantOptionSelected
+                        {
+                          borderColor: selectedVariant === variant.id ? Colors.sky : (isDarkMode ? '#475569' : '#e5e7eb'),
+                          backgroundColor: selectedVariant === variant.id ? (isDarkMode ? '#0c4a6e' : '#f0f9ff') : (isDarkMode ? '#1e293b' : '#f9fafb'),
+                        }
                       ]}
                       onPress={() => onSelectVariant(variant.id)}
                       activeOpacity={0.6}
@@ -281,11 +286,11 @@ export default function BuyNowModal({
                       ) : variant.colorHex ? (
                         <View style={[
                           styles.shopeeVariantOptionColor,
-                          { backgroundColor: variant.colorHex }
+                          { backgroundColor: variant.colorHex, borderColor: isDarkMode ? '#64748b' : '#d1d5db' }
                         ]} />
                       ) : null}
                       <Text
-                        style={styles.shopeeVariantOptionText}
+                        style={[styles.shopeeVariantOptionText, { color: isDarkMode ? '#f8fafc' : Colors.text }]}
                         numberOfLines={2}
                       >
                         {variant.color || variant.name || `Var ${index + 1}`}
@@ -298,25 +303,25 @@ export default function BuyNowModal({
           )}
 
           {/* Quantity - Shopee Style */}
-          <View style={[styles.shopeeSection, { paddingHorizontal: 16 }]}>
+          <View style={[styles.shopeeSection, { paddingHorizontal: 16, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
             <View style={styles.shopeeSectionHeader}>
-              <Text style={styles.shopeeSectionTitle}>Quantity</Text>
-              <Text style={styles.shopeeStockLeft}>
+              <Text style={[styles.shopeeSectionTitle, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>Quantity</Text>
+              <Text style={[styles.shopeeStockLeft, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>
                 {selectedVariant
                   ? (product.variants?.find(v => v.id === selectedVariant)?.qty ?? product.qty)
                   : product.qty} available
               </Text>
             </View>
-            <View style={styles.shopeeQuantityControl}>
+            <View style={[styles.shopeeQuantityControl, { borderColor: isDarkMode ? '#475569' : '#e5e7eb' }]}>
               <TouchableOpacity
                 style={styles.shopeeQuantityBtn}
                 onPress={() => quantity > 1 && onQuantityChange(quantity - 1)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="remove" size={18} color={Colors.text} />
+                <Ionicons name="remove" size={18} color={isDarkMode ? '#f8fafc' : Colors.text} />
               </TouchableOpacity>
               <TextInput
-                style={styles.shopeeQuantityInput}
+                style={[styles.shopeeQuantityInput, { color: isDarkMode ? '#f8fafc' : Colors.text }]}
                 value={quantity.toString()}
                 onChangeText={(text) => {
                   const num = parseInt(text) || 1;
@@ -342,17 +347,17 @@ export default function BuyNowModal({
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="add" size={18} color={Colors.text} />
+                <Ionicons name="add" size={18} color={isDarkMode ? '#f8fafc' : Colors.text} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Price Summary - Shopee Style */}
-          <View style={styles.shopeePriceSummary}>
+          <View style={[styles.shopeePriceSummary, { borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
             {/* Original Subtotal (SRP) */}
             <View style={styles.shopeePriceSummaryRow}>
-              <Text style={styles.shopeePriceSummaryLabel}>Subtotal (SRP)</Text>
-              <Text style={styles.shopeePriceSummaryValue}>
+              <Text style={[styles.shopeePriceSummaryLabel, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Subtotal (SRP)</Text>
+              <Text style={[styles.shopeePriceSummaryValue, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>
                 ₱{(
                   quantity * (selectedVariant
                     ? (product.variants?.find(v => v.id === selectedVariant)?.priceSrp ?? product.priceSrp ?? 0)
@@ -368,8 +373,8 @@ export default function BuyNowModal({
                 ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? 0)
                 : (product.priceMember ?? 0)) && (
               <View style={styles.shopeePriceSummaryRow}>
-                <Text style={styles.discountLabel}>Member Discount</Text>
-                <Text style={styles.discountValue}>
+                <Text style={[styles.discountLabel, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Member Discount</Text>
+                <Text style={[styles.discountValue, { color: isDarkMode ? '#4ade80' : '#10b981' }]}>
                   -₱{(
                     quantity * (
                       (selectedVariant
@@ -385,9 +390,9 @@ export default function BuyNowModal({
             )}
 
             {/* Subtotal After Discount */}
-            <View style={[styles.shopeePriceSummaryRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 8, marginTop: 8 }]}>
-              <Text style={styles.shopeePriceSummaryLabel}>Subtotal</Text>
-              <Text style={styles.shopeePriceSummaryValue}>
+            <View style={[styles.shopeePriceSummaryRow, { borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9', paddingTop: 8, marginTop: 8 }]}>
+              <Text style={[styles.shopeePriceSummaryLabel, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Subtotal</Text>
+              <Text style={[styles.shopeePriceSummaryValue, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>
                 ₱{(
                   quantity * (selectedVariant
                     ? (product.variants?.find(v => v.id === selectedVariant)?.priceMember ?? product.priceMember ?? 0)
@@ -397,17 +402,17 @@ export default function BuyNowModal({
             </View>
 
             <View style={styles.shopeePriceSummaryRow}>
-              <Text style={styles.shopeePriceSummaryLabel}>Shipping</Text>
-              <Text style={styles.shopeeShippingText}>See at checkout</Text>
+              <Text style={[styles.shopeePriceSummaryLabel, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Shipping</Text>
+              <Text style={[styles.shopeeShippingText, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>See at checkout</Text>
             </View>
           </View>
         </ScrollView>
 
         {/* Bottom Total & Button - Styled like ProductDetailScreen */}
-        <View style={[styles.shopeeCheckoutFooterGradient, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }]}>
+        <View style={[styles.shopeeCheckoutFooterGradient, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9', backgroundColor: isDarkMode ? '#1e293b' : Colors.white }]}>
           {/* Total Info */}
           <View style={styles.checkoutTotalContainer}>
-            <Text style={styles.checkoutTotalLabel}>Total Price</Text>
+            <Text style={[styles.checkoutTotalLabel, { color: isDarkMode ? '#94a3b8' : Colors.textSecondary }]}>Total Price</Text>
             <Text style={styles.checkoutTotalPrice}>
               ₱{(
                 quantity * (selectedVariant
