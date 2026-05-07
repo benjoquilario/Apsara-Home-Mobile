@@ -38,6 +38,7 @@ interface AppHeaderProps {
   showCategoryFilter?: boolean;
   selectedCategory?: string;
   categories?: any[];
+  isDarkMode?: boolean;
 }
 
 const MARQUEE_ITEMS = [
@@ -72,7 +73,7 @@ function MarqueeItems() {
   );
 }
 
-function MarqueeBanner() {
+function MarqueeBanner({ isDarkMode }: { isDarkMode?: boolean }) {
   const tx1 = useRef(new Animated.Value(0)).current;
   const tx2 = useRef(new Animated.Value(0)).current;
   const pos1 = useRef(0);
@@ -120,7 +121,7 @@ function MarqueeBanner() {
   };
 
   return (
-    <View style={marqueeStyles.container}>
+    <View style={[marqueeStyles.container, isDarkMode && { backgroundColor: '#0284c7' }]}>
       <View style={marqueeStyles.scrollArea}>
         <Animated.View
           style={[marqueeStyles.row, { transform: [{ translateX: tx1 }] }]}
@@ -164,6 +165,7 @@ export default function AppHeader({
   showBrandFilter = false,
   selectedBrand = 'All Brands',
   brands = [],
+  isDarkMode = false,
 }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
   const photoUrl = user?.avatar_url ?? null;
@@ -218,12 +220,12 @@ export default function AppHeader({
   return (
     <>
     <LinearGradient
-      colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+      colors={isDarkMode ? ['rgba(59,130,246,0.15)', 'rgba(31,41,55,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container, isDarkMode && styles.containerDark, { paddingTop: insets.top }]}
     >
-      <MarqueeBanner />
+      <MarqueeBanner isDarkMode={isDarkMode} />
 
       <View style={styles.innerContent}>
         <View style={styles.topRow}>
@@ -232,24 +234,24 @@ export default function AppHeader({
             onPress={onProfilePress}
             activeOpacity={0.7}
           >
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, isDarkMode && { backgroundColor: '#374151' }]}>
               {photoUrl ? (
                 <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
               ) : initial ? (
                 <Text style={styles.avatarInitial}>{initial}</Text>
               ) : (
-                <Ionicons name="person-outline" size={18} color={Colors.textSecondary} />
+                <Ionicons name="person-outline" size={18} color={isDarkMode ? '#9ca3af' : Colors.textSecondary} />
               )}
             </View>
             <View style={styles.nameContainer}>
-              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={[styles.welcomeText, isDarkMode && { color: '#9ca3af' }]}>Welcome back,</Text>
               <View style={styles.nameRow}>
-                <Text style={styles.nameText} numberOfLines={1}>{fullName}</Text>
-                <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} style={styles.profileIcon} />
+                <Text style={[styles.nameText, isDarkMode && { color: '#f8fafc' }]} numberOfLines={1}>{fullName}</Text>
+                <Ionicons name="chevron-forward" size={14} color={isDarkMode ? '#9ca3af' : Colors.textSecondary} style={styles.profileIcon} />
               </View>
               {user?.username && (
                 <View style={styles.usernameRow}>
-                  <Text style={styles.usernameText}>@{user.username}</Text>
+                  <Text style={[styles.usernameText, isDarkMode && { color: '#38bdf8' }]}>@{user.username}</Text>
                   {badgeName && (
                     <>
                       <View style={styles.usernameDot} />
@@ -272,7 +274,7 @@ export default function AppHeader({
 
           <View style={styles.rightActions}>
             <TouchableOpacity
-              style={styles.pvBadge}
+              style={[styles.pvBadge, isDarkMode && { backgroundColor: '#0284c7' }]}
               onPress={() => setShowBalance(!showBalance)}
               activeOpacity={0.7}
             >
@@ -282,13 +284,13 @@ export default function AppHeader({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={[styles.iconBtn, isDarkMode && styles.iconBtnDark]}
               onPress={onCartPress}
               activeOpacity={0.7}
             >
-              <Ionicons name="cart-outline" size={20} color={Colors.text} />
+              <Ionicons name="cart-outline" size={20} color={isDarkMode ? '#d1d5db' : Colors.text} />
               {cartCount > 0 && (
-                <View style={styles.cartBadge}>
+                <View style={[styles.cartBadge, isDarkMode && styles.cartBadgeDark]}>
                   <Text style={styles.cartBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
                 </View>
               )}
@@ -298,21 +300,21 @@ export default function AppHeader({
 
         <View style={styles.searchRow}>
           <TouchableOpacity
-            style={styles.searchWrapper}
+            style={[styles.searchWrapper, isDarkMode && styles.searchWrapperDark]}
             onPress={onSearchPress}
             activeOpacity={0.75}
           >
-            <Ionicons name="search-outline" size={16} color={Colors.textSecondary} style={styles.searchIconLeft} />
-            <Text style={styles.searchPlaceholder} numberOfLines={1}>{dynamicPlaceholder}</Text>
-            <Ionicons name="camera-outline" size={16} color={Colors.textSecondary} style={styles.cameraIconInside} />
+            <Ionicons name="search-outline" size={16} color={isDarkMode ? '#9ca3af' : Colors.textSecondary} style={styles.searchIconLeft} />
+            <Text style={[styles.searchPlaceholder, isDarkMode && { color: '#9ca3af' }]} numberOfLines={1}>{dynamicPlaceholder}</Text>
+            <Ionicons name="camera-outline" size={16} color={isDarkMode ? '#9ca3af' : Colors.textSecondary} style={styles.cameraIconInside} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.iconBtn, showFilter && styles.iconBtnActive]}
+            style={[styles.iconBtn, isDarkMode && styles.iconBtnDark, showFilter && styles.iconBtnActive]}
             onPress={() => setShowFilter(!showFilter)}
             activeOpacity={0.7}
           >
-            <Ionicons name="options-outline" size={20} color={showFilter ? Colors.sky : Colors.text} />
+            <Ionicons name="options-outline" size={20} color={showFilter ? Colors.sky : (isDarkMode ? '#d1d5db' : Colors.text)} />
           </TouchableOpacity>
         </View>
       </View>
@@ -389,6 +391,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
+  containerDark: {
+    backgroundColor: '#1f2937',
+    borderBottomColor: '#374151',
+  },
   innerContent: {
     paddingHorizontal: 8,
     paddingTop: 12,
@@ -435,6 +441,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: Colors.sky,
+  },
+  avatarDark: {
+    backgroundColor: '#374151',
   },
   avatarImage: {
     width: '100%',
@@ -524,6 +533,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
+  iconBtnDark: {
+    backgroundColor: '#374151',
+    borderColor: '#4b5563',
+  },
   iconBtnActive: {
     backgroundColor: 'rgba(14, 165, 233, 0.15)',
     borderColor: Colors.sky,
@@ -543,6 +556,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     height: 40,
+  },
+  searchWrapperDark: {
+    backgroundColor: '#374151',
+    borderColor: '#4b5563',
   },
   searchIcon: {
     marginRight: 6,
@@ -575,6 +592,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.white,
   },
+  cartBadgeDark: {
+    borderColor: '#1f2937',
+  },
   cartBadgeText: {
     fontSize: 9,
     fontWeight: '800',
@@ -605,6 +625,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  profileMenuDark: {
+    backgroundColor: '#1f2937',
+    borderColor: '#374151',
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -620,5 +644,14 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: 1,
     backgroundColor: '#f1f5f9',
+  },
+  menuDividerDark: {
+    backgroundColor: '#374151',
+  },
+  menuLabelDark: {
+    color: '#f8fafc',
+  },
+  usernameDotDark: {
+    backgroundColor: '#4b5563',
   },
 });
