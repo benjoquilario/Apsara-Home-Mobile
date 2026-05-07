@@ -13,11 +13,21 @@ import { ChatBotIcon } from '../components/ChatBot';
 
 interface NotificationsScreenProps {
   token?: string | null;
+  isDarkMode?: boolean;
 }
 
-export default function NotificationsScreen({ token, onBack }: NotificationsScreenProps) {
+export default function NotificationsScreen({ token, onBack, isDarkMode = false }: NotificationsScreenProps) {
   const [notifications, setNotifications] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  const colors = {
+    bg: isDarkMode ? '#0f172a' : '#f0f9ff',
+    containerBg: isDarkMode ? '#1f2937' : Colors.white,
+    text: isDarkMode ? '#f8fafc' : Colors.text,
+    textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
+    border: isDarkMode ? '#374151' : '#e5e7eb',
+    emptyIcon: isDarkMode ? '#0284c7' : Colors.sky,
+  };
 
   useEffect(() => {
     if (token) {
@@ -70,10 +80,10 @@ export default function NotificationsScreen({ token, onBack }: NotificationsScre
 
   return (
     <View style={styles.root}>
-      <View style={styles.container}>
-        <View style={styles.titleSection}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <View style={[styles.titleSection, { backgroundColor: colors.containerBg, borderBottomColor: colors.border }]}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Notifications</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
           {totalNotifications > 0 && (
             <View style={styles.totalBadge}>
               <Text style={styles.totalBadgeText}>{totalNotifications}</Text>
@@ -84,7 +94,7 @@ export default function NotificationsScreen({ token, onBack }: NotificationsScre
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.sky} />
+          <ActivityIndicator size="large" color={colors.emptyIcon} />
         </View>
       ) : (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -94,6 +104,7 @@ export default function NotificationsScreen({ token, onBack }: NotificationsScre
                 key={item.id}
                 style={[
                   styles.notificationItem,
+                  { borderBottomColor: colors.border },
                   index !== notifications.items.length - 1 && styles.notificationItemBorder,
                 ]}
               >
@@ -110,10 +121,10 @@ export default function NotificationsScreen({ token, onBack }: NotificationsScre
                   />
                 </View>
                 <View style={styles.notificationContent}>
-                  <Text style={styles.notificationTitle}>{item.title}</Text>
-                  <Text style={styles.notificationDescription}>{item.description}</Text>
+                  <Text style={[styles.notificationTitle, { color: colors.text }]}>{item.title}</Text>
+                  <Text style={[styles.notificationDescription, { color: colors.textSec }]}>{item.description}</Text>
                   {item.count > 0 && (
-                    <Text style={styles.notificationCount}>
+                    <Text style={[styles.notificationCount, { color: colors.emptyIcon }]}>
                       ({item.count} update{item.count !== 1 ? 's' : ''})
                     </Text>
                   )}
@@ -122,9 +133,9 @@ export default function NotificationsScreen({ token, onBack }: NotificationsScre
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <Ionicons name="checkmark-circle-outline" size={64} color={Colors.sky} />
-              <Text style={styles.emptyTitle}>All caught up!</Text>
-              <Text style={styles.emptyDescription}>You have no new notifications</Text>
+              <Ionicons name="checkmark-circle-outline" size={64} color={colors.emptyIcon} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>All caught up!</Text>
+              <Text style={[styles.emptyDescription, { color: colors.textSec }]}>You have no new notifications</Text>
             </View>
           )}
         </ScrollView>
@@ -132,7 +143,7 @@ export default function NotificationsScreen({ token, onBack }: NotificationsScre
       </View>
 
       {/* Chat Bot Icon */}
-      <ChatBotIcon position="bottom-right" visible={true} />
+      <ChatBotIcon position="bottom-right" visible={true} isDarkMode={isDarkMode} />
     </View>
   );
 }
@@ -149,9 +160,7 @@ const styles = StyleSheet.create({
   titleSection: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   titleRow: {
     flexDirection: 'row',
@@ -195,11 +204,9 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   notificationItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   notificationIconBox: {
     width: 48,
