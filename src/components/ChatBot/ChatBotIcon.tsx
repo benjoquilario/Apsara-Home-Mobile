@@ -5,14 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Dimensions,
   Modal,
-  SafeAreaView,
   TextInput,
   FlatList,
-  ActivityIndicator,
   Pressable,
   Image,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
@@ -30,36 +28,27 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-const { width } = Dimensions.get('window');
+const SHEET_OFFSET = 300;
 
-export default function ChatBotIcon({ onPress, position = 'bottom-left', visible = true }: ChatBotIconProps) {
+export default function ChatBotIcon({ onPress, position = 'bottom-right', visible = true }: ChatBotIconProps) {
   const [chatVisible, setChatVisible] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       type: 'bot',
-      text: 'Hello! 👋 How can I help you today?',
+      text: 'Hello! How can I help you today?',
       timestamp: new Date(),
     },
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(SHEET_OFFSET)).current;
   const floatingAnim = useRef(new Animated.Value(0)).current;
   const headNodAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
-  const [bubbleMessage, setBubbleMessage] = useState('👋 Hello!');
-
-  const helpfulPrompts = [
-    '👋 Hello!',
-    '❓ Need help?',
-    '💬 Chat with us!',
-    '✨ Ask me anything',
-    '🎯 How can I help?',
-    '💡 Got questions?',
-  ];
+  const scrollY = useRef(0);
 
   // Vertical Floating Animation
   useEffect(() => {
@@ -110,7 +99,7 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
     };
   }, [headNodAnim]);
 
-// Glow/Shine Animation (thinking indicator)
+  // Glow/Shine Animation (thinking indicator)
   useEffect(() => {
     const glowAnimation = Animated.loop(
       Animated.sequence([
@@ -135,18 +124,6 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
     };
   }, [glowAnim]);
 
-  // Message Bubble Rotation
-  useEffect(() => {
-    const messageInterval = setInterval(() => {
-      if (!chatVisible) {
-        const randomPrompt = helpfulPrompts[Math.floor(Math.random() * helpfulPrompts.length)];
-        setBubbleMessage(randomPrompt);
-      }
-    }, 20000);
-
-    return () => clearInterval(messageInterval);
-  }, [chatVisible]);
-
   const bounceAnimation = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -164,24 +141,56 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
 
   const openChat = () => {
     setChatVisible(true);
-    Animated.timing(slideAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
     bounceAnimation();
     onPress?.();
   };
 
   const closeChat = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start(() => {
-      setChatVisible(false);
-    });
+    setChatVisible(false);
   };
+
+  useEffect(() => {
+    if (chatVisible) {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: SHEET_OFFSET,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [chatVisible, slideAnim]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => scrollY.current === 0,
+      onMoveShouldSetPanResponder: (_, g) => {
+        if (scrollY.current > 0) return false;
+        return g.dy > 5 && Math.abs(g.dy) > Math.abs(g.dx);
+      },
+      onPanResponderMove: (_, g) => {
+        if (scrollY.current === 0 && g.dy > 0) {
+          slideAnim.setValue(g.dy);
+        }
+      },
+      onPanResponderRelease: (_, g) => {
+        if (scrollY.current === 0 && g.dy > 100) {
+          closeChat();
+          return;
+        }
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 60,
+        }).start();
+      },
+    })
+  ).current;
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
@@ -259,16 +268,6 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
     </View>
   );
 
-  const chatHeight = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 500],
-  });
-
-  const chatOpacity = slideAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0.5, 1],
-  });
-
   if (!visible) return null;
 
   return (
@@ -323,12 +322,15 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
       <Modal
         visible={chatVisible}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={closeChat}
       >
         <Pressable style={styles.modalOverlay} onPress={closeChat}>
-          <Pressable style={styles.chatModalContainer} onPress={() => {}}>
+          <Animated.View style={[styles.chatModalContainer, { transform: [{ translateY: slideAnim }] }]} {...panResponder.panHandlers}>
             {/* Chat Header */}
+            <View style={styles.sheetHandleArea}>
+              <View style={styles.sheetHandle} />
+            </View>
             <View style={styles.chatHeader}>
               <View style={styles.headerContent}>
                 <Image
@@ -337,13 +339,10 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
                   resizeMode="contain"
                 />
                 <View style={styles.headerTextContainer}>
-                  <Text style={styles.chatTitle}>Customer Support</Text>
+                  <Text style={styles.chatTitle}>AF Home Shop AI</Text>
                   <Text style={styles.onlineStatus}>Online • Always here to help</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={closeChat} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                <Ionicons name="close" size={24} color={Colors.white} />
-              </TouchableOpacity>
             </View>
 
             {/* Messages List */}
@@ -355,6 +354,8 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
               style={styles.messagesList}
               contentContainerStyle={styles.messagesListContent}
               scrollEnabled={true}
+              onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
+              scrollEventThrottle={16}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             />
 
@@ -395,7 +396,7 @@ export default function ChatBotIcon({ onPress, position = 'bottom-left', visible
                 />
               </TouchableOpacity>
             </View>
-          </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
     </>
@@ -407,62 +408,79 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     zIndex: 999,
-    width: 80,
+    width: 68,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chatButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     overflow: 'hidden',
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
     justifyContent: 'center',
     alignItems: 'center',
   },
   chatButtonImage: {
-    width: 90,
-    height: 90,
+    width: 56,
+    height: 56,
   },
   messageBubbleContainer: {
     position: 'absolute',
-    bottom: 100,
-    left: 0,
-    right: 0,
+    bottom: 88,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 0,
     zIndex: 998,
   },
-  messageBubble: {
-    backgroundColor: Colors.sky,
+  floatingMessageBubble: {
+    backgroundColor: '#0ea5e9',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
-    maxWidth: 140,
-    elevation: 5,
-    shadowColor: Colors.sky,
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    maxWidth: 180,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    overflow: 'hidden',
   },
   messageBubbleText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.white,
-    textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
+  },
+  messageBubbleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   bubblePointer: {
-    width: 12,
-    height: 12,
-    backgroundColor: Colors.sky,
-    borderRadius: 2,
-    transform: [{ rotate: '45deg' }],
-    marginTop: -6,
-    elevation: 4,
-    shadowColor: Colors.sky,
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#0ea5e9',
+    marginTop: -1,
+  },
+  bubblePointerLeft: {
+    alignSelf: 'flex-end',
+    marginRight: -3,
+    marginTop: -24,
+    transform: [{ rotate: '-90deg' }],
+  },
+  bubblePointerRight: {
+    alignSelf: 'flex-start',
+    marginLeft: -3,
+    marginTop: -24,
+    transform: [{ rotate: '90deg' }],
   },
   notificationBadge: {
     position: 'absolute',
@@ -495,14 +513,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'column',
   },
+  sheetHandleArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+    paddingBottom: 2,
+    backgroundColor: Colors.white,
+  },
+  sheetHandle: {
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#d1d5db',
+  },
   chatHeader: {
-    backgroundColor: Colors.sky,
+    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 20,
+    paddingTop: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
   headerContent: {
     flexDirection: 'row',
@@ -522,11 +555,11 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.text,
   },
   onlineStatus: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textSecondary,
   },
   messagesList: {
     flex: 1,
@@ -637,3 +670,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#d1d5db',
   },
 });
+
