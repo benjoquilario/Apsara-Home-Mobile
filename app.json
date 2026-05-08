@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AF Home",
-    "slug": "Apsara-Mobile-Application",
+    "slug": "apsara-mobile-application",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon1.png",
@@ -40,9 +40,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "b17d81ff-81ab-4804-baf7-00452fe7daac"
+        "projectId": "ed682d76-4287-4417-a52d-35601ed2fe7e"
       }
     },
-    "owner": "ryderhxrzy"
+    "owner": "ryderharzys-organization"
   }
 }
