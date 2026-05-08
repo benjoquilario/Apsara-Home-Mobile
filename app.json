@@ -21,6 +21,10 @@
         "foregroundImage": "./assets/adaptive-icon1.png",
         "backgroundColor": "#ffffff"
       },
+      "notification": {
+        "icon": "./assets/af_home_logo.png",
+        "color": "#0ea5e9"
+      },
       "predictiveBackGestureEnabled": false,
       "package": "com.afhome.mobile"
     },
