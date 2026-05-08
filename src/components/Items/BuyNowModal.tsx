@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   addToCartBtnBuyNow: {
     flex: 0.4,
     flexDirection: 'row',
-    backgroundColor: Colors.sky,
+    backgroundColor: '#f97316',
     height: 52,
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   checkoutButtonStyle: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#f97316',
+    backgroundColor: Colors.sky,
     height: 52,
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
