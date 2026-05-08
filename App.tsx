@@ -5,9 +5,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 // Suppress the "Text strings must be rendered within a <Text> component" error
 LogBox.ignoreLogs(['Text strings must be rendered within a <Text> component']);
 import Toast from 'react-native-toast-message';
-// import * as Device from 'expo-device';
-// import * as Notifications from 'expo-notifications';
-// import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LoginScreen from './src/screen/LoginScreen';
 import SignupScreen from './src/screen/SignupScreen';
@@ -53,7 +53,7 @@ export default function App() {
   // Check for stored authentication on app startup
   useEffect(() => {
     checkStoredAuth();
-    // registerForPushNotificationsAsync();
+    registerForPushNotificationsAsync();
   }, []);
 
   async function checkStoredAuth() {
@@ -117,38 +117,38 @@ export default function App() {
     }
   }
 
-  // async function registerForPushNotificationsAsync() {
-  //   if (!Device.isDevice) {
-  //     Alert.alert('Use a real device');
-  //     return;
-  //   }
+  async function registerForPushNotificationsAsync() {
+    if (!Device.isDevice) {
+      Alert.alert('Use a real device');
+      return;
+    }
 
-  //   const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  //   let finalStatus = existingStatus;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-  //   if (existingStatus !== 'granted') {
-  //     const { status } = await Notifications.requestPermissionsAsync();
-  //     finalStatus = status;
-  //   }
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
 
-  //   if (finalStatus !== 'granted') {
-  //     Alert.alert('Permission denied');
-  //     return;
-  //   }
+    if (finalStatus !== 'granted') {
+      Alert.alert('Permission denied');
+      return;
+    }
 
-  //   const projectId =
-  //     Constants.easConfig?.projectId ||
-  //     Constants.expoConfig?.extra?.eas?.projectId;
+    const projectId =
+      Constants.easConfig?.projectId ||
+      Constants.expoConfig?.extra?.eas?.projectId;
 
-  //   const token = await Notifications.getExpoPushTokenAsync({
-  //     projectId,
-  //   });
+    const token = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
 
-  //   console.log('Push Token:', token.data);
-  //   Alert.alert('Push Token', token.data);
+    console.log('Push Token:', token.data);
+    Alert.alert('Push Token', token.data);
 
-  //   return token.data;
-  // }
+    return token.data;
+  }
 
   function renderAuth() {
     if (screen === 'signup') {
