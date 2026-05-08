@@ -9,7 +9,6 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import OneSignal from 'react-native-onesignal';
 import LoginScreen from './src/screen/LoginScreen';
 import SignupScreen from './src/screen/SignupScreen';
 import OtpScreen from './src/screen/OtpScreen';
@@ -20,8 +19,6 @@ import LoadingScreen from './src/screen/LoadingScreen';
 
 type AuthScreen = 'login' | 'signup' | 'otp';
 
-// Initialize OneSignal
-OneSignal.setAppId('b4c95a1a-c525-447d-80bb-2c8dc63f4531');
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -199,3 +196,5 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+
+
