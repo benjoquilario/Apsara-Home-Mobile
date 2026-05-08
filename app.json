@@ -43,6 +43,12 @@
           "color": "#0ea5e9",
           "sounds": []
         }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
       ]
     ],
     "extra": {
