@@ -20,6 +20,7 @@ import SearchScreen from '../screen/SearchScreen';
 import ProductsScreen from '../screen/ProductsScreen';
 import SearchResultScreen from '../screen/SearchResultScreen';
 import SettingsScreen from '../screen/SettingsScreen';
+import SecurityScreen from '../screen/SecurityScreen';
 import ProductDetailScreen from '../screen/ProductDetailScreen';
 import WishlistScreen from '../screen/WishlistScreen';
 import CartScreen from '../screen/CartScreen';
@@ -174,6 +175,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [showPaymentCancel, setShowPaymentCancel] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [paymentConfirmationData, setPaymentConfirmationData] = useState<any>(null);
+  const [showSecurity, setShowSecurity] = useState(false);
 
   // Home screen data - persists across navigation
   const [homeCategories, setHomeCategories] = useState<CategoryItem[]>([]);
@@ -795,6 +797,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               isDarkMode={isDarkMode}
               setIsDarkMode={setIsDarkMode}
               onBack={() => navigateTo('profile')}
+              onNavigateSecurity={() => setShowSecurity(true)}
             />
           ) : activeTab === 'wishlist' ? (
             <>
@@ -1030,7 +1033,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           )}
         </View>
 
-        {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !referralNetworkFromTab && !(activeTab === 'shop' && selectedBrandId !== null && selectedBrand !== null) && (activeTab !== 'home' || isInitialHomeDataReady) && (
+        {!searchQuery && activeTab !== 'settings' && selectedProductId === null && !profileDetailsFromTab && !showSecurity && !referralNetworkFromTab && !(activeTab === 'shop' && selectedBrandId !== null && selectedBrand !== null) && (activeTab !== 'home' || isInitialHomeDataReady) && (
           <SafeAreaView edges={['bottom']} style={[styles.navBarContainer, isDarkMode && styles.navBarContainerDark]}>
             <View style={[styles.navBar, isDarkMode && styles.navBarDark]}>
               {TABS.map(key => {
@@ -1458,6 +1461,16 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setShowProfileDetails(false);
               setShowCart(true);
             }}
+          />
+        </View>
+      )}
+
+      {showSecurity && (
+        <View style={styles.cartScreenOverlay}>
+          <SecurityScreen
+            isDarkMode={isDarkMode}
+            token={token}
+            onBack={() => setShowSecurity(false)}
           />
         </View>
       )}

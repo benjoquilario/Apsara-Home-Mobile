@@ -1,123 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, TextInput, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { Colors } from '../constants/colors';
 
 interface SettingsScreenProps {
   onBack: () => void;
   isDarkMode: boolean;
   setIsDarkMode: (value: boolean) => void;
+  onNavigateSecurity: () => void;
 }
 
-export default function SettingsScreen({ onBack, isDarkMode, setIsDarkMode }: SettingsScreenProps) {
-  const [pushToken, setPushToken] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [testMessage, setTestMessage] = useState('Hello from Apsara!');
-  const [tokenCopied, setTokenCopied] = useState(false);
+export default function SettingsScreen({ onBack, isDarkMode, setIsDarkMode, onNavigateSecurity }: SettingsScreenProps) {
+  const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(100)).current;
+
+  const colors = {
+    bg: isDarkMode ? '#0f172a' : '#f0f9ff',
+    containerBg: isDarkMode ? '#1f2937' : Colors.white,
+    text: isDarkMode ? '#f8fafc' : Colors.text,
+    textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
+    border: isDarkMode ? '#374151' : '#e5e7eb',
+    cardBg: isDarkMode ? '#1e293b' : '#f8fafc',
+    borderLight: isDarkMode ? '#475569' : '#f1f5f9',
+  };
 
   useEffect(() => {
-    registerForPushNotifications();
-  }, []);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, [slideAnim]);
 
-  const registerForPushNotifications = async () => {
-    if (!Device.isDevice) {
-      Alert.alert('Info', 'Push notifications work on physical devices only.');
-      return;
-    }
-
-    try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        Alert.alert('Error', 'Failed to get push notification permissions');
-        return;
-      }
-
-      const token = await Notifications.getExpoPushTokenAsync();
-      setPushToken(token.data);
-    } catch (error) {
-      Alert.alert('Error', `Failed to get push token: ${error}`);
-    }
-  };
-
-  const copyToClipboard = () => {
-    if (pushToken) {
-      // In a real app, you'd use a clipboard library
-      Alert.alert('Token Copied', pushToken);
-      setTokenCopied(true);
-      setTimeout(() => setTokenCopied(false), 2000);
-    }
-  };
-
-  const sendTestNotification = async () => {
-    if (!pushToken || !testMessage.trim()) {
-      Alert.alert('Error', 'Please get token first and enter a message');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Test Notification',
-          body: testMessage,
-          data: { timestamp: new Date().toISOString() },
-          sound: 'default',
-          badge: 1,
-        },
-        trigger: null,
-      });
-      Alert.alert('Success', 'Test notification sent!');
-    } catch (error) {
-      Alert.alert('Error', `Failed to send notification: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getNewToken = async () => {
-    setLoading(true);
-    try {
-      await registerForPushNotifications();
-      Alert.alert('Success', 'Token refreshed');
-    } catch (error) {
-      Alert.alert('Error', `Failed to refresh token: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      Animated.timing(slideAnim, {
+        toValue: 100,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => onBack());
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [onBack, slideAnim]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.bg,
+          transform: [
+            {
+              translateX: slideAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: [0, 100],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
+        <LinearGradient
+        colors={isDarkMode ? ['rgba(59,130,246,0.15)', 'rgba(31,41,55,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#f8fafc' : Colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>Settings</Text>
+          <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
-          <View style={styles.settingItem}>
-            <View style={styles.settingLabelContainer}>
-              <View style={[styles.iconContainer, { backgroundColor: '#f1f5f9' }]}>
-                <Ionicons name="moon-outline" size={20} color={Colors.text} />
-              </View>
-              <Text style={styles.settingLabel}>Dark Mode</Text>
+      <ScrollView style={[styles.scroll, { backgroundColor: colors.bg }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Appearance Section */}
+        <View style={[styles.section, { backgroundColor: colors.containerBg, borderColor: colors.border }]}>
+          <View style={[styles.settingRow, { borderBottomColor: colors.borderLight }]}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.cardBg }]}>
+              <Ionicons name="moon-outline" size={20} color={Colors.sky} />
             </View>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
             <Switch
               value={isDarkMode}
               onValueChange={setIsDarkMode}
@@ -127,84 +98,38 @@ export default function SettingsScreen({ onBack, isDarkMode, setIsDarkMode }: Se
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Push Notifications Testing</Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={getNewToken}
-            disabled={loading}
-          >
-            {loading && <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />}
-            <Ionicons name="paper-plane" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.buttonText}>Get Push Token</Text>
-          </TouchableOpacity>
-
-          {pushToken ? (
-            <View style={styles.tokenContainer}>
-              <View style={styles.tokenHeader}>
-                <Text style={styles.tokenLabel}>Your Push Token:</Text>
-                <TouchableOpacity
-                  onPress={copyToClipboard}
-                  style={styles.copyButton}
-                >
-                  <Ionicons name={tokenCopied ? 'checkmark' : 'copy'} size={16} color={Colors.sky} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.tokenText} selectable>{pushToken}</Text>
+        {/* Security Menu Item */}
+        <View style={[styles.section, { backgroundColor: colors.containerBg, borderColor: colors.border }]}>
+          <TouchableOpacity style={[styles.settingRow, { borderBottomColor: colors.borderLight }]} onPress={onNavigateSecurity}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.cardBg }]}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={Colors.sky} />
             </View>
-          ) : null}
-
-          <View style={styles.messageContainer}>
-            <Text style={styles.messageLabel}>Test Message:</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter notification message"
-              value={testMessage}
-              onChangeText={setTestMessage}
-              placeholderTextColor={Colors.textSecondary}
-              multiline
-              maxLength={150}
-            />
-            <Text style={styles.charCount}>{testMessage.length}/150</Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, styles.sendButton]}
-            onPress={sendTestNotification}
-            disabled={loading || !pushToken}
-          >
-            {loading && <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />}
-            <Ionicons name="send" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.buttonText}>Send Test Notification</Text>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>Security</Text>
+            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#64748b' : '#94a3b8'} />
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color={Colors.textSecondary} />
-          <Text style={styles.infoText}>
-            This is a standalone Expo push notification testing tool. No Firebase connection required.
-          </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fbff',
+  },
+  scroll: {
+    flex: 1,
   },
   header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   backButton: {
     width: 40,
@@ -214,43 +139,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: Colors.text,
   },
+  headerTitleDark: {
+    color: '#f8fafc',
+  },
   content: {
-    padding: 20,
+    padding: 8,
+    gap: 16,
+    paddingBottom: 32,
   },
   section: {
-    backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 20,
+    borderWidth: 0.5,
+    overflow: 'hidden',
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 16,
-  },
-  settingItem: {
+  settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  settingLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     gap: 12,
   },
-  iconContainer: {
+  settingIcon: {
     width: 36,
     height: 36,
     borderRadius: 10,
@@ -258,96 +171,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  button: {
-    flexDirection: 'row',
-    backgroundColor: Colors.sky,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  sendButton: {
-    backgroundColor: '#10b981',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tokenContainer: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.sky,
-  },
-  tokenHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tokenLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-  },
-  copyButton: {
-    padding: 8,
-  },
-  tokenText: {
-    fontSize: 11,
-    color: Colors.text,
-    fontFamily: 'monospace',
-    lineHeight: 16,
-  },
-  messageContainer: {
-    marginBottom: 12,
-  },
-  messageLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  input: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: Colors.text,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    maxHeight: 100,
-  },
-  charCount: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    alignItems: 'center',
-  },
-  infoText: {
     flex: 1,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
