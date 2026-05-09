@@ -98,7 +98,7 @@ export default function CheckoutScreen({
   const [loading, setLoading] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [loadingShippingRates, setLoadingShippingRates] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('cod');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [selectedVoucher, setSelectedVoucher] = useState<number | null>(null);
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
@@ -243,6 +243,15 @@ export default function CheckoutScreen({
 
   const handlePlaceOrder = async () => {
     console.log('[CheckoutScreen] Place order clicked');
+
+    if (!selectedPaymentMethod) {
+      Toast.show({
+        type: 'error',
+        text1: 'Payment Method Required',
+        text2: 'Please select a payment method',
+      });
+      return;
+    }
 
     if (!item || !user || !selectedAddress || !token) {
       console.log('[CheckoutScreen] Missing required fields:', {
@@ -645,7 +654,12 @@ export default function CheckoutScreen({
 
         {/* Payment Method Section */}
         <View style={[styles.section, { backgroundColor: colors.containerBg, marginTop: 12 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>Payment Method</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
+            {!selectedPaymentMethod && (
+              <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '500' }}>Required *</Text>
+            )}
+          </View>
 
           <View style={styles.paymentList}>
             {paymentMethods.map((method) => (
