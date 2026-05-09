@@ -184,34 +184,6 @@ export default function AffiliateReferralModal({
           onScroll={(event) => { scrollY.current = event.nativeEvent.contentOffset.y; }}
           scrollEventThrottle={16}
         >
-          <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.heroRow}>
-                <View style={styles.heroBadge}>
-                  <Ionicons name="people" size={18} color={Colors.white} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.heroLabel, { color: colors.textSec }]}>Welcome</Text>
-                  <Text style={[styles.heroName, { color: colors.text }]} numberOfLines={1}>
-                    {userName || 'Affiliate Partner'}
-                  </Text>
-                </View>
-              </View>
-
-            <View style={styles.statRow}>
-              <View style={[styles.statCard, { backgroundColor: isDarkMode ? '#1f2937' : '#eff6ff', borderColor: colors.border }]}>
-                <Text style={[styles.statValue, { color: colors.text }]}>{totalNetwork}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSec }]}>Total</Text>
-              </View>
-              <View style={[styles.statCard, { backgroundColor: isDarkMode ? '#1f2937' : '#fef3c7', borderColor: colors.border }]}>
-                <Text style={[styles.statValue, { color: colors.text }]}>{directCount}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSec }]}>Direct</Text>
-              </View>
-              <View style={[styles.statCard, { backgroundColor: isDarkMode ? '#1f2937' : '#dcfce7', borderColor: colors.border }]}>
-                <Text style={[styles.statValue, { color: colors.text }]}>₱{earned}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSec }]}>Earned</Text>
-              </View>
-            </View>
-          </View>
 
           <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.sectionHeader}>
@@ -253,8 +225,8 @@ export default function AffiliateReferralModal({
 
           <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: '#f0fdf4' }]}>
-                <Ionicons name="cart" size={16} color="#16a34a" />
+              <View style={[styles.sectionIcon, { backgroundColor: '#fed7aa' }]}>
+                <Ionicons name="cart" size={16} color="#f97316" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Share Shopping Link</Text>
@@ -273,7 +245,7 @@ export default function AffiliateReferralModal({
                   style={styles.qrImage}
                   resizeMode="contain"
                 />
-                <Text style={[styles.qrTag, { backgroundColor: '#16a34a' }]}>Shopping</Text>
+                <Text style={[styles.qrTag, { backgroundColor: '#f97316' }]}>Shopping</Text>
               </TouchableOpacity>
               <View style={styles.qrInfo}>
                 <Text style={[styles.linkLabel, { color: colors.textSec }]}>Shopping referral link</Text>
@@ -284,20 +256,11 @@ export default function AffiliateReferralModal({
             </View>
 
             <View style={styles.actionRow}>
-              <PrimaryButton title="Share" icon="share-social" onPress={() => handleShare(shoppingUrl, 'shopping')} style={{ backgroundColor: '#16a34a', flex: 1 }} />
-              <OutlineButton title="Copy Link" icon="copy-outline" onPress={() => handleCopy(shoppingUrl)} color="#16a34a" style={{ flex: 1 }} />
+              <PrimaryButton title="Share" icon="share-social" onPress={() => handleShare(shoppingUrl, 'shopping')} style={{ backgroundColor: '#f97316', flex: 1 }} />
+              <OutlineButton title="Copy Link" icon="copy-outline" onPress={() => handleCopy(shoppingUrl)} color="#f97316" style={{ flex: 1 }} />
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.networkBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            activeOpacity={0.8}
-            onPress={onViewNetwork}
-          >
-            <Ionicons name="people-outline" size={18} color={Colors.sky} />
-            <Text style={[styles.networkBtnText, { color: colors.text }]}>View Referral Network</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
-          </TouchableOpacity>
         </ScrollView>
       </Animated.View>
     </View>

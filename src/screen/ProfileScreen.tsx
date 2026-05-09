@@ -398,8 +398,8 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                   activeOpacity={0.7}
                   onPress={handleViewNetwork}
                 >
-                  <View style={[styles.referralIconContainer, { backgroundColor: '#dcfce7' }]}>
-                    <Ionicons name="cash-outline" size={28} color="#16a34a" />
+                  <View style={[styles.referralIconContainer, { backgroundColor: '#fed7aa' }]}>
+                    <Ionicons name="cash-outline" size={28} color="#f97316" />
                   </View>
                   <Text style={[styles.referralItemValue, { color: colors.text }]}>₱{referralTree.root.total_earnings}</Text>
                   <Text style={[styles.referralItemLabel, { color: colors.textSec }]}>Earned</Text>
@@ -481,8 +481,8 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
             {/* Shopping QR Section */}
             <View style={[styles.qrCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
               <View style={styles.qrCardHeader}>
-                <View style={[styles.qrIconBox, { backgroundColor: '#f0fdf4' }]}>
-                  <Ionicons name="cart" size={16} color="#16a34a" />
+                <View style={[styles.qrIconBox, { backgroundColor: '#fed7aa' }]}>
+                  <Ionicons name="cart" size={16} color="#f97316" />
                 </View>
                 <Text style={[styles.qrCardTitle, { color: colors.text }]}>Share Shopping Link</Text>
               </View>
@@ -490,7 +490,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                 Use this link for non-members who only want to shop. Their checkout will carry your referral automatically.
               </Text>
 
-              <Text style={[styles.qrTopLabel, { color: '#16a34a' }]}>Shopping referral QR code</Text>
+              <Text style={[styles.qrTopLabel, { color: '#f97316' }]}>Shopping referral QR code</Text>
 
               <View style={styles.qrMain}>
                 <TouchableOpacity
@@ -503,7 +503,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                     style={styles.qrImage}
                     resizeMode="contain"
                   />
-                  <View style={[styles.qrImageTag, { backgroundColor: '#16a34a' }]}>
+                  <View style={[styles.qrImageTag, { backgroundColor: '#f97316' }]}>
                     <Text style={styles.qrImageTagText}>Shopping</Text>
                   </View>
                 </TouchableOpacity>
@@ -521,13 +521,13 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                   title="Share"
                   icon="share-social"
                   onPress={() => handleShare(shoppingUrl, 'shopping')}
-                  style={{ backgroundColor: '#16a34a', flex: 1 }}
+                  style={{ backgroundColor: '#f97316', flex: 1 }}
                 />
                 <OutlineButton
                   title="Copy Link"
                   icon="copy-outline"
                   onPress={() => handleCopy(shoppingUrl)}
-                  color="#16a34a"
+                  color="#f97316"
                   style={{ flex: 1 }}
                 />
               </View>
