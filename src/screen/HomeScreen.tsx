@@ -971,14 +971,14 @@ const styles = StyleSheet.create({
   },
   badgeLogoContainer: {
     position: 'absolute',
-    right: -20,
+    right: -26,
     top: '50%',
-    marginTop: -45,
+    marginTop: -59,
     opacity: 0.15,
   },
   badgeLogo: {
-    width: 90,
-    height: 90,
+    width: 100,
+    height: 100,
     borderRadius: 8,
   },
   quickActionRow: {
