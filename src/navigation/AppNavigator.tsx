@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity, Pressable,
-  StyleSheet, Modal, PanResponder, Animated, BackHandler, Clipboard,
+  StyleSheet, Modal, PanResponder, Animated, BackHandler, Clipboard, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +33,10 @@ import CheckoutScreen from '../screen/CheckoutScreen';
 import OrderSuccessScreen from '../screen/OrderSuccessScreen';
 import PaymentWebViewScreen from '../screen/PaymentWebViewScreen';
 import PurchasesScreen from '../screen/PurchasesScreen';
+import PaymentSuccessScreen from '../screen/PaymentSuccessScreen';
+import PaymentCancelScreen from '../screen/PaymentCancelScreen';
 import { orderService } from '../services/orderService';
+import Toast from 'react-native-toast-message';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
 
@@ -165,7 +168,11 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showPurchases, setShowPurchases] = useState(false);
-  const [purchasesStatus, setPurchasesStatus] = useState<'pending' | 'processing' | 'shipped' | 'delivered'>('pending');
+  const [purchasesStatus, setPurchasesStatus] = useState<'pending' | 'paid' | 'processing' | 'shipped' | 'delivered'>('pending');
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [showPaymentCancel, setShowPaymentCancel] = useState(false);
+  const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
+  const [paymentConfirmationData, setPaymentConfirmationData] = useState<any>(null);
 
   // Home screen data - persists across navigation
   const [homeCategories, setHomeCategories] = useState<CategoryItem[]>([]);
@@ -286,6 +293,93 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
     setupNotifications();
   }, []);
+
+  // Handle deep linking for payment redirects
+  useEffect(() => {
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      console.log('[AppNavigator] Deep link received:', url);
+
+      if (url.includes('payment/success')) {
+        console.log('[AppNavigator] Payment success deep link triggered');
+        setShowPaymentWebView(false);
+
+        // Fetch latest order and user info to show in confirmation screen
+        if (token) {
+          try {
+            console.log('[AppNavigator] Fetching latest order and user details for confirmation...');
+            const headers = { Authorization: `Bearer ${token}` };
+
+            const [orderRes, userRes] = await Promise.all([
+              axios.get(`${API_CONFIG.BASE_URL}/orders/history`, { headers }),
+              axios.get(`${API_CONFIG.BASE_URL}/auth/me`, { headers }),
+            ]);
+
+            const orders = orderRes.data?.orders || [];
+            const userData = userRes.data?.data || userRes.data || {};
+
+            if (orders.length > 0) {
+              const latestOrder = orders[0]; // Most recent order first
+              console.log('[AppNavigator] Latest order fetched:', latestOrder);
+              console.log('[AppNavigator] User data fetched:', userData);
+
+              // Prepare confirmation data with user info from auth/me
+              const confirmationData = {
+                order_number: latestOrder.order_number,
+                transaction_id: latestOrder.transaction_id || latestOrder.id,
+                amount: latestOrder.total_amount,
+                payment_method: latestOrder.payment_method,
+                product_name: latestOrder.items?.[0]?.name || 'Order',
+                quantity: latestOrder.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 1,
+                customer_name: userData.name || userData.full_name || latestOrder.customer_name || 'Customer',
+                customer_email: userData.email || latestOrder.customer_email,
+                customer_phone: userData.phone || userData.mobile || latestOrder.customer_phone,
+                delivery_address: latestOrder.delivery_address,
+                shipping_fee: latestOrder.shipping_fee || 0,
+                created_at: latestOrder.created_at,
+              };
+
+              setPaymentConfirmationData(confirmationData);
+              setShowPaymentConfirmation(true);
+            } else {
+              console.log('[AppNavigator] No orders found');
+              Toast.show({
+                type: 'info',
+                text1: 'Order Confirmed',
+                text2: 'Payment successful',
+              });
+              setShowPaymentSuccess(true);
+            }
+          } catch (error: any) {
+            console.error('[AppNavigator] Error fetching order or user data:', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Failed to load order details',
+            });
+            setShowPaymentSuccess(true);
+          }
+        }
+      } else if (url.includes('payment/cancel')) {
+        console.log('[AppNavigator] Payment cancel deep link triggered');
+        setShowPaymentCancel(true);
+        setShowPaymentWebView(false);
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was launched from deep link
+    Linking.getInitialURL().then((url) => {
+      if (url != null) {
+        console.log('[AppNavigator] Initial deep link:', url);
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [token]);
 
   // Save dark mode preference to cache whenever it changes
   useEffect(() => {
@@ -1217,6 +1311,14 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setShowOrderSuccess(false);
               setShowPaymentWebView(true);
             }}
+            onPayLater={() => {
+              console.log('[AppNavigator] Pay later clicked');
+              setShowOrderSuccess(false);
+              setShowCheckout(false);
+              setCheckoutOrderData(null);
+              setPurchasesStatus('pending');
+              setShowPurchases(true);
+            }}
           />
         </View>
       )}
@@ -1228,23 +1330,113 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             isDarkMode={isDarkMode}
             onBack={() => {
               setShowPaymentWebView(false);
-              setShowOrderSuccess(true);
+              setShowPurchases(true);
               setPaymentCheckoutUrl('');
             }}
             onPaymentSuccess={() => {
-              console.log('[AppNavigator] Payment successful');
+              console.log('[AppNavigator] Payment successful - fetching order and user details');
               setShowPaymentWebView(false);
               setShowCheckout(false);
               setShowOrderSuccess(false);
               setCheckoutOrderData(null);
+              setCheckoutItem(null);
               setPaymentCheckoutUrl('');
-              // Refresh cart
+
+              // Fetch latest order and user info in parallel
               if (token) {
                 const headers = { Authorization: `Bearer ${token}` };
+
+                Promise.all([
+                  axios.get(`${API_CONFIG.BASE_URL}/orders/history`, { headers }),
+                  axios.get(`${API_CONFIG.BASE_URL}/auth/me`, { headers }),
+                ]).then(([orderRes, userRes]) => {
+                  const orders = orderRes.data?.orders || [];
+                  const userData = userRes.data?.data || userRes.data || {};
+
+                  if (orders.length > 0) {
+                    const latestOrder = orders[0];
+                    console.log('[AppNavigator] Latest order fetched:', latestOrder);
+                    console.log('[AppNavigator] User data fetched:', userData);
+
+                    const confirmationData = {
+                      order_number: latestOrder.order_number,
+                      transaction_id: latestOrder.transaction_id || latestOrder.id,
+                      amount: latestOrder.total_amount,
+                      payment_method: latestOrder.payment_method,
+                      product_name: latestOrder.items?.[0]?.name || 'Order',
+                      quantity: latestOrder.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 1,
+                      customer_name: userData.name || userData.full_name || latestOrder.customer_name || 'Customer',
+                      customer_email: userData.email || latestOrder.customer_email,
+                      customer_phone: userData.phone || userData.mobile || latestOrder.customer_phone,
+                      delivery_address: latestOrder.delivery_address,
+                      shipping_fee: latestOrder.shipping_fee || 0,
+                      created_at: latestOrder.created_at,
+                    };
+
+                    setPaymentConfirmationData(confirmationData);
+                    setShowPaymentConfirmation(true);
+                  }
+                }).catch(err => {
+                  console.error('[AppNavigator] Error fetching order or user data:', err);
+                  setShowPaymentSuccess(true);
+                });
+
+                // Refresh cart
                 axios.get(`${API_CONFIG.BASE_URL}/cart`, { headers }).then(res => {
                   setCartCount(extractCount(res.data));
                 }).catch(err => console.error('Failed to refresh cart:', err));
               }
+            }}
+          />
+        </View>
+      )}
+
+      {showPaymentConfirmation && paymentConfirmationData && (
+        <View style={styles.cartScreenOverlay}>
+          <PaymentSuccessScreen
+            orderData={paymentConfirmationData}
+            isDarkMode={isDarkMode}
+            onClose={() => {
+              console.log('[AppNavigator] onContinueShopping called - closing PaymentSuccessScreen');
+              setShowPaymentConfirmation(false);
+              setPaymentConfirmationData(null);
+              setActiveTab('home');
+              setPurchasesStatus('paid');
+            }}
+            onViewOrders={() => {
+              setShowPaymentConfirmation(false);
+              setPaymentConfirmationData(null);
+              setShowPurchases(true);
+              setPurchasesStatus('paid');
+            }}
+          />
+        </View>
+      )}
+
+      {showPaymentSuccess && (
+        <View style={styles.cartScreenOverlay}>
+          <PaymentSuccessScreen
+            isDarkMode={isDarkMode}
+            onClose={() => {
+              setShowPaymentSuccess(false);
+              setPurchasesStatus('paid');
+              setShowPurchases(true);
+            }}
+          />
+        </View>
+      )}
+
+      {showPaymentCancel && (
+        <View style={styles.cartScreenOverlay}>
+          <PaymentCancelScreen
+            isDarkMode={isDarkMode}
+            onRetry={() => {
+              setShowPaymentCancel(false);
+              setShowPurchases(true);
+            }}
+            onClose={() => {
+              setShowPaymentCancel(false);
+              setShowPurchases(true);
             }}
           />
         </View>
@@ -1288,6 +1480,11 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setShowPurchases(false);
               setPreviousTab(activeTabRef.current);
               setSelectedProductId(productId);
+            }}
+            onProceedToPayment={(checkoutUrl) => {
+              setPaymentCheckoutUrl(checkoutUrl);
+              setShowPurchases(false);
+              setShowPaymentWebView(true);
             }}
           />
         </View>
