@@ -26,6 +26,7 @@ import ProductDetailScreen from '../screen/ProductDetailScreen';
 import WishlistScreen from '../screen/WishlistScreen';
 import CartScreen from '../screen/CartScreen';
 import ProfileDetailsScreen from '../screen/ProfileDetailsScreen';
+import AffiliateReferralModal from '../components/Referral/AffiliateReferralModal';
 import ShopScreen from '../screen/ShopScreen';
 import ShopByBrandScreen from '../screen/ShopByBrandScreen';
 import NotificationsScreen from '../screen/NotificationsScreen';
@@ -94,6 +95,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
   avatar_url?: string;
   badge_name?: string;
   badge_image?: string | any;
@@ -203,6 +205,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [paymentConfirmationData, setPaymentConfirmationData] = useState<any>(null);
   const [showSecurity, setShowSecurity] = useState(false);
   const [paymentSourceScreen, setPaymentSourceScreen] = useState<'checkout' | 'purchases'>('checkout');
+  const [showAffiliateReferralModal, setShowAffiliateReferralModal] = useState(false);
 
   // Home screen data - persists across navigation
   const [homeCategories, setHomeCategories] = useState<CategoryItem[]>([]);
@@ -580,6 +583,35 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenAffiliateReferralModal = async () => {
+    if (!token) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Missing authentication token',
+      });
+      return;
+    }
+
+    if (!referralTree) {
+      try {
+        const { referralService } = require('../services/referralService');
+        const data = await referralService.getReferralTree(token);
+        setReferralTree(data);
+      } catch (error: any) {
+        console.error('Error fetching referral tree:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: error.message || 'Failed to load affiliate referral screen',
+        });
+        return;
+      }
+    }
+
+    setShowAffiliateReferralModal(true);
   };
 
   useEffect(() => {
@@ -1020,16 +1052,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                   setActiveTab('shop');
                 }}
                 onCartPress={() => setShowCart(true)}
-                onReferralPress={async () => {
-                  setReferralNetworkFromTab(true);
-                  try {
-                    const { referralService } = require('../services/referralService');
-                    const data = await referralService.getReferralTree(token);
-                    setReferralTree(data);
-                  } catch (error) {
-                    console.error('Error fetching referral tree:', error);
-                  }
-                }}
+                onReferralPress={handleOpenAffiliateReferralModal}
               />
             </>
             )
@@ -1496,6 +1519,19 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           />
         </View>
       )}
+
+      <AffiliateReferralModal
+        visible={showAffiliateReferralModal}
+        onClose={() => setShowAffiliateReferralModal(false)}
+        userName={enrichedUser?.name}
+        username={enrichedUser?.username}
+        referralTree={referralTree}
+        isDarkMode={isDarkMode}
+        onViewNetwork={() => {
+          setShowAffiliateReferralModal(false);
+          setReferralNetworkFromTab(true);
+        }}
+      />
 
       {showSecurity && (
         <View style={styles.cartScreenOverlay}>
