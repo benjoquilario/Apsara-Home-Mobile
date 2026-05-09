@@ -55,6 +55,7 @@ interface OrderSuccessScreenProps {
   orderData: OrderData;
   onBack?: () => void;
   onNavigateToPayment?: (checkoutUrl: string) => void;
+  onPayLater?: () => void;
   isDarkMode?: boolean;
 }
 
@@ -62,6 +63,7 @@ export default function OrderSuccessScreen({
   orderData,
   onBack,
   onNavigateToPayment,
+  onPayLater,
   isDarkMode = false,
 }: OrderSuccessScreenProps) {
   const insets = useSafeAreaInsets();
@@ -93,57 +95,9 @@ export default function OrderSuccessScreen({
     setLoading(true);
 
     try {
-      const paymentPayload = {
-        amount: orderData.total,
-        description: `Order #${orderData.item.product_id}-${Date.now()}`,
-        payment_method: orderData.selectedPaymentMethod,
-        payment_mode: 'test',
-        source_label: 'Mobile App',
-        source_slug: 'mobile',
-        source_url: 'https://afhome.ph',
-        customer: {
-          name: orderData.user.name,
-          email: orderData.user.email || '',
-          phone: orderData.selectedAddress.phone,
-          address: orderData.selectedAddress.full_address,
-          referred_by: orderData.user.referrer_username || undefined,
-          is_member: !!orderData.user.referrer_username,
-        },
-        order: {
-          product_name: orderData.item.product_name,
-          product_id: orderData.item.product_id,
-          product_sku: orderData.item.variant_color && orderData.item.variant_size
-            ? `${orderData.item.product_id}-${orderData.item.variant_color}-${orderData.item.variant_size}`
-            : `${orderData.item.product_id}`,
-          quantity: orderData.item.quantity,
-          subtotal: orderData.subtotal,
-          handling_fee: orderData.shippingCost,
-        },
-      };
+      console.log('[OrderSuccessScreen] Using checkout URL from orderData');
 
-      console.log('[OrderSuccessScreen] Payment payload prepared:', {
-        amount: orderData.total,
-        paymentMethod: orderData.selectedPaymentMethod,
-        customerName: orderData.user.name,
-        productName: orderData.item.product_name,
-      });
-
-      console.log('[OrderSuccessScreen] Calling API: /payments/checkout-session');
-      const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/payments/checkout-session`,
-        paymentPayload,
-        {
-          headers: { Authorization: `Bearer ${orderData.token}` },
-        }
-      );
-
-      console.log('[OrderSuccessScreen] API response received:', {
-        hasCheckoutUrl: !!response.data?.checkout_url,
-        statusCode: response.status,
-      });
-
-      if (response.data?.checkout_url) {
-        console.log('[OrderSuccessScreen] Checkout URL received, waiting 500ms');
+      if (orderData.checkoutUrl) {
         // Wait a moment to let user see the loading state
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -153,28 +107,25 @@ export default function OrderSuccessScreen({
           text2: 'Opening PayMongo checkout...',
         });
 
-        console.log('[OrderSuccessScreen] Calling onNavigateToPayment with checkout URL');
-        onNavigateToPayment?.(response.data.checkout_url);
+        console.log('[OrderSuccessScreen] Navigating to payment with checkout URL');
+        onNavigateToPayment?.(orderData.checkoutUrl);
       } else {
-        console.log('[OrderSuccessScreen] No checkout URL in response');
+        console.log('[OrderSuccessScreen] No checkout URL in orderData');
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: 'No checkout URL received from server',
+          text2: 'Checkout URL not available',
         });
         setLoading(false);
       }
     } catch (error: any) {
-      console.error('[OrderSuccessScreen] Payment error:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
+      console.error('[OrderSuccessScreen] Error:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.response?.data?.message || 'Failed to process payment',
+        text2: 'Failed to proceed to payment',
       });
+      setLoading(false);
     } finally {
       console.log('[OrderSuccessScreen] Setting loading to false');
       setLoading(false);
@@ -347,6 +298,21 @@ export default function OrderSuccessScreen({
           },
         ]}
       >
+        <TouchableOpacity
+          style={[
+            styles.payLaterBtn,
+            {
+              backgroundColor: colors.borderLight,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={onPayLater}
+          disabled={loading}
+        >
+          <Ionicons name="time-outline" size={18} color={Colors.sky} />
+          <Text style={[styles.payLaterBtnText, { color: Colors.sky }]}>Pay Later</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             styles.payBtn,
@@ -548,8 +514,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  payLaterBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+  },
+  payLaterBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   payBtn: {
+    flex: 1,
     height: 48,
     borderRadius: 10,
     flexDirection: 'row',
