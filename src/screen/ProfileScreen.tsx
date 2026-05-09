@@ -38,7 +38,8 @@ interface ProfileScreenProps {
   cartCount?: number;
   token?: string | null;
   onShowProfileDetails?: (show: boolean) => void;
-  onShowReferralNetwork?: (show: boolean) => void;
+  onShowReferralNetwork?: (show: boolean, tree?: ReferralTree | null) => void;
+  closeReferralNetwork?: boolean;
   isDarkMode?: boolean;
   onPurchaseItemClick?: (status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered') => void;
 }
@@ -70,7 +71,7 @@ const MENU_ITEMS = [
   { icon: 'log-out-outline' as const, label: 'Log Out', chevron: false, danger: true, key: 'logout' },
 ];
 
-export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token, onShowProfileDetails, onShowReferralNetwork, isDarkMode = false, onPurchaseItemClick }: ProfileScreenProps) {
+export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token, onShowProfileDetails, onShowReferralNetwork, closeReferralNetwork, isDarkMode = false, onPurchaseItemClick }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
 
   const colors = {
@@ -119,13 +120,20 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   }, [showProfileDetails, onShowProfileDetails]);
 
   useEffect(() => {
-    onShowReferralNetwork?.(showReferralNetwork);
-  }, [showReferralNetwork, onShowReferralNetwork]);
+    onShowReferralNetwork?.(showReferralNetwork, referralTree);
+  }, [showReferralNetwork, referralTree, onShowReferralNetwork]);
+
+  useEffect(() => {
+    if (closeReferralNetwork) {
+      setShowReferralNetwork(false);
+    }
+  }, [closeReferralNetwork]);
 
   useEffect(() => {
     if (token) {
       fetchLoyaltyData();
       fetchOrderCounts();
+      fetchReferralTree();
     }
   }, [token]);
 
