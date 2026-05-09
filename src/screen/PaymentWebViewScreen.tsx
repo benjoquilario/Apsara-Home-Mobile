@@ -3,12 +3,14 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
+  TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { WebView } from 'react-native-webview';
 import { Colors } from '../constants/colors';
 
 interface PaymentWebViewScreenProps {
@@ -24,11 +26,14 @@ export default function PaymentWebViewScreen({
   onPaymentSuccess,
   isDarkMode = false,
 }: PaymentWebViewScreenProps) {
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
 
   const handleNavigationStateChange = (navState: any) => {
+    console.log('[PaymentWebViewScreen] Navigation state changed:', navState.url);
     // Check if user has returned to success page
     if (navState.url.includes('success') || navState.url.includes('payment_success')) {
+      console.log('[PaymentWebViewScreen] Success detected, calling onPaymentSuccess');
       setLoading(false);
       onPaymentSuccess?.();
     }
@@ -36,7 +41,13 @@ export default function PaymentWebViewScreen({
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0f172a' : '#ffffff' }]}>
-      <View style={[styles.header, { backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', borderBottomColor: isDarkMode ? '#374151' : '#e5e7eb' }]}>
+      {/* Header */}
+      <LinearGradient
+        colors={isDarkMode ? ['rgba(59,130,246,0.15)', 'rgba(31,41,55,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#1f2937' : Colors.white, borderBottomColor: isDarkMode ? '#374151' : '#e5e7eb' }]}
+      >
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Ionicons name="chevron-back-outline" size={24} color={isDarkMode ? '#e5e7eb' : Colors.text} />
         </TouchableOpacity>
@@ -44,7 +55,7 @@ export default function PaymentWebViewScreen({
           Payment
         </Text>
         <View style={{ width: 40 }} />
-      </View>
+      </LinearGradient>
 
       {loading && (
         <View style={styles.loadingContainer}>
