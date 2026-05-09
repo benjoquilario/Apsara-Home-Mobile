@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   Image,
   Dimensions,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Device from 'expo-device';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
@@ -113,10 +115,10 @@ export default function CheckoutScreen({
   };
 
   const paymentMethods: PaymentMethod[] = [
-    { id: 'cod', name: 'Cash on Delivery', icon: 'wallet' },
     { id: 'gcash', name: 'GCash', icon: 'card' },
-    { id: 'paymaya', name: 'PayMaya', icon: 'card' },
-    { id: 'bank', name: 'Bank Transfer', icon: 'checkmark-circle' },
+    { id: 'maya', name: 'PayMaya', icon: 'card' },
+    { id: 'card', name: 'Credit/Debit Card', icon: 'card' },
+    { id: 'online_banking', name: 'Online Banking', icon: 'checkmark-circle' },
   ];
 
   const vouchers = [
@@ -242,11 +244,12 @@ export default function CheckoutScreen({
   const handlePlaceOrder = async () => {
     console.log('[CheckoutScreen] Place order clicked');
 
-    if (!item || !user || !selectedAddress) {
+    if (!item || !user || !selectedAddress || !token) {
       console.log('[CheckoutScreen] Missing required fields:', {
         hasItem: !!item,
         hasUser: !!user,
         hasAddress: !!selectedAddress,
+        hasToken: !!token,
       });
       Toast.show({
         type: 'error',
@@ -256,47 +259,131 @@ export default function CheckoutScreen({
       return;
     }
 
-    console.log('[CheckoutScreen] All validation passed, setting loading to true');
     setLoading(true);
 
     try {
-      const orderData = {
-        item,
-        user,
-        selectedAddress,
-        selectedPaymentMethod,
-        shippingCost,
-        voucherDiscount,
-        selectedVoucher,
-        subtotal,
-        shopDiscount,
-        total,
-        token,
+      const deviceId = Device.deviceId || 'unknown';
+      const appVersion = '1.0.0';
+      const platformName = Platform.OS === 'ios' ? 'ios' : 'android';
+
+      // REQUIRED FIELDS
+      const paymentPayload: any = {
+        amount: Math.round(total * 100) / 100,
+        description: `${item.product_name} (${item.quantity} item${item.quantity > 1 ? 's' : ''})`,
+        payment_method: selectedPaymentMethod,
+        platform: platformName,
+        app_version: appVersion,
       };
 
-      console.log('[CheckoutScreen] Order data prepared:', {
-        productName: item.product_name,
+      // OPTIONAL FIELDS
+      paymentPayload.payment_mode = 'test';
+      paymentPayload.device_id = deviceId;
+
+      // Customer info (optional)
+      if (user?.name || user?.email || user?.phone) {
+        paymentPayload.customer = {
+          name: user?.name || selectedAddress.full_name,
+          email: user?.email,
+          phone: user?.phone || selectedAddress.phone,
+          address: selectedAddress.full_address || `${selectedAddress.address}, ${selectedAddress.city}, ${selectedAddress.province}`,
+          referred_by: user?.referrer_username,
+          is_member: false,
+        };
+      }
+
+      // Order details (optional)
+      paymentPayload.order = {
+        product_name: item.product_name,
+        product_id: item.product_id,
+        product_sku: `SKU-${item.product_id}`,
+        product_image: item.variant_image || item.product_image,
         quantity: item.quantity,
-        total,
-        paymentMethod: selectedPaymentMethod,
+        subtotal: Math.round(memberTotal * 100) / 100,
+        handling_fee: Math.round(shippingCost * 100) / 100,
+      };
+
+      // Add optional variant fields if available
+      if (item.variant_color) paymentPayload.order.selected_color = item.variant_color;
+      if (item.variant_size) paymentPayload.order.selected_size = item.variant_size;
+
+      console.log('[CheckoutScreen] Order object with quantity:', {
+        product: paymentPayload.order.product_name,
+        quantity: paymentPayload.order.quantity,
+        subtotal: paymentPayload.order.subtotal,
       });
 
-      // Simulate processing delay so loading indicator is visible
-      console.log('[CheckoutScreen] Waiting 1 second for loading indicator...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Voucher (optional)
+      if (selectedVoucher) {
+        const voucherCode = vouchers.find(v => v.id === selectedVoucher)?.code;
+        if (voucherCode) {
+          paymentPayload.voucher_code = voucherCode;
+        }
+      }
 
-      console.log('[CheckoutScreen] Calling onNavigateToOrderSuccess callback');
-      const result = onNavigateToOrderSuccess?.(orderData);
-      console.log('[CheckoutScreen] Navigation callback result:', result);
+      console.log('[CheckoutScreen] Payment payload:', JSON.stringify(paymentPayload, null, 2));
+      const apiUrl = `${API_CONFIG.BASE_URL}/mobile/payments/create`;
+      console.log('[CheckoutScreen] Calling API:', apiUrl);
+      console.log('[CheckoutScreen] Payment method:', selectedPaymentMethod, '-> lowercase:', selectedPaymentMethod.toLowerCase());
+
+      const response = await axios.post(apiUrl, paymentPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('[CheckoutScreen] ✅ API SUCCESS:', {
+        status: response.status,
+        orderId: response.data?.order_id,
+        hasCheckoutUrl: !!response.data?.checkout_url,
+      });
+
+      if (response.data?.checkout_url) {
+        const orderData = {
+          item,
+          user,
+          selectedAddress,
+          selectedPaymentMethod,
+          shippingCost,
+          voucherDiscount,
+          selectedVoucher,
+          subtotal,
+          shopDiscount,
+          total,
+          token,
+          checkoutUrl: response.data.checkout_url,
+          orderId: response.data?.order_id,
+        };
+
+        console.log('[CheckoutScreen] Navigating to order success with checkout URL');
+        onNavigateToOrderSuccess?.(orderData);
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No checkout URL received from server',
+        });
+      }
     } catch (error: any) {
-      console.error('[CheckoutScreen] Error occurred:', error);
+      console.error('[CheckoutScreen] ❌ API ERROR:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+
+      const errorMsg = error.response?.data?.message
+        || error.response?.data?.error
+        || error.response?.statusText
+        || 'Failed to create payment';
+
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Failed to proceed to order summary',
+        text1: 'Payment Error',
+        text2: errorMsg,
       });
     } finally {
-      console.log('[CheckoutScreen] Setting loading to false');
       setLoading(false);
     }
   };
