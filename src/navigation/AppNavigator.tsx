@@ -150,6 +150,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [profileDetailsFromTab, setProfileDetailsFromTab] = useState(false);
   const [referralNetworkFromTab, setReferralNetworkFromTab] = useState(false);
   const [referralTree, setReferralTree] = useState<any>(null);
+  const [closeReferralNetwork, setCloseReferralNetwork] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [previousTab, setPreviousTab] = useState<TabKey>('home');
@@ -846,7 +847,12 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               cartCount={cartCount}
               isDarkMode={isDarkMode}
               onShowProfileDetails={(show) => setProfileDetailsFromTab(show)}
-              onShowReferralNetwork={(show) => setReferralNetworkFromTab(show)}
+              onShowReferralNetwork={(show, tree) => {
+                setReferralNetworkFromTab(show);
+                if (tree) setReferralTree(tree);
+                setCloseReferralNetwork(false);
+              }}
+              closeReferralNetwork={closeReferralNetwork}
               onPurchaseItemClick={(status) => {
                 setPurchasesStatus(status);
                 setShowPurchases(true);
@@ -1330,7 +1336,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             isDarkMode={isDarkMode}
             onBack={() => {
               setShowPaymentWebView(false);
-              setShowPurchases(true);
+              setShowOrderSuccess(true);
               setPaymentCheckoutUrl('');
             }}
             onPaymentSuccess={() => {
@@ -1464,6 +1470,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             onBack={() => {
               setReferralNetworkFromTab(false);
               setReferralTree(null);
+              setCloseReferralNetwork(true);
             }}
           />
         </View>
