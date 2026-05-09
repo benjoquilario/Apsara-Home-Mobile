@@ -9,6 +9,7 @@ import {
   FlatList,
   Image,
   RefreshControl,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,21 +34,22 @@ interface OrderItem {
 interface Order {
   id: number;
   order_number: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered';
   created_at: string;
   total_amount: number;
   shipping_fee: number;
   payment_method: string;
   tracking_number?: string;
+  checkout_id?: string;
   items: OrderItem[];
 }
 
 interface PurchasesScreenProps {
   token?: string | null;
-  status?: 'pending' | 'processing' | 'shipped' | 'delivered';
+  status?: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered';
   isDarkMode?: boolean;
   onBack?: () => void;
-  onProceedToPayment?: (order: Order) => void;
+  onProceedToPayment?: (checkoutUrl: string) => void;
   onProductPress?: (productId: number) => void;
 }
 
@@ -57,6 +59,12 @@ const STATUS_CONFIG = {
     color: '#ef4444',
     label: 'Pending',
     description: 'Awaiting payment confirmation',
+  },
+  paid: {
+    icon: 'checkmark',
+    color: '#06b6d4',
+    label: 'Paid',
+    description: 'Payment confirmed, processing order',
   },
   processing: {
     icon: 'hourglass-outline',
@@ -91,6 +99,7 @@ export default function PurchasesScreen({
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [timeLeft, setTimeLeft] = useState<Record<number, string>>({});
+  const [paymentLoading, setPaymentLoading] = useState<number | null>(null);
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f0f9ff',
@@ -127,7 +136,12 @@ export default function PurchasesScreen({
       const allOrders = response.data?.orders || [];
       const filteredOrders = allOrders.filter((order: Order) => order.status === status);
 
-      console.log('[PurchasesScreen] Filtered orders for status', status, ':', filteredOrders);
+      console.log('[PurchasesScreen] Filtered orders for status', status, ':', {
+        totalOrders: allOrders.length,
+        filteredCount: filteredOrders.length,
+        requestedStatus: status,
+        statuses: allOrders.map((o: Order) => o.status),
+      });
       setOrders(filteredOrders);
     } catch (error: any) {
       console.error('[PurchasesScreen] Error fetching orders:', error);
@@ -145,6 +159,16 @@ export default function PurchasesScreen({
   useEffect(() => {
     fetchOrders();
   }, [token, status]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      onBack?.();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [onBack]);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -176,7 +200,19 @@ export default function PurchasesScreen({
   };
 
   const handleProceedToPayment = async (order: Order) => {
+    console.log('[PurchasesScreen] handleProceedToPayment called with order:', {
+      id: order.id,
+      order_number: order.order_number,
+      fullOrder: order,
+    });
+
+    if (paymentLoading === order.id) {
+      console.log('[PurchasesScreen] Already loading for this order');
+      return;
+    }
+
     if (!token) {
+      console.log('[PurchasesScreen] No token found');
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -185,57 +221,52 @@ export default function PurchasesScreen({
       return;
     }
 
-    try {
-      const paymentPayload = {
-        amount: order.total_amount,
-        description: `Order #${order.order_number}`,
-        payment_method: order.payment_method.toLowerCase(),
-        payment_mode: 'test',
-        source_label: 'Mobile App',
-        source_slug: 'mobile',
-        source_url: 'https://afhome.ph',
-        customer: {
-          name: '',
-          email: '',
-          phone: '',
-          address: '',
-        },
-        order: {
-          product_name: order.items.map(item => item.name).join(', '),
-          product_id: order.items[0]?.product_id || 0,
-          quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
-          subtotal: order.total_amount - order.shipping_fee,
-          handling_fee: order.shipping_fee,
-        },
-      };
+    if (!order.order_number) {
+      console.log('[PurchasesScreen] No order_number found in order');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Order number not found',
+      });
+      return;
+    }
 
-      console.log('[PurchasesScreen] Payment payload prepared:', {
-        amount: order.total_amount,
+    setPaymentLoading(order.id);
+    try {
+      console.log('[PurchasesScreen] Proceeding to payment:', {
         orderNumber: order.order_number,
       });
 
-      console.log('[PurchasesScreen] Calling API: /payments/checkout-session');
-      const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/payments/checkout-session`,
-        paymentPayload,
+      const apiUrl = `${API_CONFIG.BASE_URL}/mobile/payments/${order.order_number}/proceed`;
+      console.log('[PurchasesScreen] Calling API:', apiUrl);
+
+      const response = await axios.get(
+        apiUrl,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      console.log('[PurchasesScreen] API response received:', {
+      console.log('[PurchasesScreen] ✅ API SUCCESS:', {
+        status: response.status,
+        checkoutUrl: response.data?.checkout_url,
         hasCheckoutUrl: !!response.data?.checkout_url,
-        statusCode: response.status,
+        fullResponse: response.data,
       });
 
       if (response.data?.checkout_url) {
+        console.log('[PurchasesScreen] Calling onProceedToPayment with URL:', response.data.checkout_url);
         Toast.show({
           type: 'success',
           text1: 'Redirecting to Payment',
           text2: 'Opening PayMongo checkout...',
         });
-        onProceedToPayment?.(order);
+        onProceedToPayment?.(response.data.checkout_url);
+        console.log('[PurchasesScreen] onProceedToPayment callback executed');
       } else {
+        console.log('[PurchasesScreen] No checkout_url in response');
         Toast.show({
           type: 'error',
           text1: 'Error',
@@ -243,16 +274,25 @@ export default function PurchasesScreen({
         });
       }
     } catch (error: any) {
-      console.error('[PurchasesScreen] Payment error:', {
+      console.error('[PurchasesScreen] ❌ API ERROR:', {
         message: error.message,
         status: error.response?.status,
+        statusText: error.response?.statusText,
         data: error.response?.data,
       });
+
+      const errorMsg = error.response?.data?.message
+        || error.response?.data?.error
+        || error.response?.statusText
+        || 'Failed to proceed to payment';
+
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: error.response?.data?.message || 'Failed to proceed to payment',
+        text1: 'Payment Error',
+        text2: errorMsg,
       });
+    } finally {
+      setPaymentLoading(null);
     }
   };
 
@@ -322,46 +362,63 @@ export default function PurchasesScreen({
 
               {/* Order Items */}
               <View style={[styles.itemsContainer, { borderBottomColor: colors.border }]}>
-                {order.items.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.itemRow,
-                      index !== order.items.length - 1 && { borderBottomColor: colors.border },
-                    ]}
-                    onPress={() => onProductPress?.(item.product_id)}
-                    activeOpacity={0.7}
-                  >
-                    {item.image && (
-                      <Image
-                        source={{ uri: item.image }}
-                        style={styles.itemImage}
-                        resizeMode="contain"
-                      />
-                    )}
-                    <View style={styles.itemInfo}>
-                      <View style={styles.itemNameRow}>
-                        <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={2}>
-                          {item.name}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={14} color={colors.textSec} />
-                      </View>
-                      <View>
-                        <Text style={[styles.itemQty, { color: colors.textSec }]}>
-                          Qty: {item.quantity}
-                        </Text>
-                        {(item.selected_color || item.selected_size || item.selected_type) && (
-                          <Text style={[styles.itemVariant, { color: colors.textSec }]}>
-                            {[item.selected_color, item.selected_size, item.selected_type].filter(Boolean).join(', ')}
+                {(() => {
+                  // Consolidate items by product_id
+                  const consolidatedItems = order.items.reduce((acc: any[], item) => {
+                    const existing = acc.find(i => i.product_id === item.product_id);
+                    if (existing) {
+                      existing.quantity += item.quantity;
+                      existing.totalPrice += item.price * item.quantity;
+                    } else {
+                      acc.push({
+                        ...item,
+                        totalPrice: item.price * item.quantity,
+                      });
+                    }
+                    return acc;
+                  }, []);
+
+                  return consolidatedItems.map((item, index) => (
+                    <TouchableOpacity
+                      key={`${item.product_id}-${index}`}
+                      style={[
+                        styles.itemRow,
+                        index !== consolidatedItems.length - 1 && { borderBottomColor: colors.border },
+                      ]}
+                      onPress={() => onProductPress?.(item.product_id)}
+                      activeOpacity={0.7}
+                    >
+                      {item.image && (
+                        <Image
+                          source={{ uri: item.image }}
+                          style={styles.itemImage}
+                          resizeMode="contain"
+                        />
+                      )}
+                      <View style={styles.itemInfo}>
+                        <View style={styles.itemNameRow}>
+                          <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={2}>
+                            {item.name}
                           </Text>
-                        )}
+                          <Ionicons name="chevron-forward" size={14} color={colors.textSec} />
+                        </View>
+                        <View>
+                          <Text style={[styles.itemQty, { color: colors.textSec }]}>
+                            Qty: {item.quantity}
+                          </Text>
+                          {(item.selected_color || item.selected_size || item.selected_type) && (
+                            <Text style={[styles.itemVariant, { color: colors.textSec }]}>
+                              {[item.selected_color, item.selected_size, item.selected_type].filter(Boolean).join(', ')}
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                    <Text style={[styles.itemPrice, { color: Colors.sky }]}>
-                      ₱{(item.price * item.quantity).toLocaleString()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text style={[styles.itemPrice, { color: Colors.sky }]}>
+                        ₱{item.totalPrice.toLocaleString()}
+                      </Text>
+                    </TouchableOpacity>
+                  ));
+                })()}
               </View>
 
               {/* Shipping Fee */}
@@ -408,11 +465,18 @@ export default function PurchasesScreen({
 
                     {/* Proceed to Payment Button */}
                     <TouchableOpacity
-                      style={styles.paymentBtn}
+                      style={[styles.paymentBtn, paymentLoading === order.id && { opacity: 0.6 }]}
                       onPress={() => handleProceedToPayment(order)}
+                      disabled={paymentLoading === order.id}
                     >
-                      <Ionicons name="card" size={16} color={Colors.white} />
-                      <Text style={styles.paymentBtnText}>Proceed to Payment</Text>
+                      {paymentLoading === order.id ? (
+                        <ActivityIndicator size="small" color={Colors.white} />
+                      ) : (
+                        <>
+                          <Ionicons name="card" size={16} color={Colors.white} />
+                          <Text style={styles.paymentBtnText}>Proceed to Payment</Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
                 )}
