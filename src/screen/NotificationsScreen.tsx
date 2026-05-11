@@ -163,11 +163,20 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
 
   const getNotificationStatus = (item: any): string | null => {
     const rawStatus = item?.status || item?.order_status;
-    if (typeof rawStatus === 'string' && rawStatus.trim()) return rawStatus.trim().toLowerCase();
+    if (typeof rawStatus === 'string' && rawStatus.trim()) {
+      const s = rawStatus.trim().toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+      if (s === 'out_for_delivery') return 'to_receive';
+      if (s === 'to_ship') return 'shipped';
+      return s;
+    }
     if (typeof item?.href !== 'string') return null;
     const deepLinkRegex = /^purchases:\/\/([^\/]+)(?:\/(.+))?$/;
     const match = item.href.match(deepLinkRegex);
-    return match?.[1] ? String(match[1]).toLowerCase() : null;
+    if (!match?.[1]) return null;
+    const s = String(match[1]).toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+    if (s === 'out_for_delivery') return 'to_receive';
+    if (s === 'to_ship') return 'shipped';
+    return s;
   };
 
   const getStatusBadgeConfig = (status: string | null, dark: boolean) => {
@@ -185,6 +194,7 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
         return { label: 'To Ship', bg: dark ? '#3a1f45' : '#f3e8ff', text: dark ? '#d8b4fe' : '#6b21a8' };
       case 'to receive':
       case 'toreceive':
+      case 'out for delivery':
         return { label: 'To Receive', bg: dark ? '#123348' : '#cffafe', text: dark ? '#67e8f9' : '#0e7490' };
       case 'delivered':
         return { label: 'Delivered', bg: dark ? '#1f3f21' : '#d1fae5', text: dark ? '#6ee7b7' : '#065f46' };
