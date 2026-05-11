@@ -11,6 +11,9 @@ import {
   RefreshControl,
   BackHandler,
   Modal,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { API_CONFIG } from '../config/api';
 import Toast from 'react-native-toast-message';
+const { height: screenHeight } = Dimensions.get('window');
 
 interface OrderItem {
   id: number;
@@ -112,9 +116,63 @@ export default function PurchasesScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [timeLeft, setTimeLeft] = useState<Record<number, string>>({});
   const [paymentLoading, setPaymentLoading] = useState<number | null>(null);
+  const [cancelLoading, setCancelLoading] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<any>(initialStatus);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailSlideAnim] = useState(new Animated.Value(0));
+  const closeDetailModal = () => {
+    Animated.timing(detailSlideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setShowDetailModal(false));
+  };
+  const detailPanResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 5,
+    onPanResponderMove: (_, { dy }) => {
+      if (dy > 0) {
+        detailSlideAnim.setValue(1 - dy / screenHeight);
+      }
+    },
+    onPanResponderRelease: (_, { dy, vy }) => {
+      if (dy > 100 || vy > 0.5) {
+        Animated.timing(detailSlideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => setShowDetailModal(false));
+      } else {
+        Animated.timing(detailSlideAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (showDetailModal) {
+      detailSlideAnim.setValue(0);
+      Animated.timing(detailSlideAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showDetailModal, detailSlideAnim]);
+
+  const detailTranslateY = detailSlideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [screenHeight, 0],
+  });
+
+  const detailBackdropOpacity = detailSlideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f0f9ff',
@@ -333,6 +391,59 @@ export default function PurchasesScreen({
     }
   };
 
+  const handleCancelOrder = async (order: Order) => {
+    if (cancelLoading === order.id) return;
+    if (!token) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Authentication required' });
+      return;
+    }
+
+    setCancelLoading(order.id);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const endpoints = [
+        `${API_CONFIG.BASE_URL}/mobile/orders/${order.order_number}/cancel`,
+        `${API_CONFIG.BASE_URL}/orders/${order.order_number}/cancel`,
+      ];
+
+      let success = false;
+      let lastError: any = null;
+
+      for (const url of endpoints) {
+        try {
+          await axios.post(url, {}, { headers });
+          success = true;
+          break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!success) throw lastError;
+
+      Toast.show({
+        type: 'success',
+        text1: 'Order Cancelled',
+        text2: `Order #${order.order_number} has been cancelled.`,
+      });
+
+      setShowDetailModal(false);
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message
+        || error?.response?.data?.error
+        || 'Failed to cancel order';
+      Toast.show({
+        type: 'error',
+        text1: 'Cancel Failed',
+        text2: errorMsg,
+      });
+    } finally {
+      setCancelLoading(null);
+    }
+  };
+
   const statusConfig = STATUS_CONFIG[selectedStatus as keyof typeof STATUS_CONFIG];
 
   return (
@@ -522,39 +633,61 @@ export default function PurchasesScreen({
                     <Text style={[styles.paymentMethodLabel, { color: colors.textSec }]}>
                       Payment: {order.payment_method}
                     </Text>
+                    {selectedStatus === 'pending' && (
+                      <View style={styles.payUntilInline}>
+                        <Ionicons
+                          name={timeLeft[order.id] === 'Expired' ? 'alert-circle' : 'time'}
+                          size={12}
+                          color={timeLeft[order.id] === 'Expired' ? Colors.error : Colors.sky}
+                        />
+                        <Text
+                          style={[
+                            styles.payUntilInlineText,
+                            { color: timeLeft[order.id] === 'Expired' ? Colors.error : Colors.sky },
+                          ]}
+                        >
+                          {timeLeft[order.id] || 'Loading...'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
-                  {/* Proceed to Payment Section */}
-                  {selectedStatus === 'pending' && (
+                  {/* Order Actions */}
+                  {(selectedStatus === 'pending' || selectedStatus === 'paid') && (
                     <View style={styles.paymentSection}>
-                      {/* Payment Countdown */}
-                      <View style={styles.paymentTimerRow}>
-                        <Ionicons name={timeLeft[order.id] === 'Expired' ? 'alert-circle' : 'time'} size={14} color={timeLeft[order.id] === 'Expired' ? Colors.error : Colors.sky} />
-                        <View style={styles.paymentTimerText}>
-                          <Text style={[styles.paymentTimerLabel, { color: colors.textSec }]}>
-                            Pay Until
-                          </Text>
-                          <Text style={[styles.paymentTimerValue, { color: timeLeft[order.id] === 'Expired' ? Colors.error : Colors.sky }]}>
-                            {timeLeft[order.id] || 'Loading...'}
-                          </Text>
-                        </View>
-                      </View>
+                      <View style={styles.listActionsRow}>
+                        <TouchableOpacity
+                          style={[styles.cancelListBtn, cancelLoading === order.id && { opacity: 0.6 }]}
+                          onPress={() => handleCancelOrder(order)}
+                          disabled={cancelLoading === order.id}
+                        >
+                          {cancelLoading === order.id ? (
+                            <ActivityIndicator size="small" color={Colors.white} />
+                          ) : (
+                            <>
+                              <Ionicons name="close-circle-outline" size={16} color={Colors.white} />
+                              <Text style={styles.paymentBtnText}>Cancel Order</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
 
-                      {/* Proceed to Payment Button */}
-                      <TouchableOpacity
-                        style={[styles.paymentBtn, paymentLoading === order.id && { opacity: 0.6 }]}
-                        onPress={() => handleProceedToPayment(order)}
-                        disabled={paymentLoading === order.id}
-                      >
-                        {paymentLoading === order.id ? (
-                          <ActivityIndicator size="small" color={Colors.white} />
-                        ) : (
-                          <>
-                            <Ionicons name="card" size={16} color={Colors.white} />
-                            <Text style={styles.paymentBtnText}>Proceed to Payment</Text>
-                          </>
+                        {selectedStatus === 'pending' && (
+                          <TouchableOpacity
+                            style={[styles.paymentBtn, paymentLoading === order.id && { opacity: 0.6 }]}
+                            onPress={() => handleProceedToPayment(order)}
+                            disabled={paymentLoading === order.id}
+                          >
+                            {paymentLoading === order.id ? (
+                              <ActivityIndicator size="small" color={Colors.white} />
+                            ) : (
+                              <>
+                                <Ionicons name="card" size={16} color={Colors.white} />
+                                <Text style={styles.paymentBtnText}>Proceed to Payment</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
                         )}
-                      </TouchableOpacity>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -578,18 +711,27 @@ export default function PurchasesScreen({
       <Modal
         visible={showDetailModal}
         animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowDetailModal(false)}
+        transparent
+        onRequestClose={closeDetailModal}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.bg }]}>
-          {/* Modal Header */}
-          <View style={[styles.modalHeader, { backgroundColor: isDarkMode ? '#1f2937' : Colors.white, borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => setShowDetailModal(false)} style={styles.modalCloseBtn}>
-              <Ionicons name="chevron-back-outline" size={24} color={isDarkMode ? '#e5e7eb' : Colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>Order Details</Text>
-            <View style={{ width: 40 }} />
-          </View>
+        <View style={styles.sheetBackdrop}>
+          <Animated.View style={[styles.sheetBackdropLayer, { opacity: detailBackdropOpacity }]}>
+            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeDetailModal} />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              { backgroundColor: colors.bg, transform: [{ translateY: detailTranslateY }] },
+            ]}
+            {...detailPanResponder.panHandlers}
+          >
+            {/* Sheet Header */}
+            <View
+              style={[styles.modalHeader, { backgroundColor: isDarkMode ? '#1f2937' : Colors.white, borderBottomColor: colors.border }]}
+            >
+              <View style={[styles.sheetHandle, { backgroundColor: isDarkMode ? '#475569' : '#cbd5e1' }]} />
+              <Text style={[styles.modalTitle, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>Order Details</Text>
+            </View>
 
           {selectedOrder && (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
@@ -690,8 +832,46 @@ export default function PurchasesScreen({
                   </>
                 )}
               </View>
+              {(selectedOrder.status === 'pending' || selectedOrder.status === 'paid') && (
+                <View style={styles.detailActions}>
+                  <TouchableOpacity
+                    style={[styles.detailActionBtn, styles.cancelBtn]}
+                    onPress={() => handleCancelOrder(selectedOrder)}
+                    disabled={cancelLoading === selectedOrder.id}
+                    activeOpacity={0.7}
+                  >
+                    {cancelLoading === selectedOrder.id ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <>
+                        <Ionicons name="close-circle-outline" size={16} color={Colors.white} />
+                        <Text style={styles.detailActionText}>Cancel Order</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  {selectedOrder.status === 'pending' && (
+                    <TouchableOpacity
+                      style={[styles.detailActionBtn, styles.payBtn]}
+                      onPress={() => handleProceedToPayment(selectedOrder)}
+                      disabled={paymentLoading === selectedOrder.id}
+                      activeOpacity={0.7}
+                    >
+                      {paymentLoading === selectedOrder.id ? (
+                        <ActivityIndicator size="small" color={Colors.white} />
+                      ) : (
+                        <>
+                          <Ionicons name="card-outline" size={16} color={Colors.white} />
+                          <Text style={styles.detailActionText}>Proceed to Payment</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </ScrollView>
           )}
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -888,10 +1068,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   paymentSection: {
+    gap: 10,
+    marginTop: 12,
+  },
+  listActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 12,
+    gap: 8,
+  },
+  cancelListBtn: {
+    backgroundColor: '#ef4444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flex: 1,
   },
   paymentTimerRow: {
     flexDirection: 'row',
@@ -939,15 +1133,32 @@ const styles = StyleSheet.create({
   },
   // Modal Styles
   modalContainer: {
+    height: '90%',
+    maxHeight: '92%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  sheetBackdrop: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdropLayer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.38)',
   },
   modalHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 16,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderBottomWidth: 1,
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 999,
+    marginBottom: 10,
   },
   modalCloseBtn: {
     width: 40,
@@ -1022,5 +1233,32 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 16,
     fontWeight: '800',
+  },
+  detailActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  detailActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  cancelBtn: {
+    backgroundColor: '#ef4444',
+  },
+  payBtn: {
+    backgroundColor: Colors.sky,
+  },
+  detailActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.white,
   },
 });
