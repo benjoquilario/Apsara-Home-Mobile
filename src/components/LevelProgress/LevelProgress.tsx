@@ -4,12 +4,12 @@ import {
   Text,
   Image,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Modal,
   Share,
   Linking,
-  FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
   PanResponder,
@@ -206,20 +206,25 @@ export default function LevelProgress({
         </TouchableOpacity>
       </View>
 
-      {/* Badges Section - Horizontal Scroll */}
-      <View style={styles.badgesScrollContainer}>
-        <FlatList
-          data={Array.from({ length: 5 }, (_, i) => i + 1)}
-          renderItem={({ item: rank }) => {
+      {/* Badges Section - One Row */}
+      <View style={styles.badgesTableContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.badgesRow}
+        >
+          {Array.from({ length: 5 }, (_, i) => i + 1).map((rank) => {
             const tierReq = TIER_REQUIREMENTS[rank];
             const isCurrentRank = rank === currentRank;
+            const isLocked = rank > currentRank;
             const tierCol = getTierColor(tierReq.tier);
 
             return (
               <TouchableOpacity
-                style={styles.badgeCard}
+                key={rank}
+                style={[styles.badgeCard, { borderColor: colors.borderLight, backgroundColor: colors.bg }]}
                 onPress={() => setEnlargedBadge(rank)}
-                activeOpacity={0.7}
+                activeOpacity={0.85}
               >
                 <View style={styles.badgeWrapper}>
                   <Image
@@ -230,6 +235,13 @@ export default function LevelProgress({
                   {isCurrentRank && (
                     <View style={[styles.activeBadge, { backgroundColor: tierCol }]}>
                       <Ionicons name="checkmark" size={12} color={Colors.white} />
+                    </View>
+                  )}
+                  {isLocked && (
+                    <View style={[styles.lockedOverlay, { backgroundColor: isDarkMode ? 'rgba(2, 6, 23, 0.45)' : 'rgba(255, 255, 255, 0.5)' }]}>
+                      <View style={[styles.lockIconBubble, { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(30, 41, 59, 0.7)' }]}>
+                        <Ionicons name="lock-closed" size={12} color={Colors.white} />
+                      </View>
                     </View>
                   )}
                 </View>
@@ -245,20 +257,13 @@ export default function LevelProgress({
                   </View>
                 ) : (
                   <View style={styles.nextLabel}>
-                    <Text style={styles.nextLabelText}>UPCOMING</Text>
+                    <Text style={styles.nextLabelText}>LOCKED</Text>
                   </View>
                 )}
               </TouchableOpacity>
             );
-          }}
-          keyExtractor={(item) => item.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          snapToInterval={110}
-          decelerationRate="fast"
-          contentContainerStyle={styles.badgesScrollContent}
-        />
+          })}
+        </ScrollView>
       </View>
 
       {/* Progress Section */}
@@ -367,6 +372,12 @@ export default function LevelProgress({
                 <Text style={[styles.achievementTier, { color: colors.text }]}>
                   {TIER_REQUIREMENTS[enlargedBadge].tier}
                 </Text>
+                {enlargedBadge > currentRank && (
+                  <View style={[styles.modalLockBadge, { backgroundColor: isDarkMode ? 'rgba(148,163,184,0.2)' : 'rgba(30,41,59,0.08)' }]}>
+                    <Ionicons name="lock-closed" size={12} color={isDarkMode ? '#cbd5e1' : '#334155'} />
+                    <Text style={[styles.modalLockText, { color: isDarkMode ? '#cbd5e1' : '#334155' }]}>Locked Tier</Text>
+                  </View>
+                )}
                 <Text style={[styles.achievementDescription, { color: colors.textSec }]}>
                   {getTierDescription(
                     TIER_REQUIREMENTS[enlargedBadge].tier,
@@ -456,17 +467,24 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '500',
   },
-  badgesScrollContainer: {
-    paddingVertical: 16,
+  badgesTableContainer: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
   },
-  badgesScrollContent: {
-    paddingHorizontal: 16,
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 8,
+    paddingRight: 8,
   },
   badgeCard: {
     alignItems: 'center',
     gap: 6,
     width: 110,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
   badgeWrapper: {
     position: 'relative',
@@ -476,6 +494,19 @@ const styles = StyleSheet.create({
   badgeImage: {
     width: 70,
     height: 70,
+  },
+  lockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockIconBubble: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeBadge: {
     position: 'absolute',
@@ -537,6 +568,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textSecondary,
     letterSpacing: 0.5,
+  },
+  modalLockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginTop: 2,
+  },
+  modalLockText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   arrowColumn: {
     justifyContent: 'center',
