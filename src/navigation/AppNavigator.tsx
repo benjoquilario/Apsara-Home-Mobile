@@ -200,7 +200,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showPurchases, setShowPurchases] = useState(false);
-  const [purchasesStatus, setPurchasesStatus] = useState<'pending' | 'paid' | 'processing' | 'shipped' | 'to_receive' | 'delivered'>('pending');
+  const [purchasesStatus, setPurchasesStatus] = useState<'pending' | 'paid' | 'processing' | 'shipped' | 'to_receive' | 'delivered' | 'cancelled' | 'return'>('pending');
   const [purchasesInitialOrderId, setPurchasesInitialOrderId] = useState<string | undefined>(undefined);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showPaymentCancel, setShowPaymentCancel] = useState(false);
@@ -699,7 +699,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     if (s === 'to_ship') return 'shipped' as const;
     if (s === 'out_for_delivery') return 'to_receive' as const;
     if (s === 'to_receive' || s === 'toreceive') return 'to_receive' as const;
-    if (s === 'pending' || s === 'paid' || s === 'processing' || s === 'shipped' || s === 'delivered') return s;
+    if (s === 'pending' || s === 'paid' || s === 'processing' || s === 'shipped' || s === 'delivered' || s === 'cancelled' || s === 'return') return s;
     return 'pending' as const;
   };
 
