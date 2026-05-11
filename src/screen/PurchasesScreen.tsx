@@ -1029,11 +1029,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   paymentMethodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 8,
     paddingTop: 8,
   },
   paymentMethodLabel: {
     fontSize: 11,
+  },
+  payUntilInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  payUntilInlineText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   orderFooter: {
     gap: 10,
@@ -1086,24 +1098,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     flex: 1,
-  },
-  paymentTimerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  paymentTimerText: {
-    flex: 1,
-  },
-  paymentTimerLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  paymentTimerValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
   },
   filterBar: {
     borderTopWidth: 1,
