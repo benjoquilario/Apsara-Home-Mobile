@@ -123,10 +123,29 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
     return notifications.notifications;
   };
 
-  const handleNotificationPress = (href?: string, orderId?: string) => {
-    if (!href) return;
+  const handleNotificationPress = async (item: any) => {
+    const href = item?.href;
+    const orderId = item?.order_id;
 
     console.log('[NotificationsScreen] Notification pressed:', { href, orderId });
+
+    if (token && item?.id) {
+      try {
+        await orderService.readNotification(token, item.id);
+        setNotifications((prev: any) => {
+          if (!prev?.notifications) return prev;
+          const updated = prev.notifications.map((n: any) =>
+            n.id === item.id ? { ...n, is_read: true } : n
+          );
+          const unreadCount = updated.filter((n: any) => !n.is_read).length;
+          return { ...prev, notifications: updated, unread_count: unreadCount };
+        });
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    }
+
+    if (!href) return;
 
     // Parse deep link format: purchases://status or purchases://status/mobile-order-id
     const deepLinkRegex = /^purchases:\/\/([^\/]+)(?:\/(.+))?$/;
@@ -274,7 +293,7 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
                   },
                   index !== notifications.notifications.length - 1 && styles.notificationItemBorder,
                 ]}
-                onPress={() => handleNotificationPress(item.href, item.order_id)}
+                onPress={() => handleNotificationPress(item)}
                 activeOpacity={0.7}
               >
                 {item.product_image ? (
