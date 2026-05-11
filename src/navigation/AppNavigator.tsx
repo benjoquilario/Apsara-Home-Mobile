@@ -38,6 +38,7 @@ import PaymentWebViewScreen from '../screen/PaymentWebViewScreen';
 import PurchasesScreen from '../screen/PurchasesScreen';
 import PaymentSuccessScreen from '../screen/PaymentSuccessScreen';
 import PaymentCancelScreen from '../screen/PaymentCancelScreen';
+import ShippingAddressSelectionScreen from '../screen/ShippingAddressSelectionScreen';
 import { orderService } from '../services/orderService';
 import Toast from 'react-native-toast-message';
 
@@ -206,6 +207,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [showSecurity, setShowSecurity] = useState(false);
   const [paymentSourceScreen, setPaymentSourceScreen] = useState<'checkout' | 'purchases'>('checkout');
   const [showAffiliateReferralModal, setShowAffiliateReferralModal] = useState(false);
+  const [showShippingAddressScreen, setShowShippingAddressScreen] = useState(false);
+  const [shippingAddressScreenData, setShippingAddressScreenData] = useState<any>(null);
 
   // Home screen data - persists across navigation
   const [homeCategories, setHomeCategories] = useState<CategoryItem[]>([]);
@@ -1350,6 +1353,10 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setShowCheckout(false);
               setShowOrderSuccess(true);
             }}
+            onNavigateToShippingAddress={(addresses, selectedAddress, onSelect) => {
+              setShippingAddressScreenData({ addresses, selectedAddress, onSelect });
+              setShowShippingAddressScreen(true);
+            }}
           />
         </View>
       )}
@@ -1574,6 +1581,21 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setShowPurchases(false);
               setPaymentSourceScreen('purchases');
               setShowPaymentWebView(true);
+            }}
+          />
+        </View>
+      )}
+
+      {showShippingAddressScreen && shippingAddressScreenData && (
+        <View style={styles.cartScreenOverlay}>
+          <ShippingAddressSelectionScreen
+            addresses={shippingAddressScreenData.addresses}
+            selectedAddress={shippingAddressScreenData.selectedAddress}
+            isDarkMode={isDarkMode}
+            onBack={() => setShowShippingAddressScreen(false)}
+            onSelectAddress={(address) => {
+              shippingAddressScreenData.onSelect(address);
+              setShowShippingAddressScreen(false);
             }}
           />
         </View>
