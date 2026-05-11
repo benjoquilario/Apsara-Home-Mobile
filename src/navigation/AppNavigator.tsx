@@ -42,6 +42,7 @@ import PaymentCancelScreen from '../screen/PaymentCancelScreen';
 import ShippingAddressSelectionScreen from '../screen/ShippingAddressSelectionScreen';
 import { orderService } from '../services/orderService';
 import Toast from 'react-native-toast-message';
+import { useNotifications } from '../hooks/useNotifications';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
 
@@ -165,6 +166,14 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
       badge_image: badgeImageSource,
     };
   }, [user]);
+
+  // Initialize real-time notifications
+  const { notifications, unreadCount } = useNotifications(user?.id || '', token || '');
+
+  // Sync unread count with state
+  useEffect(() => {
+    setNotificationUnreadCount(unreadCount);
+  }, [unreadCount]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
