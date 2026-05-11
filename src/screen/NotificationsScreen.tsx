@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -17,11 +18,13 @@ interface NotificationsScreenProps {
   token?: string | null;
   isDarkMode?: boolean;
   onNavigateToPurchases?: (status: string, orderId?: string) => void;
+  isVisible?: boolean;
 }
 
-export default function NotificationsScreen({ token, onBack, isDarkMode = false, onNavigateToPurchases }: NotificationsScreenProps) {
+export default function NotificationsScreen({ token, onBack, isDarkMode = false, onNavigateToPurchases, isVisible = true }: NotificationsScreenProps) {
   const [notifications, setNotifications] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'unread' | 'read'>('all');
 
   const colors = {
@@ -40,17 +43,29 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
     }
   }, [token]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRefresh = false) => {
     if (!token) return;
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const data = await orderService.getNotifications(token);
       setNotifications(data);
     } catch (error: any) {
       console.error('Error fetching notifications:', error);
     } finally {
-      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleRefresh = () => {
+    fetchNotifications(true);
   };
 
   const getSeverityColor = (severity: string) => {
@@ -124,6 +139,38 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
       const parsedOrderId = match[2] || orderId;
       console.log('[NotificationsScreen] Calling onNavigateToPurchases with:', { status, parsedOrderId });
       onNavigateToPurchases?.(status, parsedOrderId);
+    }
+  };
+
+  const getNotificationStatus = (item: any): string | null => {
+    const rawStatus = item?.status || item?.order_status;
+    if (typeof rawStatus === 'string' && rawStatus.trim()) return rawStatus.trim().toLowerCase();
+    if (typeof item?.href !== 'string') return null;
+    const deepLinkRegex = /^purchases:\/\/([^\/]+)(?:\/(.+))?$/;
+    const match = item.href.match(deepLinkRegex);
+    return match?.[1] ? String(match[1]).toLowerCase() : null;
+  };
+
+  const getStatusBadgeConfig = (status: string | null, dark: boolean) => {
+    const normalized = (status || '').replace(/[_-]/g, ' ').trim().toLowerCase();
+    switch (normalized) {
+      case 'pending':
+        return { label: 'Pending', bg: dark ? '#3f2f0a' : '#fef3c7', text: dark ? '#fcd34d' : '#92400e' };
+      case 'paid':
+        return { label: 'Paid', bg: dark ? '#0f3b2e' : '#dcfce7', text: dark ? '#86efac' : '#166534' };
+      case 'processing':
+        return { label: 'Processing', bg: dark ? '#0f2a4d' : '#dbeafe', text: dark ? '#93c5fd' : '#1e40af' };
+      case 'to ship':
+      case 'toship':
+      case 'shipped':
+        return { label: 'To Ship', bg: dark ? '#3a1f45' : '#f3e8ff', text: dark ? '#d8b4fe' : '#6b21a8' };
+      case 'to receive':
+      case 'toreceive':
+        return { label: 'To Receive', bg: dark ? '#123348' : '#cffafe', text: dark ? '#67e8f9' : '#0e7490' };
+      case 'delivered':
+        return { label: 'Delivered', bg: dark ? '#1f3f21' : '#d1fae5', text: dark ? '#6ee7b7' : '#065f46' };
+      default:
+        return null;
     }
   };
 
@@ -202,7 +249,17 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
           <ActivityIndicator size="large" color={colors.emptyIcon} />
         </View>
       ) : (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.sky}
+            />
+          }
+        >
           {notifications?.notifications && notifications.notifications.length > 0 ? (
             (() => {
               const filtered = getFilteredNotifications();
@@ -247,6 +304,15 @@ export default function NotificationsScreen({ token, onBack, isDarkMode = false,
                     <Text style={[styles.notificationTitle, { color: colors.text }]}>{item.title}</Text>
                     <Text style={[styles.notificationTime, { color: colors.textSec }]}>{formatDate(item.created_at)}</Text>
                   </View>
+                  {(() => {
+                    const badge = getStatusBadgeConfig(getNotificationStatus(item), isDarkMode);
+                    if (!badge) return null;
+                    return (
+                      <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+                        <Text style={[styles.statusBadgeText, { color: badge.text }]}>{badge.label}</Text>
+                      </View>
+                    );
+                  })()}
                   <Text style={[styles.notificationDescription, { color: colors.textSec }]}>{item.message}</Text>
                   {item.amount > 0 && (
                     <Text style={[styles.notificationAmount, { color: colors.emptyIcon }]}>
@@ -425,6 +491,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   emptyContainer: {
     flex: 1,
