@@ -354,17 +354,6 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         if (isMounted) setDeviceToken(pushToken.data);
         console.log('📱 DEVICE TOKEN:', pushToken.data);
 
-        // Set notification handler
-        Notifications.setNotificationHandler({
-          handleNotification: async () => ({
-            shouldShowAlert: true,
-            shouldPlaySound: true,
-            shouldSetBadge: true,
-            shouldShowBanner: true,
-            shouldShowList: true,
-          }),
-        });
-
         // Setup notification listeners with navigation
         unsubscribeNotifications = NotificationService.setupNotificationListeners(
           (notification) => {

@@ -1,11 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { View, LogBox } from 'react-native';
+import { View, LogBox, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Suppress the "Text strings must be rendered within a <Text> component" error
 LogBox.ignoreLogs(['Text strings must be rendered within a <Text> component']);
 import Toast from 'react-native-toast-message';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
+
+// Configure notifications to work when app is closed
+Notifications.setNotificationHandler({
+  handleNotification: async (notification) => {
+    // Always show notifications with high priority settings
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      priority: 'max', // Force maximum priority
+    };
+  },
+});
+
+// Create notification channel for Android
+async function setupNotificationChannel() {
+  if (Platform.OS === 'android') {
+    // Delete existing channel if it exists to ensure clean setup
+    try {
+      await Notifications.deleteNotificationChannelAsync('default');
+    } catch (error) {
+      // Channel might not exist, ignore
+    }
+
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0ea5e9',
+      sound: 'default',
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+    });
+  }
+}
+
+// Initialize notification channel
+setupNotificationChannel();
 import LoginScreen from './src/screen/LoginScreen';
 import SignupScreen from './src/screen/SignupScreen';
 import OtpScreen from './src/screen/OtpScreen';
