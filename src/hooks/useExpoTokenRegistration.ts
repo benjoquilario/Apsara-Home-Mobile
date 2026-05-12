@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { storageService } from '../services/storageService';
@@ -6,16 +7,13 @@ import { API_CONFIG } from '../config/api';
 import axios from 'axios';
 
 export const useExpoTokenRegistration = (token: string | null, userId: string | null) => {
-  const registrationAttempted = useRef(false);
-
   useEffect(() => {
-    if (!token || !userId || registrationAttempted.current) {
+    if (!token || !userId) {
       return;
     }
 
     const registerExpoToken = async () => {
       try {
-        registrationAttempted.current = true;
 
         // Get the Expo push token
         const expoPushToken = await Notifications.getExpoPushTokenAsync({
@@ -27,14 +25,7 @@ export const useExpoTokenRegistration = (token: string | null, userId: string | 
 
         // Get device information
         const deviceName = `${Device.brand || 'Device'} ${Device.modelName || ''}`.trim();
-        const platform = Device.osName === 'Android' ? 'android' : 'ios';
-
-        // Check if we've already registered this token
-        const lastRegisteredToken = await storageService.getItem('last_registered_push_token');
-        if (lastRegisteredToken === pushToken) {
-          console.log('[useExpoTokenRegistration] Token already registered, skipping');
-          return;
-        }
+        const platform = Platform.OS === 'android' ? 'android' : 'ios';
 
         // Call the registration endpoint
         const response = await axios.post(
@@ -54,13 +45,9 @@ export const useExpoTokenRegistration = (token: string | null, userId: string | 
 
         if (response.status === 201 || response.status === 200) {
           console.log('[useExpoTokenRegistration] ✅ Token registered successfully');
-          // Store the token to avoid re-registering
-          await storageService.setItem('last_registered_push_token', pushToken);
         }
       } catch (error) {
         console.error('[useExpoTokenRegistration] Failed to register Expo token:', error);
-        // Don't set the flag so we can retry on next app load
-        registrationAttempted.current = false;
       }
     };
 

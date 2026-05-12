@@ -43,6 +43,7 @@ import ShippingAddressSelectionScreen from '../screen/ShippingAddressSelectionSc
 import { orderService } from '../services/orderService';
 import Toast from 'react-native-toast-message';
 import { useNotifications } from '../hooks/useNotifications';
+import { NotificationService } from '../services/notificationService';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
 
@@ -236,8 +237,39 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [wishlistRefreshing, setWishlistRefreshing] = useState(false);
   const wishlistInitialFetchRef = useRef(false);
 
+  // Navigation ref for notification handling
+  const navigationRef = useRef<any>(null);
+
   const { authService } = require('../services/authService');
   const { productService } = require('../services/productService');
+
+  // Create navigation handler for notifications
+  const handleNotificationNavigation = (screen: string, params?: any) => {
+    if (screen === 'Orders') {
+      setShowPurchases(true);
+      setPurchasesStatus(params?.status || 'pending');
+      if (params?.orderId) {
+        setPurchasesInitialOrderId(params.orderId);
+      }
+    } else if (screen === 'Wallet') {
+      // Navigate to wallet/payment screen if available
+      Toast.show({
+        type: 'info',
+        text1: 'Payment Received',
+        text2: 'Check your wallet for details',
+      });
+    } else if (screen === 'Profile') {
+      // Navigate to profile referrals
+      setReferralNetworkFromTab(true);
+    }
+  };
+
+  // Set navigation ref to use in notification service
+  useEffect(() => {
+    navigationRef.current = {
+      navigate: handleNotificationNavigation,
+    };
+  }, []);
 
   const refreshNotificationCount = useCallback(async () => {
     if (!token) return;
@@ -289,11 +321,15 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     init();
   }, []);
 
-  // Setup push notifications
+  // Setup push notifications with navigation
   useEffect(() => {
+    if (!navigationRef.current) {
+      console.log('Navigation ref not ready yet');
+      return;
+    }
+
     let isMounted = true;
-    let notificationSubscription: any;
-    let responseSubscription: any;
+    let unsubscribeNotifications: (() => void) | null = null;
 
     const setupNotifications = async () => {
       try {
@@ -329,34 +365,36 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           }),
         });
 
-        // Listen for incoming notifications (when app is in foreground)
-        notificationSubscription = Notifications.addNotificationReceivedListener((notification: any) => {
-          console.log('🔔 Notification Received:', notification);
-          Toast.show({
-            type: 'info',
-            text1: notification.request.content.title || 'Notification',
-            text2: notification.request.content.body || '',
-          });
+        // Setup notification listeners with navigation
+        unsubscribeNotifications = NotificationService.setupNotificationListeners(
+          (notification) => {
+            console.log('📬 Foreground notification:', notification.request.content.title);
+            Toast.show({
+              type: 'info',
+              text1: notification.request.content.title || 'Notification',
+              text2: notification.request.content.body || '',
+            });
+            refreshNotificationCount();
+          },
+          navigationRef.current
+        );
 
-          refreshNotificationCount();
-        });
-
-        // Listen for notification responses (when user taps notification)
-        responseSubscription = Notifications.addNotificationResponseListener((response: any) => {
-          console.log('📱 Notification Tapped:', response.notification);
-        });
+        // Handle notification when app was opened from closed state
+        if (isMounted) {
+          await NotificationService.handleInitialNotification(navigationRef.current);
+        }
       } catch (error) {
         console.log('Notification setup error:', error);
       }
     };
 
     setupNotifications();
+
     return () => {
       isMounted = false;
-      notificationSubscription?.remove?.();
-      responseSubscription?.remove?.();
+      unsubscribeNotifications?.();
     };
-  }, [refreshNotificationCount]);
+  }, [refreshNotificationCount, navigationRef]);
 
   // Handle deep linking for payment redirects
   useEffect(() => {
