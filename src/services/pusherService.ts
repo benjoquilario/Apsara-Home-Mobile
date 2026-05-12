@@ -18,13 +18,39 @@ class PusherService {
 
     this.pusher = new Pusher(process.env.EXPO_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.PUSHER_APP_CLUSTER || 'ap3',
-      authEndpoint: 'https://backend.afhome.ph/api/broadcasting/auth',
-      auth: {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      authorizer: (channel: any) => ({
+        authorize: (socketId: string, callback: (error: any, authData: any) => void) => {
+          fetch('https://backend.afhome.ph/api/realtime/pusher/auth', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+              socket_id: socketId,
+              channel_name: channel.name,
+            }),
+          })
+            .then(async (response) => {
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[PusherService] auth error:', response.status, errorText);
+                throw new Error(`Auth failed with status ${response.status}: ${errorText}`);
+              }
+              return response.json();
+            })
+            .then((data) => {
+              console.log('[PusherService] auth success:', data);
+              callback(null, data);
+            })
+            .catch((error) => {
+              console.error('[PusherService] auth fetch error:', error);
+              callback(error, null);
+            });
         },
-      },
-      authTransport: 'ajax',
+      }),
       forceTLS: true,
       enabledTransports: ['ws', 'wss'],
     });
