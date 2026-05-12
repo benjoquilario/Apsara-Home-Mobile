@@ -4,7 +4,7 @@
         "slug": "apsara-mobile-application",
         "version": "1.0.0",
         "orientation": "portrait",
-        "icon": "./assets/icon1.png",
+        "icon": "./assets/icon2.png",
         "userInterfaceStyle": "light",
         "scheme": "apsarahome",
         "deeplinks": {
@@ -14,7 +14,7 @@
             ]
         },
         "splash": {
-            "image": "./assets/splash-icon2.png",
+            "image": "./assets/splash-icon1.png",
             "resizeMode": "contain",
             "backgroundColor": "#ffffff"
         },
