@@ -7,9 +7,7 @@ import type { AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+import OneSignal from 'react-native-onesignal';
 import { Colors } from '../constants/colors';
 import { getBadgeImage, getBadgeImageSource } from '../constants/tierConfig';
 import axios from 'axios';
@@ -334,46 +332,36 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
     const setupNotifications = async () => {
       try {
-        if (!Device.isDevice) {
-          console.log('Push notifications require a physical device');
-          return;
-        }
+        // Request notification permissions
+        OneSignal.Notifications.requestPermission(true);
+        console.log('✅ OneSignal notification permission requested');
 
-        // Request permissions
-        const { status } = await Notifications.requestPermissionsAsync();
-        console.log('Notification permission status:', status);
-        if (status !== 'granted') return;
+        // Handle notification when user taps on it
+        OneSignal.Notifications.addEventListener('click', (event) => {
+          console.log('👆 Notification clicked:', event);
+          const data = event.notification.additionalData || {};
+          const href = data.href || data.on_href;
 
-        // Get Expo push token (standalone, no Firebase app init)
-        const projectId = Constants.easConfig?.projectId || Constants.expoConfig?.extra?.eas?.projectId;
-        if (!projectId) {
-          console.log('Expo projectId not found; cannot register for Expo push token.');
-          return;
-        }
+          if (href) {
+            NotificationService.handleNotificationPress({ ...data, href }, navigationRef.current);
+          }
+          refreshNotificationCount();
+        });
 
-        const pushToken = await Notifications.getExpoPushTokenAsync({ projectId });
-        if (isMounted) setDeviceToken(pushToken.data);
-        console.log('📱 DEVICE TOKEN:', pushToken.data);
+        // Handle foreground notifications
+        OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+          console.log('📬 Foreground notification:', event.notification.title);
+          Toast.show({
+            type: 'info',
+            text1: event.notification.title || 'Notification',
+            text2: event.notification.subtitle || '',
+          });
+          refreshNotificationCount();
+        });
 
-        // Setup notification listeners with navigation
-        unsubscribeNotifications = NotificationService.setupNotificationListeners(
-          (notification) => {
-            console.log('📬 Foreground notification:', notification.request.content.title);
-            Toast.show({
-              type: 'info',
-              text1: notification.request.content.title || 'Notification',
-              text2: notification.request.content.body || '',
-            });
-            refreshNotificationCount();
-          },
-          navigationRef.current
-        );
-
-        // Note: We don't call handleInitialNotification() because getLastNotificationResponseAsync()
-        // keeps returning old notifications even if not tapped. The addNotificationResponseReceivedListener
-        // below handles actual user taps which is what we need.
+        console.log('✅ OneSignal notification listeners setup complete');
       } catch (error) {
-        console.log('Notification setup error:', error);
+        console.log('OneSignal notification setup error:', error);
       }
     };
 

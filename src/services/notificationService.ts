@@ -1,59 +1,9 @@
-import * as Notifications from 'expo-notifications';
-
-// Track processed notifications to prevent duplicate handling
-const processedNotificationIds = new Set<string>();
-
+// Notification navigation handler
 export class NotificationService {
-  /**
-   * Setup notification listeners with proper navigation
-   */
-  static setupNotificationListeners(
-    handleNotification: (notification: Notifications.Notification) => void,
-    navigation: any
-  ): () => void {
-    // Handle notification when app is in foreground
-    const foregroundSubscription = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('📬 Notification received in foreground:', notification);
-      handleNotification(notification);
-    });
-
-    // Handle notification when user TAPS on it
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('👆 Notification tapped:', response.notification);
-
-      const notificationId = response.notification.request.identifier;
-
-      // Skip if already processed
-      if (processedNotificationIds.has(notificationId)) {
-        console.log('⏭️ Notification already processed, skipping:', notificationId);
-        return;
-      }
-
-      // Mark as processed
-      processedNotificationIds.add(notificationId);
-
-      const content = response.notification.request.content;
-      const data = {
-        ...content.data,
-        title: content.title,
-        body: content.body,
-      };
-      console.log('📦 Notification data:', data);
-
-      // Navigate to appropriate screen
-      this.handleNotificationPress(data, navigation);
-    });
-
-    return () => {
-      foregroundSubscription.remove();
-      responseSubscription.remove();
-    };
-  }
-
   /**
    * Handle notification tap navigation using href from backend
    */
-  private static handleNotificationPress(data: any, navigation: any): void {
+  static handleNotificationPress(data: any, navigation: any): void {
     try {
       // Prioritize href from backend (on_href from OrderNotification table)
       const href = data.href;
