@@ -49,13 +49,15 @@ export default function App() {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-
-  // Register OneSignal push token when authenticated
-  useOneSignalTokenRegistration(authToken, authUser?.id || null);
+  const [oneSignalReady, setOneSignalReady] = useState(false);
 
   useEffect(() => {
     OneSignal.initialize('b4c95a1a-c525-447d-80bb-2c8dc63f4531');
+    setOneSignalReady(true);
   }, []);
+
+  // Register OneSignal push token when authenticated AND OneSignal is ready
+  useOneSignalTokenRegistration(oneSignalReady ? authToken : null, oneSignalReady ? (authUser?.id || null) : null);
 
   useEffect(() => {
     checkStoredAuth();

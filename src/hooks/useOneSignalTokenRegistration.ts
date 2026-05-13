@@ -14,6 +14,9 @@ export const useOneSignalTokenRegistration = (token: string | null, userId: stri
 
     const registerOneSignalToken = async () => {
       try {
+        // Wait a bit for OneSignal native module to be fully ready
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Set the customer ID for targeting
         OneSignal.User.addAlias('customer_id', userId.toString());
         console.log('[useOneSignalTokenRegistration] Set customer ID:', userId);
@@ -55,6 +58,10 @@ export const useOneSignalTokenRegistration = (token: string | null, userId: stri
         }
       } catch (error) {
         console.error('[useOneSignalTokenRegistration] Failed to register OneSignal token:', error);
+        // Retry after a delay if OneSignal wasn't ready
+        setTimeout(() => {
+          registerOneSignalToken();
+        }, 2000);
       }
     };
 
