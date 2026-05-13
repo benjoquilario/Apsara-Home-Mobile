@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import axios from 'axios';
-import OneSignal from 'react-native-onesignal';
 import { API_CONFIG } from '../config/api';
 import * as SecureStore from 'expo-secure-store';
+
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 export const useDeviceRegistration = (token: string | null, userId: string | number | null) => {
   const [registrationAttempted, setRegistrationAttempted] = useState(false);
@@ -17,19 +24,14 @@ export const useDeviceRegistration = (token: string | null, userId: string | num
       try {
         console.log('[useDeviceRegistration] Starting device registration...');
 
-        // Get the actual OneSignal player ID
-        let playerId: string | null = null;
-        try {
-          playerId = await OneSignal.User.pushSubscription.getIdAsync();
-          console.log('[useDeviceRegistration] Got OneSignal player ID:', playerId);
-        } catch (error) {
-          console.error('[useDeviceRegistration] Failed to get OneSignal player ID:', error);
-          return;
-        }
-
+        // Get or create a device ID
+        let playerId = await SecureStore.getItemAsync('device_id');
         if (!playerId) {
-          console.warn('[useDeviceRegistration] OneSignal player ID is empty');
-          return;
+          playerId = generateUUID();
+          await SecureStore.setItemAsync('device_id', playerId);
+          console.log('[useDeviceRegistration] Created new player ID:', playerId);
+        } else {
+          console.log('[useDeviceRegistration] Using existing player ID:', playerId);
         }
 
         // Register with OneSignal backend

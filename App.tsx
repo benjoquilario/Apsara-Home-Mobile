@@ -14,7 +14,6 @@ import AppNavigator from './src/navigation/AppNavigator';
 import OnboardingScreen from './src/screen/OnboardingScreen';
 import { storageService, StoredUser } from './src/services/storageService';
 import LoadingScreen from './src/screen/LoadingScreen';
-import { useDeviceRegistration } from './src/hooks/useDeviceRegistration';
 
 type AuthScreen = 'login' | 'signup' | 'otp';
 
@@ -49,41 +48,59 @@ export default function App() {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [oneSignalReady, setOneSignalReady] = useState(false);
 
-  // Initialize OneSignal (step 1: init only)
+  // Initialize OneSignal (once on app start)
   useEffect(() => {
-    const initializeOneSignal = async () => {
-      try {
-        console.log('[App] Initializing OneSignal...');
-        await OneSignal.initialize('b4c95a1a-c525-447d-80bb-2c8dc63f4531');
-        console.log('[App] ✅ OneSignal initialized');
-        setOneSignalReady(true);
-      } catch (error) {
-        console.error('[App] OneSignal initialization error:', error);
-      }
-    };
-    initializeOneSignal();
+    try {
+      console.log('[App] Initializing OneSignal...');
+      OneSignal.initialize('b4c95a1a-c525-447d-80bb-2c8dc63f4531');
+      OneSignal.Notifications.requestPermission(true);
+
+      // Foreground notification handler
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+        console.log('[App] 📬 Foreground notification:', event);
+        event.notification.display();
+      });
+
+      // Notification click handler
+      OneSignal.Notifications.addEventListener('click', (event) => {
+        console.log('[App] 👆 Notification clicked:', event);
+      });
+
+      // Subscription change listener
+      OneSignal.User.pushSubscription.addEventListener('change', (event) => {
+        console.log('[App] 📱 Subscription changed:', event.current);
+      });
+
+      console.log('[App] ✅ OneSignal initialized successfully');
+    } catch (error) {
+      console.error('[App] OneSignal initialization error:', error);
+    }
   }, []);
 
-  // Request notification permissions (step 2: after init)
+  // Login to OneSignal when user authenticates
   useEffect(() => {
-    if (!oneSignalReady) return;
-
-    const requestPermissions = async () => {
+    if (authUser?.id) {
       try {
-        console.log('[App] Requesting notification permissions...');
-        await OneSignal.Notifications.requestPermission(true);
-        console.log('[App] ✅ Permissions requested');
+        console.log('[App] 🔐 Logging in to OneSignal with user ID:', authUser.id);
+        OneSignal.login(authUser.id.toString());
       } catch (error) {
-        console.error('[App] Permission request error:', error);
+        console.error('[App] OneSignal login error:', error);
       }
-    };
-    requestPermissions();
-  }, [oneSignalReady]);
+    }
+  }, [authUser?.id]);
 
-  // Register device with OneSignal when authenticated (step 3: after ready + auth)
-  useDeviceRegistration(oneSignalReady ? authToken : null, authUser?.id || null);
+  // Logout from OneSignal when user logs out
+  useEffect(() => {
+    if (!authenticated && !isLoading) {
+      try {
+        console.log('[App] 🚪 Logging out from OneSignal');
+        OneSignal.logout();
+      } catch (error) {
+        console.error('[App] OneSignal logout error:', error);
+      }
+    }
+  }, [authenticated, isLoading]);
 
   useEffect(() => {
     checkStoredAuth();
