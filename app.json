@@ -10,7 +10,11 @@
     "deeplinks": {
       "urls": [
         "apsarahome://payment/success",
-        "apsarahome://payment/cancel"
+        "apsarahome://payment/cancel",
+        "purchases://*",
+        "wallet://*",
+        "profile://*",
+        "referral://*"
       ]
     },
     "splash": {
@@ -42,15 +46,7 @@
       "expo-video",
       "expo-font",
       "expo-secure-store",
-      "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification.png",
-          "color": "#0ea5e9",
-          "sounds": []
-        }
-      ]
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
