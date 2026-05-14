@@ -12,6 +12,96 @@ import notifee, { AndroidImportance } from '@notifee/react-native';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 
+
+// Register handlers at module level (only once)
+let backgroundHandlerRegistered = false;
+let foregroundHandlerRegistered = false;
+
+const registerBackgroundMessageHandler = () => {
+  if (backgroundHandlerRegistered) return;
+  backgroundHandlerRegistered = true;
+
+  getMessaging().setBackgroundMessageHandler(async (remoteMessage) => {
+    console.log('[useFirebaseMessaging] Background message received:', remoteMessage);
+    console.log('[useFirebaseMessaging] Background data payload:', remoteMessage.data);
+
+    try {
+      const title = remoteMessage.data?.title || remoteMessage.notification?.title || 'New notification';
+      const body = remoteMessage.data?.body || remoteMessage.data?.message || remoteMessage.notification?.body || '';
+      const imageUrl = remoteMessage.data?.image || remoteMessage.notification?.imageUrl || null;
+      const deeplink = remoteMessage.data?.href || remoteMessage.data?.deeplink || null;
+
+
+      console.log('[useFirebaseMessaging] Background parsed:', { title, body, imageUrl, deeplink });
+
+      console.log('[useFirebaseMessaging] Background: Displaying with notifee');
+
+      // Create Android channel for background notifications
+      let androidChannelId: string | undefined;
+      if (Platform.OS === 'android') {
+        androidChannelId = await notifee.createChannel({
+          id: 'default',
+          name: 'Default Notifications',
+          importance: AndroidImportance.HIGH,
+        });
+      }
+
+      const notificationConfig: any = {
+        title,
+        body,
+        data: {
+          href: deeplink || '/orders',
+        },
+        android: {
+          channelId: androidChannelId || 'default',
+          smallIcon: 'ic_stat_notify',
+          pressAction: {
+            id: 'default',
+          },
+          actions: [
+            {
+              title: 'View Order',
+              pressAction: {
+                id: 'view-order',
+              },
+            },
+            {
+              title: 'Dismiss',
+              pressAction: {
+                id: 'dismiss',
+              },
+            },
+          ],
+        },
+      };
+
+      // Display with image - largeIcon (small image)
+      if (imageUrl) {
+        try {
+          console.log('[useFirebaseMessaging] Background: Attempting largeIcon with image:', imageUrl);
+          await notifee.displayNotification({
+            ...notificationConfig,
+            android: {
+              ...notificationConfig.android,
+              largeIcon: imageUrl,
+            },
+          });
+          console.log('[useFirebaseMessaging] Background notification with largeIcon displayed');
+          return;
+        } catch (largeIconError) {
+          console.warn('[useFirebaseMessaging] Background: largeIcon failed, showing without image:', largeIconError);
+        }
+      }
+
+      // Fallback: Always show notification with buttons (with or without image)
+      await notifee.displayNotification(notificationConfig);
+      console.log('[useFirebaseMessaging] Background notification displayed (buttons only)');
+    } catch (error) {
+      console.error('[useFirebaseMessaging] Background message error:', error);
+    }
+  });
+};
+
 export const useFirebaseMessaging = (token: string | null, userId: string | number | null) => {
   useEffect(() => {
     if (!token || !userId) {
@@ -21,6 +111,9 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
     const setupMessaging = async () => {
       try {
         console.log('[useFirebaseMessaging] Setting up Firebase Cloud Messaging...');
+
+        // Register background message handler
+        registerBackgroundMessageHandler();
 
         const messaging_ = getMessaging();
         let permissionEnabled = true;
@@ -86,19 +179,26 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
           }
         });
 
-        const unsubscribe = onMessage(messaging_, async (remoteMessage) => {
-          console.log('[useFirebaseMessaging] Foreground notification received:', remoteMessage);
+        // Register foreground handler only once
+        let unsubscribe: any;
+        if (!foregroundHandlerRegistered) {
+          foregroundHandlerRegistered = true;
+          console.log('[useFirebaseMessaging] Registering foreground handler (first time)');
 
-          const title = remoteMessage.notification?.title || 'New notification';
-          const body = remoteMessage.notification?.body || '';
-          const imageUrl = remoteMessage.notification?.imageUrl || remoteMessage.data?.image;
+          unsubscribe = onMessage(messaging_, async (remoteMessage) => {
+          console.log('[useFirebaseMessaging] Foreground notification received:', remoteMessage);
+          console.log('[useFirebaseMessaging] Foreground data payload:', remoteMessage.data);
+
+          const title = remoteMessage.data?.title || remoteMessage.notification?.title || 'New notification';
+          const body = remoteMessage.data?.body || remoteMessage.data?.message || remoteMessage.notification?.body || '';
+          const imageUrl = remoteMessage.data?.image || remoteMessage.notification?.imageUrl || null;
           const deeplink = remoteMessage.data?.href || remoteMessage.data?.deeplink || null;
 
-          console.log('[useFirebaseMessaging] Extracted image URL:', imageUrl);
-          console.log('[useFirebaseMessaging] Extracted deeplink:', deeplink);
+          console.log('[useFirebaseMessaging] Foreground parsed:', { title, body, imageUrl, deeplink });
+          console.log('[useFirebaseMessaging] About to create notificationConfig...');
 
           try {
-            // Notification config with deeplink
+            // Notification config with deeplink and action buttons
             const notificationConfig: any = {
               title,
               body,
@@ -111,51 +211,55 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
                 pressAction: {
                   id: 'default',
                 },
+                actions: [
+                  {
+                    title: 'View Order',
+                    pressAction: {
+                      id: 'view-order',
+                    },
+                  },
+                  {
+                    title: 'Dismiss',
+                    pressAction: {
+                      id: 'dismiss',
+                    },
+                  },
+                ],
               },
             };
 
-            // Try displaying with large image first (bigPicture)
+            console.log('[useFirebaseMessaging] Foreground notificationConfig created, imageUrl:', imageUrl);
+
+            // Display with image - largeIcon (small image)
+            console.log('[useFirebaseMessaging] Checking imageUrl:', imageUrl ? 'YES - will attempt display' : 'NO - will show without image');
             if (imageUrl) {
               try {
-                console.log('[useFirebaseMessaging] Attempting to display with bigPicture:', imageUrl);
+                console.log('[useFirebaseMessaging] Foreground: Attempting largeIcon with image:', imageUrl);
                 await notifee.displayNotification({
                   ...notificationConfig,
                   android: {
                     ...notificationConfig.android,
-                    bigPicture: {
-                      image: imageUrl,
-                    },
+                    largeIcon: imageUrl,
                   },
                 });
-                console.log('[useFirebaseMessaging] Successfully displayed with bigPicture');
+                console.log('[useFirebaseMessaging] Foreground notification with largeIcon displayed');
                 return;
-              } catch (imageError) {
-                console.warn('[useFirebaseMessaging] Failed to display with bigPicture, trying largeIcon:', imageError);
-
-                // Fallback to largeIcon if bigPicture fails
-                try {
-                  await notifee.displayNotification({
-                    ...notificationConfig,
-                    android: {
-                      ...notificationConfig.android,
-                      largeIcon: imageUrl,
-                    },
-                  });
-                  console.log('[useFirebaseMessaging] Successfully displayed with largeIcon');
-                  return;
-                } catch (largeIconError) {
-                  console.warn('[useFirebaseMessaging] Failed with largeIcon too, falling back to text:', largeIconError);
-                }
+              } catch (largeIconError) {
+                console.warn('[useFirebaseMessaging] Foreground: largeIcon failed, showing without image:', largeIconError);
               }
             }
 
-            // Fallback: Display without image (pure text)
-            console.log('[useFirebaseMessaging] Displaying text-only notification');
+            // Fallback: Always show notification with buttons (with or without image)
+            console.log('[useFirebaseMessaging] Displaying notification with buttons');
             await notifee.displayNotification(notificationConfig);
           } catch (displayError) {
             console.error('[useFirebaseMessaging] Foreground local notification failed:', displayError);
           }
-        });
+          });
+        } else {
+          console.log('[useFirebaseMessaging] Foreground handler already registered, skipping');
+          unsubscribe = () => {}; // dummy
+        }
 
         // Handle notification press (when user clicks the notification and app opens from background)
         const unsubscribeOnNotificationOpenedApp = onNotificationOpenedApp(messaging_, (remoteMessage) => {
@@ -170,9 +274,10 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
         });
 
         // Handle foreground notification press (notifee - when app is already open)
-        const unsubscribeNotifeePress = notifee.onForegroundEvent(({ type, notification }) => {
-          console.log('[useFirebaseMessaging] Foreground notification event:', type, notification);
-          if (type === 1) { // PressAction = 1
+        const unsubscribeNotifeePress = notifee.onForegroundEvent(({ type, notification, pressAction }) => {
+          console.log('[useFirebaseMessaging] Foreground notification event:', type, pressAction?.id, notification);
+
+          if (type === 1) { // PressAction = 1 (notification body pressed)
             const deeplink = notification?.data?.href as string | undefined;
             if (deeplink) {
               console.log('[useFirebaseMessaging] User pressed foreground notification, emitting deeplink:', deeplink);
@@ -180,16 +285,48 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
                 console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
               });
             }
+          } else if (type === 2) { // ActionPress = 2 (action button pressed)
+            const actionId = pressAction?.id;
+            console.log('[useFirebaseMessaging] User pressed action button:', actionId);
+
+            if (actionId === 'view-order') {
+              const deeplink = notification?.data?.href as string | undefined;
+              if (deeplink) {
+                console.log('[useFirebaseMessaging] Opening deeplink from action button:', deeplink);
+                Linking.openURL(deeplink).catch(err => {
+                  console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
+                });
+              }
+            } else if (actionId === 'dismiss') {
+              console.log('[useFirebaseMessaging] User dismissed notification');
+              // Notification is automatically dismissed
+            }
           }
         });
 
+        // Handle app opened from closed state via notification or button press
         const notificationOpenedApp = await getInitialNotification(messaging_);
         if (notificationOpenedApp) {
-          console.log('[useFirebaseMessaging] App opened from closed state via notification');
+          console.log('[useFirebaseMessaging] App opened from closed state via notification:', notificationOpenedApp);
+          const deeplink = notificationOpenedApp?.data?.href || notificationOpenedApp?.data?.deeplink;
+          if (deeplink) {
+            console.log('[useFirebaseMessaging] Emitting deeplink from closed state:', deeplink);
+            Linking.openURL(deeplink).catch(err => {
+              console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
+            });
+          }
         }
 
+        // Handle background notification opened (when app is in background)
         const unsubscribeNotificationOpened = onNotificationOpenedApp(messaging_, (remoteMessage) => {
-          console.log('[useFirebaseMessaging] Notification opened:', remoteMessage);
+          console.log('[useFirebaseMessaging] Notification opened from background:', remoteMessage);
+          const deeplink = remoteMessage?.data?.href || remoteMessage?.data?.deeplink;
+          if (deeplink) {
+            console.log('[useFirebaseMessaging] Emitting deeplink from background state:', deeplink);
+            Linking.openURL(deeplink).catch(err => {
+              console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
+            });
+          }
         });
 
         return () => {
