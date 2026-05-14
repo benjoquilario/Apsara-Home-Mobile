@@ -86,6 +86,8 @@ export default function ShopByBrandScreen({
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const perPage = 20;
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
@@ -168,6 +170,51 @@ export default function ShopByBrandScreen({
     setRefreshing(true);
     fetchProducts(currentPage);
   };
+
+  const checkFollowingStatus = useCallback(async () => {
+    if (!token || !brandId) return;
+    try {
+      const response = await axios.post(
+        `${API_CONFIG.BASE_URL}/followers/is-following`,
+        { brand_id: brandId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsFollowing(response.data?.is_following || false);
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
+  }, [token, brandId]);
+
+  const handleFollowPress = async () => {
+    if (!token || !brandId) return;
+    setFollowLoading(true);
+    try {
+      const endpoint = isFollowing ? 'unfollow' : 'follow';
+      await axios.post(
+        `${API_CONFIG.BASE_URL}/followers/${endpoint}`,
+        { brand_id: brandId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsFollowing(!isFollowing);
+      Toast.show({
+        type: 'success',
+        text1: isFollowing ? 'Unfollowed' : 'Followed',
+        text2: `You ${isFollowing ? 'unfollowed' : 'now follow'} ${brand?.name || 'this brand'}`,
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to update follow status',
+        text2: error.message || 'Please try again',
+      });
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkFollowingStatus();
+  }, [checkFollowingStatus]);
 
   const handleRoomSelect = (roomId: number | null) => {
     setSelectedRoomId(roomId);
@@ -355,7 +402,10 @@ export default function ShopByBrandScreen({
             </View>
             <View style={styles.brandHeaderText}>
               <Text style={styles.brandHeaderLabel} numberOfLines={1}>Official Brand Store</Text>
-              <Text style={[styles.brandHeaderName, { color: themeColors.text }]} numberOfLines={1}>{brand?.name || 'Brand'}</Text>
+              <View style={styles.brandNameRow}>
+                <Text style={[styles.brandHeaderName, { color: themeColors.text }]} numberOfLines={1}>{brand?.name || 'Brand'}</Text>
+                <Ionicons name="checkmark-circle" size={14} color={Colors.sky} style={{ marginLeft: 4 }} />
+              </View>
               {brand?.supplier_name ? (
                 <Text style={[styles.brandHeaderSupplier, { color: themeColors.textSecondary }]} numberOfLines={1}>{brand.supplier_name}</Text>
               ) : null}
@@ -363,28 +413,35 @@ export default function ShopByBrandScreen({
                 <Text style={[styles.brandHeaderTagline, { color: themeColors.textSecondary }]} numberOfLines={1}>{brand.tagline}</Text>
               ) : null}
               <View style={styles.brandMetaRow}>
-                {brand?.total_products !== undefined ? (
-                  <Text style={[styles.brandHeaderProducts, { color: themeColors.textSecondary }]} numberOfLines={1}>{brand.total_products} listed</Text>
-                ) : null}
+                <Ionicons name="star" size={12} color="#fbbf24" />
+                <Text style={[styles.brandHeaderProducts, { color: themeColors.text }]} numberOfLines={1}>4.8</Text>
                 <Text style={[styles.brandMetaDot, { color: themeColors.textSecondary }]}>•</Text>
-                <Text style={[styles.brandHeaderProducts, { color: themeColors.textSecondary }]} numberOfLines={1}>{totalProducts} matched</Text>
-                {brandId ? (
-                  <>
-                    <Text style={[styles.brandMetaDot, { color: themeColors.textSecondary }]}>•</Text>
-                    <Text style={[styles.brandHeaderProducts, { color: themeColors.textSecondary }]} numberOfLines={1}>ID #{brandId}</Text>
-                  </>
-                ) : null}
+                <Ionicons name="people" size={12} color={Colors.sky} />
+                <Text style={[styles.brandHeaderProducts, { color: themeColors.text }]} numberOfLines={1}>12.5K followers</Text>
               </View>
             </View>
           </View>
 
-          <TouchableOpacity onPress={onCartPress} style={[styles.cartIconButton, { backgroundColor: themeColors.buttonBg, borderColor: themeColors.buttonBorder }]}>
-            <Ionicons name="cart-outline" size={22} color={themeColors.text} />
-            {cartCount > 0 && (
-              <View style={styles.cartBadgeHeader}>
-                <Text style={styles.cartBadgeTextHeader}>{cartCount > 99 ? '99+' : cartCount}</Text>
-              </View>
-            )}
+          <TouchableOpacity
+            onPress={handleFollowPress}
+            disabled={followLoading}
+            style={[
+              styles.topFollowButton,
+              {
+                backgroundColor: Colors.sky
+              }
+            ]}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isFollowing ? 'heart' : 'heart-outline'}
+              size={16}
+              color={Colors.white}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[styles.topFollowButtonText, { color: Colors.white }]}>
+              {followLoading ? 'Follow' : (isFollowing ? 'Following' : 'Follow')}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -410,6 +467,7 @@ export default function ShopByBrandScreen({
             <Ionicons name="options-outline" size={20} color={themeColors.text} />
           </TouchableOpacity>
         </View>
+
       </LinearGradient>
 
       <ScrollView
@@ -508,7 +566,6 @@ const styles = StyleSheet.create({
   customHeader: {
     paddingTop: 18,
     paddingBottom: 16,
-    borderBottomWidth: 1,
   },
   headerContent: {
     flexDirection: 'row',
@@ -597,6 +654,10 @@ const styles = StyleSheet.create({
   brandHeaderText: {
     flex: 1,
   },
+  brandNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   brandHeaderLabel: {
     fontSize: 10,
     fontWeight: '700',
@@ -638,34 +699,17 @@ const styles = StyleSheet.create({
     marginTop: 0,
     lineHeight: 12,
   },
-  cartIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  topFollowButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    position: 'relative',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
   },
-  cartBadgeHeader: {
-    position: 'absolute',
-    top: -4,
-    right: -6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: Colors.white,
-  },
-  cartBadgeTextHeader: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: Colors.white,
-    lineHeight: 11,
+  topFollowButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
