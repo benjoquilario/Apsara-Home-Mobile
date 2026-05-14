@@ -12,10 +12,10 @@ import {
   Animated,
   BackHandler,
   TextInput,
+  ImageBackground,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { productService, Product } from '../services/productService';
 import ItemCard from '../components/Items/ItemCard';
@@ -379,17 +379,42 @@ export default function ShopByBrandScreen({
   return (
     <View style={[styles.container, { backgroundColor: themeColors.containerBg }]}>
       {/* Custom Header with Brand Info */}
-      <LinearGradient
-        colors={isDarkMode ? ['rgba(30,41,59,0.5)', 'rgba(15,23,42,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: themeColors.headerBg, borderBottomColor: themeColors.headerBorder }]}
+      <ImageBackground
+        source={{ uri: 'https://afhomeph.com/cdn/shop/files/WEB_BANNER_1.jpg?v=1717048497&width=1400' }}
+        style={[styles.customHeader, { paddingTop: insets.top }]}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={onBack} style={[styles.backIconButton, { backgroundColor: themeColors.buttonBg, borderColor: themeColors.buttonBorder }]}>
-            <Ionicons name="chevron-back" size={24} color={themeColors.text} />
+        <View style={styles.headerOverlay} />
+
+        {/* Top Row: Back, Search, Filter */}
+        <View style={styles.searchRow}>
+          <TouchableOpacity onPress={onBack} style={styles.backIconButton}>
+            <Ionicons name="chevron-back" size={24} color={Colors.white} />
           </TouchableOpacity>
 
+          <View style={styles.searchWrapper}>
+            <Ionicons name="search-outline" size={16} color="rgba(255, 255, 255, 0.7)" style={styles.searchIconLeft} />
+            <TextInput
+              style={[styles.searchInput, { color: Colors.white }]}
+              placeholder="Search products in this brand"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {!!searchQuery && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
+                <Ionicons name="close-circle" size={16} color="rgba(255, 255, 255, 0.7)" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.7}>
+            <Ionicons name="options-outline" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Row: Brand Info and Follow Button */}
+        <View style={styles.headerContent}>
           <View style={styles.brandHeaderContent}>
             <View style={[styles.brandLogoHeader, { borderColor: Colors.sky }]}>
               {getBrandLogo() ? (
@@ -403,21 +428,21 @@ export default function ShopByBrandScreen({
             <View style={styles.brandHeaderText}>
               <Text style={styles.brandHeaderLabel} numberOfLines={1}>Official Brand Store</Text>
               <View style={styles.brandNameRow}>
-                <Text style={[styles.brandHeaderName, { color: themeColors.text }]} numberOfLines={1}>{brand?.name || 'Brand'}</Text>
+                <Text style={[styles.brandHeaderName, { color: Colors.white }]} numberOfLines={1}>{brand?.name || 'Brand'}</Text>
                 <Ionicons name="checkmark-circle" size={14} color={Colors.sky} style={{ marginLeft: 4 }} />
               </View>
               {brand?.supplier_name ? (
-                <Text style={[styles.brandHeaderSupplier, { color: themeColors.textSecondary }]} numberOfLines={1}>{brand.supplier_name}</Text>
+                <Text style={[styles.brandHeaderSupplier, { color: '#e2e8f0' }]} numberOfLines={1}>{brand.supplier_name}</Text>
               ) : null}
               {brand?.tagline ? (
-                <Text style={[styles.brandHeaderTagline, { color: themeColors.textSecondary }]} numberOfLines={1}>{brand.tagline}</Text>
+                <Text style={[styles.brandHeaderTagline, { color: '#e2e8f0' }]} numberOfLines={1}>{brand.tagline}</Text>
               ) : null}
               <View style={styles.brandMetaRow}>
                 <Ionicons name="star" size={12} color="#fbbf24" />
-                <Text style={[styles.brandHeaderProducts, { color: themeColors.text }]} numberOfLines={1}>4.8</Text>
-                <Text style={[styles.brandMetaDot, { color: themeColors.textSecondary }]}>•</Text>
+                <Text style={[styles.brandHeaderProducts, { color: Colors.white }]} numberOfLines={1}>4.8</Text>
+                <Text style={[styles.brandMetaDot, { color: '#cbd5e1' }]}>•</Text>
                 <Ionicons name="people" size={12} color={Colors.sky} />
-                <Text style={[styles.brandHeaderProducts, { color: themeColors.text }]} numberOfLines={1}>12.5K followers</Text>
+                <Text style={[styles.brandHeaderProducts, { color: Colors.white }]} numberOfLines={1}>12.5K followers</Text>
               </View>
             </View>
           </View>
@@ -444,31 +469,7 @@ export default function ShopByBrandScreen({
             </Text>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.searchRow}>
-          <View style={[styles.searchWrapper, { backgroundColor: themeColors.searchBg, borderColor: themeColors.searchBorder }]}>
-            <Ionicons name="search-outline" size={16} color={themeColors.textSecondary} style={styles.searchIconLeft} />
-            <TextInput
-              style={[styles.searchInput, { color: themeColors.text }]}
-              placeholder="Search products in this brand"
-              placeholderTextColor={themeColors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-            />
-            {!!searchQuery && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
-                <Ionicons name="close-circle" size={16} color={themeColors.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <TouchableOpacity style={[styles.filterIconButton, { backgroundColor: themeColors.buttonBg, borderColor: themeColors.buttonBorder }]} activeOpacity={0.7}>
-            <Ionicons name="options-outline" size={20} color={themeColors.text} />
-          </TouchableOpacity>
-        </View>
-
-      </LinearGradient>
+      </ImageBackground>
 
       <ScrollView
         ref={scrollViewRef}
@@ -564,21 +565,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customHeader: {
-    paddingTop: 18,
-    paddingBottom: 16,
+    paddingTop: 28,
+    paddingBottom: 24,
+    position: 'relative',
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
+    marginTop: 12,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 8,
-    marginTop: 10,
+    marginTop: 8,
   },
   searchWrapper: {
     flex: 1,
@@ -588,6 +599,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     height: 40,
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   searchIconLeft: {
     marginRight: 8,
@@ -607,31 +620,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   backIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   brandHeaderContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 8,
+    gap: 12,
   },
   brandLogoHeader: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#0ea5e9',
   },
   brandLogoImageHeader: {
@@ -659,28 +675,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandHeaderLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     color: Colors.sky,
-    lineHeight: 12,
+    lineHeight: 13,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   brandHeaderName: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '700',
     color: Colors.text,
-    lineHeight: 14,
+    lineHeight: 18,
   },
   brandHeaderSupplier: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.textSecondary,
-    lineHeight: 12,
+    lineHeight: 14,
   },
   brandHeaderTagline: {
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textSecondary,
-    lineHeight: 12,
+    lineHeight: 13,
     fontStyle: 'italic',
   },
   brandMetaRow: {
@@ -694,10 +710,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   brandHeaderProducts: {
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textSecondary,
     marginTop: 0,
-    lineHeight: 12,
+    lineHeight: 13,
   },
   topFollowButton: {
     flexDirection: 'row',
