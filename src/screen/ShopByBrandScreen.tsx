@@ -381,7 +381,7 @@ export default function ShopByBrandScreen({
     <View style={[styles.container, { backgroundColor: themeColors.containerBg }]}>
       {/* Custom Header with Brand Info */}
       <ImageBackground
-        source={{ uri: 'https://afhomeph.com/cdn/shop/files/WEB_BANNER_1.jpg?v=1717048497&width=1400' }}
+        source={{ uri: 'https://img.freepik.com/premium-photo/wildlife-tracks-document-animal-tracks-snow-inviting-viewers-guess-what-wildlife-might-be-nearby_997534-75869.jpg?semt=ais_hybrid&w=740&q=80' }}
         style={[styles.customHeader, { paddingTop: insets.top }]}
       >
         <View style={styles.headerOverlay} />
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingTop: 28,
-    paddingBottom: 24,
+    paddingBottom: 0,
     position: 'relative',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -770,17 +770,17 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: 12,
     paddingVertical: 0,
     paddingBottom: 0,
     marginHorizontal: 0,
-    marginTop: 6,
+    marginTop: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     borderTopWidth: 0,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 3,
+    paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -795,7 +795,7 @@ const styles = StyleSheet.create({
   tabIndicator: {
     width: '80%',
     height: 2.5,
-    marginTop: 6,
+    marginTop: 2,
     borderRadius: 1.5,
   },
   masonryGrid: {
