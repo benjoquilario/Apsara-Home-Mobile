@@ -144,6 +144,7 @@ export default function PurchasesScreen({
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [detailSlideAnim] = useState(new Animated.Value(0));
   const closeDetailModal = () => {
     Animated.timing(detailSlideAnim, {
@@ -229,9 +230,11 @@ export default function PurchasesScreen({
 
       console.log('[PurchasesScreen] All orders fetched:', response.data);
 
-      // Filter orders by selected status
-      const allOrders = response.data?.orders || [];
-      const counts = allOrders.reduce((acc: Record<string, number>, order: Order) => {
+      // Save all orders for searching, even if they don't match current filter
+      const fetchedAllOrders = response.data?.orders || [];
+      setAllOrders(fetchedAllOrders);
+
+      const counts = fetchedAllOrders.reduce((acc: Record<string, number>, order: Order) => {
         const key = normalizeStatusKey(order.status);
         acc[key] = (acc[key] || 0) + 1;
         return acc;
@@ -239,13 +242,13 @@ export default function PurchasesScreen({
       setStatusCounts(counts);
 
       const normalizedSelected = normalizeStatusKey(selectedStatus);
-      const filteredOrders = allOrders.filter((order: Order) => normalizeStatusKey(order.status) === normalizedSelected);
+      const filteredOrders = fetchedAllOrders.filter((order: Order) => normalizeStatusKey(order.status) === normalizedSelected);
 
       console.log('[PurchasesScreen] Filtered orders for status', selectedStatus, ':', {
-        totalOrders: allOrders.length,
+        totalOrders: fetchedAllOrders.length,
         filteredCount: filteredOrders.length,
         requestedStatus: selectedStatus,
-        statuses: allOrders.map((o: Order) => o.status),
+        statuses: fetchedAllOrders.map((o: Order) => o.status),
       });
       setOrders(filteredOrders);
     } catch (error: any) {
@@ -266,26 +269,32 @@ export default function PurchasesScreen({
   }, [token, selectedStatus]);
 
   useEffect(() => {
-    if (initialOrderId && orders.length > 0) {
+    if (initialOrderId && allOrders.length > 0) {
       console.log('[PurchasesScreen] Looking for order with initialOrderId:', initialOrderId);
-      console.log('[PurchasesScreen] Available orders:', orders.map(o => ({ id: o.id, mobile_order_id: o.mobile_order_id, order_number: o.order_number, status: o.status })));
+      console.log('[PurchasesScreen] Available orders:', allOrders.map(o => ({ id: o.id, mobile_order_id: o.mobile_order_id, order_number: o.order_number, checkout_id: o.checkout_id, status: o.status })));
 
-      const order = orders.find(o => o.mobile_order_id === initialOrderId);
-      console.log('[PurchasesScreen] Found order:', order);
+      // Try to find order by any of the IDs (they should all be the same value according to user)
+      let order = allOrders.find(o =>
+        o.mobile_order_id === initialOrderId ||
+        o.order_number === initialOrderId ||
+        o.checkout_id === initialOrderId ||
+        o.id.toString() === initialOrderId
+      );
 
       if (order) {
+        console.log('[PurchasesScreen] Found order:', order);
         setSelectedOrder(order);
         setShowDetailModal(true);
+
+        // Also update selectedStatus to match the order's status so user sees it in the right tab
+        const normalizedStatus = normalizeStatusKey(order.status);
+        console.log('[PurchasesScreen] Updating status to:', normalizedStatus);
+        setSelectedStatus(normalizedStatus);
       } else {
-        console.log('[PurchasesScreen] Order not found with mobile_order_id, trying order_number');
-        const orderByNumber = orders.find(o => o.order_number === initialOrderId);
-        if (orderByNumber) {
-          setSelectedOrder(orderByNumber);
-          setShowDetailModal(true);
-        }
+        console.warn('[PurchasesScreen] Order not found with any ID:', { initialOrderId, availableIds: allOrders.map(o => ({ id: o.id, mobile_order_id: o.mobile_order_id, order_number: o.order_number, checkout_id: o.checkout_id })) });
       }
     }
-  }, [initialOrderId, orders]);
+  }, [initialOrderId, allOrders]);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {

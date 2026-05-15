@@ -6,6 +6,8 @@ import {
 import type { AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { NavigationProvider, NavigationContextType } from '../context/NavigationContext';
+import { getPendingBackgroundDeeplink } from '../hooks/useFirebaseMessaging';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Colors } from '../constants/colors';
 import { getBadgeImage, getBadgeImageSource } from '../constants/tierConfig';
@@ -320,6 +322,41 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   }, []);
 
 
+  // Check for pending background deeplinks when app initializes or comes to foreground
+  useEffect(() => {
+    const handlePendingBackgroundDeeplink = () => {
+      const deeplink = getPendingBackgroundDeeplink();
+      if (deeplink) {
+        console.log('[AppNavigator] Found pending background deeplink:', deeplink);
+        // Process it like a regular deeplink
+        if (deeplink.includes('purchases://')) {
+          const parts = deeplink.replace('purchases://', '').split('/');
+          const status = parts[0];
+          const checkoutId = parts[1];
+
+          if (checkoutId) {
+            console.log('[AppNavigator] Processing pending purchases deeplink:', { status, checkoutId });
+            setPurchasesStatus(normalizePurchaseStatus(status));
+            setPurchasesInitialOrderId(checkoutId);
+            setShowPurchases(true);
+          }
+        }
+      }
+    };
+
+    // Check on mount
+    handlePendingBackgroundDeeplink();
+
+    // Also check when app comes to foreground
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        handlePendingBackgroundDeeplink();
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   // Handle deep linking for payment redirects and notification orders
   useEffect(() => {
     const handleDeepLink = async ({ url }: { url: string }) => {
@@ -397,12 +434,11 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         const checkoutId = parts[1];
 
         if (checkoutId) {
-          console.log('[AppNavigator] Navigating to order:', { status, checkoutId });
-          navigation.navigate('OrderDetail', {
-            orderId: checkoutId,
-            checkoutId: checkoutId,
-            status: status,
-          });
+          console.log('[AppNavigator] Opening purchases screen with order:', { status, checkoutId });
+          // Show the PurchasesScreen modal with the specific order
+          setPurchasesStatus(normalizePurchaseStatus(status));
+          setPurchasesInitialOrderId(checkoutId);
+          setShowPurchases(true);
         }
       }
     };
@@ -754,7 +790,18 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     wishlist: wishlistCount,
   };
 
+  // Navigation context value for notifications to use
+  const navigationValue: NavigationContextType = {
+    openPurchaseOrder: (checkoutId: string, status?: string) => {
+      console.log('[AppNavigator] openPurchaseOrder called:', { checkoutId, status });
+      setPurchasesStatus(normalizePurchaseStatus(status));
+      setPurchasesInitialOrderId(checkoutId);
+      setShowPurchases(true);
+    },
+  };
+
   return (
+    <NavigationProvider value={navigationValue}>
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['left', 'right']}>
         <View style={styles.body} {...panResponder.panHandlers}>
@@ -1663,6 +1710,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         </Pressable>
       </Modal>
     </View>
+    </NavigationProvider>
   );
 }
 

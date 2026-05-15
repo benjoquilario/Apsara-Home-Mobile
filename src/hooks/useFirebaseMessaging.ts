@@ -11,11 +11,45 @@ import {
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { useNavigation } from '../context/NavigationContext';
 
 
 // Register handlers at module level (only once)
 let backgroundHandlerRegistered = false;
 let foregroundHandlerRegistered = false;
+let notifeeBackgroundHandlerRegistered = false;
+
+// Store deeplinks globally - use the most recent one since we can't reliably get notification ID from notifee
+let lastStoredDeeplink: string | undefined = undefined;
+
+// Store pending deeplink from background notification for when app opens
+let pendingBackgroundDeeplink: string | undefined = undefined;
+
+// Register notifee background handler (for when app is closed/background and notification is tapped)
+const registerNotifeeBackgroundHandler = () => {
+  if (notifeeBackgroundHandlerRegistered) return;
+  notifeeBackgroundHandlerRegistered = true;
+
+  notifee.onBackgroundEvent(async ({ type, notification, pressAction }) => {
+    console.log('[useFirebaseMessaging] Notifee background event:', { type, pressActionId: pressAction?.id });
+
+    // Use the last stored deeplink since notifee doesn't reliably return notification ID or data
+    let deeplink = lastStoredDeeplink;
+    console.log('[useFirebaseMessaging] Background: Using last stored deeplink:', { deeplink, lastStoredDeeplink });
+
+    // Handle any interaction with the notification
+    if (deeplink && (type === 1 || type === 2)) {
+      console.log('[useFirebaseMessaging] Notification tapped from background, storing deeplink:', deeplink);
+
+      // Store the deeplink globally - AppNavigator will check for it when the app opens
+      pendingBackgroundDeeplink = deeplink;
+      console.log('[useFirebaseMessaging] Stored pending deeplink for app initialization:', { pendingBackgroundDeeplink });
+
+      // Don't try to use Linking.openURL for internal schemes - just let the app open naturally
+      // The app will check pendingBackgroundDeeplink when it initializes
+    }
+  });
+};
 
 const registerBackgroundMessageHandler = () => {
   if (backgroundHandlerRegistered) return;
@@ -31,9 +65,7 @@ const registerBackgroundMessageHandler = () => {
       const imageUrl = remoteMessage.data?.image || remoteMessage.notification?.imageUrl || null;
       const deeplink = remoteMessage.data?.href || remoteMessage.data?.deeplink || null;
 
-
       console.log('[useFirebaseMessaging] Background parsed:', { title, body, imageUrl, deeplink });
-
       console.log('[useFirebaseMessaging] Background: Displaying with notifee');
 
       // Create Android channel for background notifications
@@ -46,23 +78,36 @@ const registerBackgroundMessageHandler = () => {
         });
       }
 
+      // Store the deeplink globally for later retrieval (notifee doesn't reliably return notification ID or data)
+      const finalDeeplink = deeplink || '/orders';
+      lastStoredDeeplink = finalDeeplink;
+
+      // Create a unique ID for this notification (for logging)
+      const notificationId = `notif_${Date.now()}`;
+
       const notificationConfig: any = {
+        id: notificationId,
         title,
         body,
         data: {
-          href: deeplink || '/orders',
+          href: finalDeeplink,
+          deeplink: finalDeeplink,
+          // Preserve all original data for reference
+          ...remoteMessage.data,
         },
         android: {
           channelId: androidChannelId || 'default',
           smallIcon: 'ic_stat_notify',
           pressAction: {
             id: 'default',
+            launchActivity: 'default',
           },
           actions: [
             {
               title: 'View Order',
               pressAction: {
                 id: 'view-order',
+                launchActivity: 'default',
               },
             },
             {
@@ -74,6 +119,8 @@ const registerBackgroundMessageHandler = () => {
           ],
         },
       };
+
+      console.log('[useFirebaseMessaging] Background: Storing deeplink with ID:', { notificationId, deeplink: finalDeeplink });
 
       // Display with image - largeIcon (small image)
       if (imageUrl) {
@@ -102,7 +149,17 @@ const registerBackgroundMessageHandler = () => {
   });
 };
 
+// Helper to get and clear pending background deeplink
+export const getPendingBackgroundDeeplink = (): string | undefined => {
+  const deeplink = pendingBackgroundDeeplink;
+  pendingBackgroundDeeplink = undefined; // Clear after retrieving
+  console.log('[useFirebaseMessaging] Retrieved pending deeplink:', { deeplink });
+  return deeplink;
+};
+
 export const useFirebaseMessaging = (token: string | null, userId: string | number | null) => {
+  const navigation = useNavigation();
+
   useEffect(() => {
     if (!token || !userId) {
       return;
@@ -114,6 +171,9 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
 
         // Register background message handler
         registerBackgroundMessageHandler();
+
+        // Register notifee background event handler (for notification taps when app is closed)
+        registerNotifeeBackgroundHandler();
 
         const messaging_ = getMessaging();
         let permissionEnabled = true;
@@ -198,24 +258,37 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
           console.log('[useFirebaseMessaging] About to create notificationConfig...');
 
           try {
+            // Store the deeplink globally for later retrieval (notifee doesn't reliably return notification ID or data)
+            const finalDeeplink = deeplink || '/orders';
+            lastStoredDeeplink = finalDeeplink;
+
+            // Create a unique ID for this notification (for logging)
+            const notificationId = `notif_${Date.now()}`;
+
             // Notification config with deeplink and action buttons
             const notificationConfig: any = {
+              id: notificationId,
               title,
               body,
               data: {
-                href: deeplink || '/orders',
+                href: finalDeeplink,
+                deeplink: finalDeeplink,
+                // Preserve all original data for reference
+                ...remoteMessage.data,
               },
               android: {
                 channelId: androidChannelId || 'default',
                 smallIcon: 'ic_stat_notify',
                 pressAction: {
                   id: 'default',
+                  launchActivity: 'default',
                 },
                 actions: [
                   {
                     title: 'View Order',
                     pressAction: {
                       id: 'view-order',
+                      launchActivity: 'default',
                     },
                   },
                   {
@@ -227,6 +300,8 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
                 ],
               },
             };
+
+            console.log('[useFirebaseMessaging] Foreground: Storing deeplink with ID:', { notificationId, deeplink: finalDeeplink });
 
             console.log('[useFirebaseMessaging] Foreground notificationConfig created, imageUrl:', imageUrl);
 
@@ -273,47 +348,95 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
           }
         });
 
+        // Helper to handle purchases deeplink with navigation context
+        const handlePurchasesDeeplinkWithNav = (deeplink: string) => {
+          try {
+            // Parse purchases:// deeplinks - Format: purchases://status/checkout_id
+            const parts = deeplink.replace('purchases://', '').split('/');
+            const status = parts[0];
+            const checkoutId = parts[1];
+
+            if (!checkoutId) {
+              console.error('[useFirebaseMessaging] Invalid purchases deeplink format:', { deeplink, status, checkoutId });
+              return;
+            }
+
+            console.log('[useFirebaseMessaging] Handling purchases deeplink:', { status, checkoutId });
+            navigation.openPurchaseOrder(checkoutId, status);
+          } catch (error) {
+            console.error('[useFirebaseMessaging] Error handling purchases deeplink:', { deeplink, error });
+          }
+        };
+
         // Handle foreground notification press (notifee - when app is already open)
         const unsubscribeNotifeePress = notifee.onForegroundEvent(({ type, notification, pressAction }) => {
-          console.log('[useFirebaseMessaging] Foreground notification event:', type, pressAction?.id, notification);
+          // Use the last stored deeplink since notifee doesn't reliably return notification ID or data
+          const deeplink = lastStoredDeeplink;
+          console.log('[useFirebaseMessaging] Foreground notification event:', { type, pressActionId: pressAction?.id, deeplink, lastStoredDeeplink });
 
-          if (type === 1) { // PressAction = 1 (notification body pressed)
-            const deeplink = notification?.data?.href as string | undefined;
-            if (deeplink) {
-              console.log('[useFirebaseMessaging] User pressed foreground notification, emitting deeplink:', deeplink);
-              Linking.openURL(deeplink).catch(err => {
-                console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
-              });
-            }
-          } else if (type === 2) { // ActionPress = 2 (action button pressed)
+          // Handle any press event (type can be various values depending on notification state)
+          if (type === 1 || type === 2) { // PRESS = 1 or ACTION_PRESS = 2
             const actionId = pressAction?.id;
-            console.log('[useFirebaseMessaging] User pressed action button:', actionId);
+            console.log('[useFirebaseMessaging] Notification pressed:', { type, actionId, deeplink });
 
-            if (actionId === 'view-order') {
-              const deeplink = notification?.data?.href as string | undefined;
-              if (deeplink) {
-                console.log('[useFirebaseMessaging] Opening deeplink from action button:', deeplink);
-                Linking.openURL(deeplink).catch(err => {
-                  console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
-                });
+            // For internal deeplinks, handle directly without going through Linking
+            if (deeplink && typeof deeplink === 'string' && deeplink.trim()) {
+              if (deeplink.startsWith('purchases://')) {
+                handlePurchasesDeeplinkWithNav(deeplink);
+              } else {
+                // For external URLs, use Linking.openURL
+                Linking.openURL(deeplink).catch(err => console.error('[useFirebaseMessaging] Failed to open external URL:', err));
               }
-            } else if (actionId === 'dismiss') {
-              console.log('[useFirebaseMessaging] User dismissed notification');
-              // Notification is automatically dismissed
+            }
+
+            if (actionId === 'dismiss') {
+              console.log('[useFirebaseMessaging] Notification dismissed by user');
+            }
+          } else if (type !== 3) {
+            // Handle any other event types that might indicate a notification press
+            console.log('[useFirebaseMessaging] Other notification event type:', { type, deeplink });
+            if (deeplink && typeof deeplink === 'string' && deeplink.trim()) {
+              if (deeplink.startsWith('purchases://')) {
+                handlePurchasesDeeplinkWithNav(deeplink);
+              } else {
+                Linking.openURL(deeplink).catch(err => console.error('[useFirebaseMessaging] Failed to open external URL:', err));
+              }
             }
           }
         });
 
         // Handle app opened from closed state via notification or button press
+        let initialNotificationProcessed = false;
         const notificationOpenedApp = await getInitialNotification(messaging_);
         if (notificationOpenedApp) {
-          console.log('[useFirebaseMessaging] App opened from closed state via notification:', notificationOpenedApp);
+          console.log('[useFirebaseMessaging] App opened from closed state via Firebase notification');
           const deeplink = notificationOpenedApp?.data?.href || notificationOpenedApp?.data?.deeplink;
-          if (deeplink) {
-            console.log('[useFirebaseMessaging] Emitting deeplink from closed state:', deeplink);
-            Linking.openURL(deeplink).catch(err => {
-              console.error('[useFirebaseMessaging] Failed to open deeplink:', err);
-            });
+          if (deeplink && typeof deeplink === 'string' && deeplink.trim()) {
+            console.log('[useFirebaseMessaging] Opening deeplink from closed state after delay');
+            setTimeout(() => {
+              Linking.openURL(deeplink).catch(err => console.error('[useFirebaseMessaging] Failed to open deeplink:', err));
+            }, 1000);
+            initialNotificationProcessed = true;
+          }
+        }
+
+        // Also check notifee for initial notification (for notifications that were opened by tapping)
+        if (!initialNotificationProcessed) {
+          try {
+            const notifeeInitialNotification = await notifee.getInitialNotification();
+            if (notifeeInitialNotification?.notification?.data) {
+              console.log('[useFirebaseMessaging] App opened from notification (notifee)', { hasData: !!notifeeInitialNotification.notification.data });
+              const deeplink = (notifeeInitialNotification.notification.data?.href || notifeeInitialNotification.notification.data?.deeplink) as string | undefined;
+              if (deeplink && typeof deeplink === 'string' && deeplink.trim()) {
+                console.log('[useFirebaseMessaging] Opening deeplink from notifee initial notification after delay');
+                setTimeout(() => {
+                  Linking.openURL(deeplink).catch(err => console.error('[useFirebaseMessaging] Failed to open deeplink:', err));
+                }, 1000);
+                initialNotificationProcessed = true;
+              }
+            }
+          } catch (e) {
+            console.log('[useFirebaseMessaging] Error getting initial notifee notification:', e);
           }
         }
 
