@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 LogBox.ignoreLogs(['Text strings must be rendered within a <Text> component']);
 import Toast from 'react-native-toast-message';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 import LoginScreen from './src/screen/LoginScreen';
 import SignupScreen from './src/screen/SignupScreen';
 import OtpScreen from './src/screen/OtpScreen';
@@ -14,6 +15,26 @@ import OnboardingScreen from './src/screen/OnboardingScreen';
 import { storageService, StoredUser } from './src/services/storageService';
 import LoadingScreen from './src/screen/LoadingScreen';
 import { useFirebaseMessaging } from './src/hooks/useFirebaseMessaging';
+
+// Initialize notification channel on app start
+const initializeNotificationChannel = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      await notifee.createChannel({
+        id: 'default',
+        name: 'Default Notifications',
+        importance: AndroidImportance.HIGH,
+        sound: 'default',
+        vibration: true,
+        lightColor: '#0284c7',
+        bypassDnd: true,
+      });
+      console.log('[App] Notification channel initialized for Android');
+    } catch (error) {
+      console.error('[App] Error initializing notification channel:', error);
+    }
+  }
+};
 
 type AuthScreen = 'login' | 'signup' | 'otp';
 
@@ -51,6 +72,11 @@ export default function App() {
 
   // Initialize FCM and register device when authenticated
   useFirebaseMessaging(authToken, authUser?.id || null);
+
+  // Initialize notification channel on app start
+  useEffect(() => {
+    initializeNotificationChannel();
+  }, []);
 
   useEffect(() => {
     checkStoredAuth();
