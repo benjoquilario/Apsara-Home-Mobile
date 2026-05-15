@@ -60,89 +60,18 @@ const registerBackgroundMessageHandler = () => {
     console.log('[useFirebaseMessaging] Background data payload:', remoteMessage.data);
 
     try {
-      const title = remoteMessage.data?.title || remoteMessage.notification?.title || 'New notification';
-      const body = remoteMessage.data?.body || remoteMessage.data?.message || remoteMessage.notification?.body || '';
-      const imageUrl = remoteMessage.data?.image || remoteMessage.notification?.imageUrl || null;
       const deeplink = remoteMessage.data?.href || remoteMessage.data?.deeplink || null;
 
-      console.log('[useFirebaseMessaging] Background parsed:', { title, body, imageUrl, deeplink });
-      console.log('[useFirebaseMessaging] Background: Displaying with notifee');
+      console.log('[useFirebaseMessaging] Background parsed:', { deeplink });
 
-      // Create Android channel for background notifications
-      let androidChannelId: string | undefined;
-      if (Platform.OS === 'android') {
-        androidChannelId = await notifee.createChannel({
-          id: 'default',
-          name: 'Default Notifications',
-          importance: AndroidImportance.HIGH,
-        });
-      }
-
-      // Store the deeplink globally for later retrieval (notifee doesn't reliably return notification ID or data)
+      // Store the deeplink globally for later retrieval if user taps notification
       const finalDeeplink = deeplink || '/orders';
       lastStoredDeeplink = finalDeeplink;
 
-      // Create a unique ID for this notification (for logging)
-      const notificationId = `notif_${Date.now()}`;
+      console.log('[useFirebaseMessaging] Background: Stored deeplink for notification tap:', { deeplink: finalDeeplink });
 
-      const notificationConfig: any = {
-        id: notificationId,
-        title,
-        body,
-        data: {
-          href: finalDeeplink,
-          deeplink: finalDeeplink,
-          // Preserve all original data for reference
-          ...remoteMessage.data,
-        },
-        android: {
-          channelId: androidChannelId || 'default',
-          smallIcon: 'ic_stat_notify',
-          pressAction: {
-            id: 'default',
-            launchActivity: 'default',
-          },
-          actions: [
-            {
-              title: 'View Order',
-              pressAction: {
-                id: 'view-order',
-                launchActivity: 'default',
-              },
-            },
-            {
-              title: 'Dismiss',
-              pressAction: {
-                id: 'dismiss',
-              },
-            },
-          ],
-        },
-      };
-
-      console.log('[useFirebaseMessaging] Background: Storing deeplink with ID:', { notificationId, deeplink: finalDeeplink });
-
-      // Display with image - largeIcon (small image)
-      if (imageUrl) {
-        try {
-          console.log('[useFirebaseMessaging] Background: Attempting largeIcon with image:', imageUrl);
-          await notifee.displayNotification({
-            ...notificationConfig,
-            android: {
-              ...notificationConfig.android,
-              largeIcon: imageUrl,
-            },
-          });
-          console.log('[useFirebaseMessaging] Background notification with largeIcon displayed');
-          return;
-        } catch (largeIconError) {
-          console.warn('[useFirebaseMessaging] Background: largeIcon failed, showing without image:', largeIconError);
-        }
-      }
-
-      // Fallback: Always show notification with buttons (with or without image)
-      await notifee.displayNotification(notificationConfig);
-      console.log('[useFirebaseMessaging] Background notification displayed (buttons only)');
+      // System will automatically display the notification from the notification payload
+      // No need to call notifee.displayNotification here
     } catch (error) {
       console.error('[useFirebaseMessaging] Background message error:', error);
     }
@@ -195,6 +124,14 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
             id: 'default',
             name: 'Default Notifications',
             importance: AndroidImportance.HIGH,
+            sound: 'default',
+            vibration: true,
+            lightColor: '#0284c7',
+            bypassDnd: true,
+          });
+          console.log('[useFirebaseMessaging] Android notification channel created:', {
+            channelId: androidChannelId,
+            importance: 'HIGH',
           });
         }
 
@@ -246,89 +183,25 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
           console.log('[useFirebaseMessaging] Registering foreground handler (first time)');
 
           unsubscribe = onMessage(messaging_, async (remoteMessage) => {
-          console.log('[useFirebaseMessaging] Foreground notification received:', remoteMessage);
+          console.log('[useFirebaseMessaging] Foreground notification received (SILENT MODE):', remoteMessage);
           console.log('[useFirebaseMessaging] Foreground data payload:', remoteMessage.data);
 
           const title = remoteMessage.data?.title || remoteMessage.notification?.title || 'New notification';
           const body = remoteMessage.data?.body || remoteMessage.data?.message || remoteMessage.notification?.body || '';
-          const imageUrl = remoteMessage.data?.image || remoteMessage.notification?.imageUrl || null;
           const deeplink = remoteMessage.data?.href || remoteMessage.data?.deeplink || null;
 
-          console.log('[useFirebaseMessaging] Foreground parsed:', { title, body, imageUrl, deeplink });
-          console.log('[useFirebaseMessaging] About to create notificationConfig...');
+          console.log('[useFirebaseMessaging] Foreground parsed (silent):', { title, body, deeplink });
 
           try {
-            // Store the deeplink globally for later retrieval (notifee doesn't reliably return notification ID or data)
+            // Store the deeplink globally for later retrieval
             const finalDeeplink = deeplink || '/orders';
             lastStoredDeeplink = finalDeeplink;
 
-            // Create a unique ID for this notification (for logging)
-            const notificationId = `notif_${Date.now()}`;
-
-            // Notification config with deeplink and action buttons
-            const notificationConfig: any = {
-              id: notificationId,
-              title,
-              body,
-              data: {
-                href: finalDeeplink,
-                deeplink: finalDeeplink,
-                // Preserve all original data for reference
-                ...remoteMessage.data,
-              },
-              android: {
-                channelId: androidChannelId || 'default',
-                smallIcon: 'ic_stat_notify',
-                pressAction: {
-                  id: 'default',
-                  launchActivity: 'default',
-                },
-                actions: [
-                  {
-                    title: 'View Order',
-                    pressAction: {
-                      id: 'view-order',
-                      launchActivity: 'default',
-                    },
-                  },
-                  {
-                    title: 'Dismiss',
-                    pressAction: {
-                      id: 'dismiss',
-                    },
-                  },
-                ],
-              },
-            };
-
-            console.log('[useFirebaseMessaging] Foreground: Storing deeplink with ID:', { notificationId, deeplink: finalDeeplink });
-
-            console.log('[useFirebaseMessaging] Foreground notificationConfig created, imageUrl:', imageUrl);
-
-            // Display with image - largeIcon (small image)
-            console.log('[useFirebaseMessaging] Checking imageUrl:', imageUrl ? 'YES - will attempt display' : 'NO - will show without image');
-            if (imageUrl) {
-              try {
-                console.log('[useFirebaseMessaging] Foreground: Attempting largeIcon with image:', imageUrl);
-                await notifee.displayNotification({
-                  ...notificationConfig,
-                  android: {
-                    ...notificationConfig.android,
-                    largeIcon: imageUrl,
-                  },
-                });
-                console.log('[useFirebaseMessaging] Foreground notification with largeIcon displayed');
-                return;
-              } catch (largeIconError) {
-                console.warn('[useFirebaseMessaging] Foreground: largeIcon failed, showing without image:', largeIconError);
-              }
-            }
-
-            // Fallback: Always show notification with buttons (with or without image)
-            console.log('[useFirebaseMessaging] Displaying notification with buttons');
-            await notifee.displayNotification(notificationConfig);
-          } catch (displayError) {
-            console.error('[useFirebaseMessaging] Foreground local notification failed:', displayError);
+            // SILENT MODE: Do not display any notification when app is in foreground
+            // The Pusher real-time notifications via useNotifications hook will handle display
+            console.log('[useFirebaseMessaging] Foreground: Stored deeplink silently (no notification shown):', { deeplink: finalDeeplink });
+          } catch (error) {
+            console.error('[useFirebaseMessaging] Foreground silent handling error:', error);
           }
           });
         } else {
