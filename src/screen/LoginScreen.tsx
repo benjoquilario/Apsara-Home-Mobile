@@ -11,6 +11,7 @@ import {
   ScrollView,
   Image,
   Modal,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -29,10 +30,12 @@ type AuthStep = 'login' | '2fa' | 'mfa';
 
 export default function LoginScreen({
   onGoToSignup,
+  onGoToIndex,
   onAuthenticated,
   onResetOnboarding,
 }: {
   onGoToSignup?: () => void;
+  onGoToIndex?: () => void;
   onAuthenticated?: (user?: { id: string; email: string; name: string; avatar_url?: string }, token?: string) => void;
   onResetOnboarding?: () => Promise<void>;
 }) {
@@ -61,6 +64,18 @@ export default function LoginScreen({
       return () => clearTimeout(timer);
     }
   }, [authStep]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (onGoToIndex) {
+        onGoToIndex();
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [onGoToIndex]);
 
   async function loadSavedUser() {
     try {
@@ -260,6 +275,9 @@ export default function LoginScreen({
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <View style={styles.card}>
+              <Pressable style={styles.backButton} onPress={onGoToIndex}>
+                <Ionicons name="arrow-back" size={24} color={Colors.text} />
+              </Pressable>
               <View style={styles.tabs}>
                 <Pressable style={[styles.tab, styles.tabActive]}>
                   <Text style={[styles.tabText, styles.tabTextActive]}>Sign In</Text>
@@ -384,6 +402,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   card: { width: '100%', maxWidth: 420, backgroundColor: Colors.white, borderRadius: 24, padding: 28, borderWidth: 1.5, borderColor: Colors.inputBorder, overflow: 'hidden' },
+  backButton: { alignSelf: 'flex-start', padding: 8, marginBottom: 12 },
   logo: { width: 220, height: 70, alignSelf: 'center', marginBottom: 24 },
   tabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginBottom: 20 },
   tab: { flex: 1, height: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },

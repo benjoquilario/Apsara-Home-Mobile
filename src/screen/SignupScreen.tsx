@@ -14,6 +14,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   useWindowDimensions,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -26,10 +27,11 @@ import { authService } from '../services/authService';
 
 type SignupScreenProps = {
   onGoToLogin?: () => void;
+  onGoToIndex?: () => void;
   onContinueToOtp?: (email: string, verificationToken: string) => void;
 };
 
-export default function SignupScreen({ onGoToLogin, onContinueToOtp }: SignupScreenProps) {
+export default function SignupScreen({ onGoToLogin, onGoToIndex, onContinueToOtp }: SignupScreenProps) {
   const { width } = useWindowDimensions();
   const isCompact = width < 700;
   const [loading, setLoading] = useState(false);
@@ -55,6 +57,18 @@ export default function SignupScreen({ onGoToLogin, onContinueToOtp }: SignupScr
     p.muted = true;
     p.play();
   });
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (onGoToIndex) {
+        onGoToIndex();
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [onGoToIndex]);
 
   function validate() {
     const next: Record<string, string> = {};
@@ -152,6 +166,9 @@ export default function SignupScreen({ onGoToLogin, onContinueToOtp }: SignupScr
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.scroll}>
             <View style={styles.card}>
+              <Pressable style={styles.backButton} onPress={onGoToIndex}>
+                <Ionicons name="arrow-back" size={24} color={Colors.text} />
+              </Pressable>
               <View style={styles.header}>
                 <View style={styles.tabs}>
                   <Pressable style={styles.tab} onPress={onGoToLogin}>
@@ -322,6 +339,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   card: { width: '100%', maxWidth: 420, height: '88%', maxHeight: 760, minHeight: 560, backgroundColor: Colors.white, borderRadius: 24, padding: 28, borderWidth: 1.5, borderColor: Colors.inputBorder, overflow: 'hidden' },
+  backButton: { alignSelf: 'flex-start', padding: 8, marginBottom: 12 },
   header: { flexShrink: 0 },
   logo: { width: 160, height: 56, alignSelf: 'center', marginBottom: 24 },
   tabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginBottom: 28 },
