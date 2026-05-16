@@ -209,6 +209,15 @@ export default function IndexScreen({
                 </>
               )}
             </Pressable>
+
+            <Pressable
+              style={[styles.passkeyButton, loading && styles.disabledButton]}
+              onPress={() => {/* Handle passkey login */}}
+              disabled={loading}
+            >
+              <Ionicons name="key-outline" size={18} color={Colors.white} />
+              <Text style={styles.passkeyButtonText}>Continue with Passkey</Text>
+            </Pressable>
           </View>
 
           {/* Signup Link */}
@@ -221,6 +230,15 @@ export default function IndexScreen({
 
           {/* Footer Text */}
           <View style={styles.footerSection}>
+            <View style={styles.footerLinksRow}>
+              <TouchableOpacity style={styles.whatIsAfHomeSection} onPress={() => handleOpenUrl('https://example.com/about')}>
+                <Text style={styles.whatIsAfHomeText}>AF Home Affiliate Program</Text>
+              </TouchableOpacity>
+              <Text style={styles.footerBullet}>•</Text>
+              <TouchableOpacity style={styles.howToEarnSection} onPress={() => handleOpenUrl('https://example.com/how-to-earn')}>
+                <Text style={styles.howToEarnText}>How to Earn?</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.footerText}>
               By creating account and signing in you agree to our{' '}
               <Text
@@ -377,6 +395,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.white,
+  },
+  passkeyButton: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  passkeyButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  howToEarnSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  howToEarnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ff9500',
+    textDecorationLine: 'underline',
+  },
+  footerLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  footerBullet: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  whatIsAfHomeSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whatIsAfHomeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ff9500',
+    textDecorationLine: 'underline',
   },
   signupLinkSection: {
     flexDirection: 'row',
