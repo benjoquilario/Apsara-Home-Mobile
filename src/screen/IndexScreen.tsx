@@ -30,7 +30,7 @@ export default function IndexScreen({
 }: {
   onGoToLogin?: () => void;
   onGoToSignup?: () => void;
-  onAuthenticated?: (user?: { id: string; email: string; name: string; avatar_url?: string }, token?: string) => void;
+  onAuthenticated?: (user?: any, token?: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -117,9 +117,6 @@ export default function IndexScreen({
         return;
       }
 
-      // Get FCM token
-      const fcmToken = await getFCMToken();
-
       // Send biometric login request
       const response = await axios.post(
         `${API_CONFIG.BASE_URL}/auth/mobile/login-biometric`,
@@ -129,7 +126,7 @@ export default function IndexScreen({
         }
       );
 
-      console.log('[IndexScreen] Biometric login successful');
+      console.log('[IndexScreen] Biometric login successful:', response.data?.user?.email);
 
       // Show success toast
       Toast.show({
@@ -153,6 +150,8 @@ export default function IndexScreen({
           onPress: () => {},
         },
       ]);
+
+      return;
     } finally {
       setLoading(false);
     }
@@ -307,15 +306,6 @@ export default function IndexScreen({
                   <Text style={styles.googleButtonText}>Continue with Google</Text>
                 </>
               )}
-            </Pressable>
-
-            <Pressable
-              style={[styles.passkeyButton, loading && styles.disabledButton]}
-              onPress={() => {/* Handle passkey login */}}
-              disabled={loading}
-            >
-              <Ionicons name="key-outline" size={18} color={Colors.white} />
-              <Text style={styles.passkeyButtonText}>Continue with Passkey</Text>
             </Pressable>
           </View>
 

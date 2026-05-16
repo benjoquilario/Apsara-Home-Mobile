@@ -23,13 +23,24 @@ interface User {
   id: string;
   email: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   username?: string;
   avatar_url?: string;
+  avatar_original_url?: string;
   badge_name?: string;
   badge_image?: string | any;
+  rank?: number;
+  badge?: number;
+  account_status?: number;
+  profile_complete?: boolean;
+  profile_completion_percentage?: number;
   monthly_activation?: {
-    remaining_pv: number;
+    current_month_pv?: number;
+    threshold_pv?: number;
+    remaining_pv?: number;
   };
+  [key: string]: any;
 }
 
 interface ProfileScreenProps {

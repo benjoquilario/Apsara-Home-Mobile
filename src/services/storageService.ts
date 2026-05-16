@@ -20,12 +20,43 @@ export interface StoredUser {
   id: string;
   email: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
   avatar_url?: string;
+  avatar_original_url?: string;
+  phone?: string;
+  address?: string;
+  barangay?: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  country?: string;
+  middle_name?: string;
+  birth_date?: string;
+  gender?: string;
+  occupation?: string;
+  rank?: number;
+  badge?: number;
+  badge_name?: string;
+  account_status?: number;
+  lock_status?: number;
+  verification_status?: string;
+  profile_complete?: boolean;
+  profile_completion_percentage?: number;
+  email_verified?: boolean;
+  password_change_required?: boolean;
+  two_factor_enabled?: boolean;
+  totp_enabled?: boolean;
+  referrer_id?: number;
+  referrer_username?: string;
+  referrer_name?: string;
   monthly_activation?: {
     current_month_pv: number;
     threshold_pv: number;
     remaining_pv: number;
   };
+  [key: string]: any; // Allow additional fields
 }
 
 export const storageService = {
