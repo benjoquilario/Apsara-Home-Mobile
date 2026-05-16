@@ -79,6 +79,14 @@ export default function IndexScreen({
           <SafeAreaView style={styles.contentSection} edges={['bottom']}>
             {/* Logo and Text Section */}
           <View style={styles.textWithLogoSection}>
+              <View style={styles.logoWithTextRow}>
+                <Image
+                  source={require('../../assets/home_logo.png')}
+                  style={styles.homeLogoImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.homeLogoText}>Home</Text>
+              </View>
               <View style={styles.headingSection}>
                 <Text style={styles.heading}>Share. Earn. Enjoy</Text>
                 <Text style={styles.subheading} numberOfLines={1}>
@@ -169,6 +177,22 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 24,
     zIndex: 2,
+  },
+  homeLogoImage: {
+    width: 50,
+    height: 50,
+  },
+  logoWithTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  homeLogoText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.white,
+    marginTop: 6,
   },
   textWithLogoSection: {
     flexDirection: 'column',
