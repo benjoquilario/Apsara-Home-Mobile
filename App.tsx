@@ -151,6 +151,7 @@ export default function App() {
         <IndexScreen
           onGoToLogin={() => setScreen('login')}
           onGoToSignup={() => setScreen('signup')}
+          onAuthenticated={(user, token) => goAuthenticated(user, token)}
         />
       );
     }
