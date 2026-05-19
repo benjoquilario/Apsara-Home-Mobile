@@ -39,6 +39,9 @@ interface MultipleItemsCartModalProps {
     variant_id?: number;
   }>) => Promise<void>;
   loading?: boolean;
+  token?: string | null;
+  onCartUpdate?: () => void;
+  onNavigateToCart?: () => void;
 }
 
 export default function MultipleItemsCartModal({
@@ -47,6 +50,9 @@ export default function MultipleItemsCartModal({
   onClose,
   onAddToCart,
   loading = false,
+  token,
+  onCartUpdate,
+  onNavigateToCart,
 }: MultipleItemsCartModalProps) {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(0);
@@ -55,6 +61,10 @@ export default function MultipleItemsCartModal({
   const [selectedVariants, setSelectedVariants] = useState<{ [key: number]: number | null }>({});
   const [expandedVariants, setExpandedVariants] = useState<{ [key: number]: boolean }>({});
   const [displayedImages, setDisplayedImages] = useState<{ [key: number]: string }>({});
+  const [selectedColors, setSelectedColors] = useState<{ [key: number]: string | null }>({});
+  const [selectedSizes, setSelectedSizes] = useState<{ [key: number]: string | null }>({});
+  const [selectedTypes, setSelectedTypes] = useState<{ [key: number]: string | null }>({});
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -85,9 +95,10 @@ export default function MultipleItemsCartModal({
 
   useEffect(() => {
     if (visible) {
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 300,
+        friction: 8,
+        tension: 60,
         useNativeDriver: true,
       }).start();
 
@@ -95,13 +106,22 @@ export default function MultipleItemsCartModal({
       const initialQuantities: { [key: number]: number } = {};
       const initialVariants: { [key: number]: number | null } = {};
       const initialImages: { [key: number]: string } = {};
+      const initialColors: { [key: number]: string | null } = {};
+      const initialSizes: { [key: number]: string | null } = {};
+      const initialTypes: { [key: number]: string | null } = {};
       items.forEach(item => {
         initialQuantities[item.product_id] = 1;
-        initialVariants[item.product_id] = item.product.variants?.length ? item.product.variants[0].id : null;
+        const firstVariant = item.product.variants?.length ? item.product.variants[0] : null;
+        initialVariants[item.product_id] = firstVariant?.id || null;
+        initialColors[item.product_id] = firstVariant?.color || null;
+        initialSizes[item.product_id] = firstVariant?.size || null;
         initialImages[item.product_id] = item.product.image;
       });
       setQuantities(initialQuantities);
       setSelectedVariants(initialVariants);
+      setSelectedColors(initialColors);
+      setSelectedSizes(initialSizes);
+      setSelectedTypes(initialTypes);
       setDisplayedImages(initialImages);
     } else {
       Animated.timing(slideAnim, {
@@ -137,12 +157,25 @@ export default function MultipleItemsCartModal({
   };
 
   const handleAddToCart = async () => {
-    const cartItems = items.map(item => ({
-      product_id: item.product_id,
-      quantity: quantities[item.product_id] || 1,
-      variant_id: selectedVariants[item.product_id] || undefined,
-    }));
-    await onAddToCart(cartItems);
+    setIsProcessing(true);
+    try {
+      const cartItems = items.map(item => ({
+        product_id: item.product_id,
+        variant_id: selectedVariants[item.product_id] || null,
+        quantity: quantities[item.product_id] || 1,
+        selected_color: selectedColors[item.product_id] || null,
+        selected_size: selectedSizes[item.product_id] || null,
+        selected_type: selectedTypes[item.product_id] || null,
+      }));
+
+      await onAddToCart(cartItems);
+      onClose();
+      onNavigateToCart?.();
+    } catch (error) {
+      console.error('Error adding items to cart:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!visible) return null;
@@ -294,6 +327,14 @@ export default function MultipleItemsCartModal({
                               ...prev,
                               [item.product_id]: variant.id
                             }));
+                            setSelectedColors(prev => ({
+                              ...prev,
+                              [item.product_id]: variant.color || null
+                            }));
+                            setSelectedSizes(prev => ({
+                              ...prev,
+                              [item.product_id]: variant.size || null
+                            }));
                             // Update displayed image if variant has images
                             if (variant.images && variant.images.length > 0) {
                               setDisplayedImages(prev => ({
@@ -331,12 +372,12 @@ export default function MultipleItemsCartModal({
         {/* Footer */}
         <View style={[styles.shopeeCheckoutFooter, { paddingBottom: insets.bottom + 12 }]}>
           <TouchableOpacity
-            style={[styles.saveToCartBtn, loading && { opacity: 0.6 }]}
+            style={[styles.saveToCartBtn, isProcessing && { opacity: 0.6 }]}
             onPress={handleAddToCart}
-            disabled={loading}
+            disabled={isProcessing}
             activeOpacity={0.8}
           >
-            {loading ? (
+            {isProcessing ? (
               <>
                 <ActivityIndicator size="small" color={Colors.white} />
                 <Text style={styles.saveToCartBtnText}>Processing...</Text>
