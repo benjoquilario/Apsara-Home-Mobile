@@ -32,7 +32,8 @@ export default function IndexScreen({
   onGoToSignup?: () => void;
   onAuthenticated?: (user?: any, token?: string) => void;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   const player = useVideoPlayer(require('../../assets/login/afhome.mp4'), p => {
@@ -95,9 +96,9 @@ export default function IndexScreen({
   }, [player]);
 
   const handleBiometricLogin = async () => {
-    if (loading) return;
+    if (biometricLoading) return;
 
-    setLoading(true);
+    setBiometricLoading(true);
     try {
       console.log('[IndexScreen] Starting biometric login');
 
@@ -105,7 +106,7 @@ export default function IndexScreen({
       const authenticated = await BiometricUtils.authenticate();
       if (!authenticated) {
         console.log('[IndexScreen] Biometric authentication cancelled');
-        setLoading(false);
+        setBiometricLoading(false);
         return;
       }
 
@@ -113,7 +114,7 @@ export default function IndexScreen({
       const credential = await BiometricUtils.getBiometricCredential();
       if (!credential) {
         Alert.alert('Error', 'Biometric credential not found. Please enable biometric login first.');
-        setLoading(false);
+        setBiometricLoading(false);
         return;
       }
 
@@ -161,14 +162,14 @@ export default function IndexScreen({
 
       return;
     } finally {
-      setLoading(false);
+      setBiometricLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    if (loading) return;
+    if (googleLoading) return;
 
-    setLoading(true);
+    setGoogleLoading(true);
     try {
       console.log('[IndexScreen] Starting Google login flow');
 
@@ -216,7 +217,7 @@ export default function IndexScreen({
 
       return;
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -273,7 +274,7 @@ export default function IndexScreen({
             <Pressable
               style={styles.loginButton}
               onPress={onGoToLogin}
-              disabled={loading}
+              disabled={biometricLoading || googleLoading}
             >
               <Ionicons name="mail-outline" size={18} color={Colors.white} />
               <Text style={styles.loginButtonText}>Login with Email/Username</Text>
@@ -293,11 +294,11 @@ export default function IndexScreen({
             {/* Bottom section */}
             {biometricAvailable && (
               <Pressable
-                style={[styles.biometricButton, loading && styles.disabledButton]}
+                style={[styles.biometricButton, biometricLoading && styles.disabledButton]}
                 onPress={handleBiometricLogin}
-                disabled={loading}
+                disabled={biometricLoading || googleLoading}
               >
-                {loading ? (
+                {biometricLoading ? (
                   <>
                     <ActivityIndicator color={Colors.white} style={styles.buttonLoader} />
                     <Text style={styles.biometricButtonText}>Authenticating...</Text>
@@ -312,11 +313,11 @@ export default function IndexScreen({
             )}
 
             <Pressable
-              style={[styles.googleButton, loading && styles.disabledButton]}
+              style={[styles.googleButton, googleLoading && styles.disabledButton]}
               onPress={handleGoogleLogin}
-              disabled={loading}
+              disabled={biometricLoading || googleLoading}
             >
-              {loading ? (
+              {googleLoading ? (
                 <>
                   <ActivityIndicator color={Colors.white} style={styles.buttonLoader} />
                   <Text style={styles.googleButtonText}>Signing in...</Text>
