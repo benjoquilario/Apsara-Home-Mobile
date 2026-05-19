@@ -7,7 +7,6 @@ import type { AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProvider, NavigationContextType } from '../context/NavigationContext';
-import { getPendingBackgroundDeeplink } from '../hooks/useFirebaseMessaging';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Colors } from '../constants/colors';
 import { getBadgeImage, getBadgeImageSource } from '../constants/tierConfig';
@@ -53,6 +52,7 @@ import ReturnsScreen from '../screen/ReturnsScreen';
 import { orderService } from '../services/orderService';
 import Toast from 'react-native-toast-message';
 import { useNotifications } from '../hooks/useNotifications';
+import { useFirebaseMessaging } from '../hooks/useFirebaseMessaging';
 import { NotificationService } from '../services/notificationService';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
@@ -122,10 +122,22 @@ interface User {
 }
 
 function extractCount(data: any): number {
+  // Calculate total quantity (sum of all item quantities)
+  if (Array.isArray(data?.cart_items)) {
+    return data.cart_items.reduce((sum: number, item: any) => {
+      const qty = typeof item?.quantity === 'number' ? item.quantity :
+                  typeof item?.qty === 'number' ? item.qty :
+                  typeof item?.ci_quantity === 'number' ? item.ci_quantity : 1;
+      return sum + qty;
+    }, 0);
+  }
+
+  // Fallback: Try to use total quantity fields
   if (typeof data?.total_items === 'number') return data.total_items;
   if (typeof data?.total === 'number') return data.total;
   if (typeof data?.count === 'number') return data.count;
-  if (Array.isArray(data?.cart_items)) return data.cart_items.length;
+
+  // Last resort: count number of items
   if (Array.isArray(data?.wishlist_items)) return data.wishlist_items.length;
   if (Array.isArray(data?.data)) return data.data.length;
   if (Array.isArray(data?.items)) return data.items.length;
@@ -181,6 +193,17 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
 
     return enriched;
   }, [user, referralCodeFromDeepLink]);
+
+  // Callback when notification is clicked
+  const handleNotificationPressed = useCallback((checkoutId: string, status: string) => {
+    console.log('[AppNavigator] Notification pressed:', { checkoutId, status });
+    setPurchasesStatus(normalizePurchaseStatus(status));
+    setPurchasesInitialOrderId(checkoutId);
+    setShowPurchases(true);
+  }, []);
+
+  // Initialize Firebase messaging with notification handler
+  useFirebaseMessaging(token || '', user?.id || '', handleNotificationPressed);
 
   // Initialize real-time notifications
   const { notifications, unreadCount } = useNotifications(user?.id || '', token || '');
@@ -350,35 +373,6 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   }, []);
 
 
-  // Check for pending background deeplinks when app initializes or comes to foreground
-  useEffect(() => {
-    const handlePendingBackgroundDeeplink = async () => {
-      const deeplink = await getPendingBackgroundDeeplink();
-      if (deeplink) {
-        console.log('[AppNavigator] Found pending background deeplink:', deeplink);
-        // Add a small delay to ensure navigation context is fully ready
-        setTimeout(() => {
-          // Emit the deeplink through the Linking event listener
-          // This will trigger handleDeepLink which processes all deeplink types
-          Linking.emit('url', { url: deeplink });
-        }, 500);
-      }
-    };
-
-    // Check on mount
-    handlePendingBackgroundDeeplink();
-
-    // Also check when app comes to foreground
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        console.log('[AppNavigator] App came to foreground - checking for pending deeplinks');
-        handlePendingBackgroundDeeplink();
-      }
-    });
-
-    return () => subscription.remove();
-  }, []);
-
   // Handle deep linking for payment redirects and notification orders
   useEffect(() => {
     const handleDeepLink = async ({ url }: { url: string }) => {
@@ -448,10 +442,15 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         console.log('[AppNavigator] Payment cancel deep link triggered');
         setShowPaymentCancel(true);
         setShowPaymentWebView(false);
-      } else if (url.includes('purchases://')) {
+      } else if (url.includes('purchases://') || url.includes('apsarahome://purchases/')) {
         console.log('[AppNavigator] Order notification deep link triggered:', url);
-        // Parse purchases:// deeplinks - Format: purchases://status/checkout_id
-        const parts = url.replace('purchases://', '').split('/');
+        // Parse purchases deeplinks:
+        // - purchases://status/checkout_id
+        // - apsarahome://purchases/status/checkout_id
+        const normalized = url.includes('apsarahome://purchases/')
+          ? url.replace('apsarahome://purchases/', '')
+          : url.replace('purchases://', '');
+        const parts = normalized.split('/');
         const status = parts[0];
         const checkoutId = parts[1];
 

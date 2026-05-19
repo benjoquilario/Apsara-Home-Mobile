@@ -11,8 +11,38 @@ import {
 } from '@react-native-firebase/messaging';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
-import { useNavigation } from '../context/NavigationContext';
 
+const PENDING_DEEPLINK_KEY = 'pending_background_deeplink';
+let lastStoredDeeplink: string | null = null;
+
+const extractDeeplinkFromMessage = (remoteMessage: any): string | null => {
+  const data = remoteMessage?.data || {};
+  const deeplink = data.href || data.deeplink || null;
+  return typeof deeplink === 'string' && deeplink.trim() !== '' ? deeplink.trim() : null;
+};
+
+const storePendingBackgroundDeeplink = async (deeplink: string): Promise<void> => {
+  lastStoredDeeplink = deeplink;
+  await AsyncStorage.setItem(PENDING_DEEPLINK_KEY, deeplink);
+};
+
+
+export const getPendingBackgroundDeeplink = async (): Promise<string | null> => {
+  if (lastStoredDeeplink) {
+    const value = lastStoredDeeplink;
+    lastStoredDeeplink = null;
+    await AsyncStorage.removeItem(PENDING_DEEPLINK_KEY);
+    return value;
+  }
+
+  const persisted = await AsyncStorage.getItem(PENDING_DEEPLINK_KEY);
+  if (persisted) {
+    await AsyncStorage.removeItem(PENDING_DEEPLINK_KEY);
+    return persisted;
+  }
+
+  return null;
+};
 
 // Register handlers at module level (only once)
 let backgroundHandlerRegistered = false;
@@ -27,28 +57,103 @@ const registerBackgroundMessageHandler = () => {
     console.log('[useFirebaseMessaging] Background data payload:', remoteMessage.data);
 
     try {
-      // Notification received - deeplink handling will be implemented manually
-      console.log('[useFirebaseMessaging] Background notification received');
+      const deeplink = extractDeeplinkFromMessage(remoteMessage);
+      if (deeplink) {
+        await storePendingBackgroundDeeplink(deeplink);
+        console.log('[useFirebaseMessaging] Stored background deeplink:', deeplink);
+      }
     } catch (error) {
       console.error('[useFirebaseMessaging] Background message error:', error);
     }
   });
 };
 
-export const useFirebaseMessaging = (token: string | null, userId: string | number | null) => {
-  const navigation = useNavigation();
+export const useFirebaseMessaging = (
+  token: string | null,
+  userId: string | number | null,
+  onNotificationPressed?: (checkoutId: string, status: string) => void
+) => {
+  // Initialize notification handlers early, before auth is complete
+  // This ensures notifications are handled even if token/userId are loading
+  useEffect(() => {
+    const setupNotificationHandlers = async () => {
+      try {
+        console.log('[useFirebaseMessaging] Setting up notification handlers...');
+        registerBackgroundMessageHandler();
 
+        const messaging_ = getMessaging();
+
+        // Register foreground handler only once
+        if (!foregroundHandlerRegistered) {
+          foregroundHandlerRegistered = true;
+          console.log('[useFirebaseMessaging] Registering foreground handler');
+
+          onMessage(messaging_, async (remoteMessage) => {
+            console.log('[useFirebaseMessaging] Foreground notification received:', remoteMessage);
+            const deeplink = extractDeeplinkFromMessage(remoteMessage);
+            if (deeplink) {
+              lastStoredDeeplink = deeplink;
+            }
+          });
+        }
+
+        // Handle notification press (when user clicks the notification)
+        onNotificationOpenedApp(messaging_, (remoteMessage) => {
+          const deeplink = extractDeeplinkFromMessage(remoteMessage);
+          if (deeplink && onNotificationPressed) {
+            const normalized = deeplink.includes('apsarahome://purchases/')
+              ? deeplink.replace('apsarahome://purchases/', '')
+              : deeplink.replace('purchases://', '');
+            const parts = normalized.split('/');
+            const status = parts[0];
+            const checkoutId = parts[1];
+
+            console.log('[useFirebaseMessaging] Notification clicked:', { status, checkoutId, deeplink });
+
+            if (checkoutId) {
+              onNotificationPressed(checkoutId, status);
+            }
+          }
+        });
+
+        // Handle app opened from closed state
+        const notificationOpenedApp = await getInitialNotification(messaging_);
+        if (notificationOpenedApp && onNotificationPressed) {
+          const deeplink = extractDeeplinkFromMessage(notificationOpenedApp);
+          if (deeplink) {
+            const normalized = deeplink.includes('apsarahome://purchases/')
+              ? deeplink.replace('apsarahome://purchases/', '')
+              : deeplink.replace('purchases://', '');
+            const parts = normalized.split('/');
+            const status = parts[0];
+            const checkoutId = parts[1];
+
+            console.log('[useFirebaseMessaging] App launched from notification:', { status, checkoutId, deeplink });
+
+            if (checkoutId) {
+              setTimeout(() => {
+                onNotificationPressed(checkoutId, status);
+              }, 300);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[useFirebaseMessaging] Error setting up notification handlers:', error);
+      }
+    };
+
+    setupNotificationHandlers();
+  }, [onNotificationPressed]); // Only re-run if callback changes
+
+  // Separate effect for token registration (depends on auth)
   useEffect(() => {
     if (!token || !userId) {
       return;
     }
 
-    const setupMessaging = async () => {
+    const setupTokenRegistration = async () => {
       try {
-        console.log('[useFirebaseMessaging] Setting up Firebase Cloud Messaging...');
-
-        // Register background message handler
-        registerBackgroundMessageHandler();
+        console.log('[useFirebaseMessaging] Setting up token registration...');
 
         const messaging_ = getMessaging();
         let permissionEnabled = true;
@@ -66,7 +171,7 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
 
         const registerFcmToken = async (fcmToken: string) => {
           const platform = Platform.OS === 'android' ? 'android' : 'ios';
-          const response = await axios.post(
+          await axios.post(
             `${API_CONFIG.BASE_URL}/notifications/fcm/register-token`,
             {
               fcm_token: fcmToken,
@@ -81,14 +186,10 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
             }
           );
 
-          if (response.status === 200 || response.status === 201) {
-            console.log('[useFirebaseMessaging] FCM token registered successfully');
-          }
+          console.log('[useFirebaseMessaging] FCM token registered');
         };
 
         const fcmToken = await getToken(messaging_);
-        console.log('[useFirebaseMessaging] FCM Token:', fcmToken);
-
         if (!fcmToken) {
           console.warn('[useFirebaseMessaging] Failed to get FCM token');
           return;
@@ -98,87 +199,22 @@ export const useFirebaseMessaging = (token: string | null, userId: string | numb
 
         const unsubscribeTokenRefresh = onTokenRefresh(messaging_, async (newToken) => {
           try {
-            console.log('[useFirebaseMessaging] FCM token refreshed:', newToken);
+            console.log('[useFirebaseMessaging] FCM token refreshed');
             await registerFcmToken(newToken);
-          } catch (refreshError) {
-            console.error('[useFirebaseMessaging] Failed to register refreshed token:', refreshError);
-          }
-        });
-
-        // Register foreground handler only once
-        let unsubscribe: any;
-        if (!foregroundHandlerRegistered) {
-          foregroundHandlerRegistered = true;
-          console.log('[useFirebaseMessaging] Registering foreground handler (first time)');
-
-          unsubscribe = onMessage(messaging_, async (remoteMessage) => {
-          console.log('[useFirebaseMessaging] Foreground notification received (SILENT MODE):', remoteMessage);
-          console.log('[useFirebaseMessaging] Foreground data payload:', remoteMessage.data);
-
-          const title = remoteMessage.data?.title || remoteMessage.notification?.title || 'New notification';
-          const body = remoteMessage.data?.body || remoteMessage.data?.message || remoteMessage.notification?.body || '';
-          const deeplink = remoteMessage.data?.href || remoteMessage.data?.deeplink || null;
-
-          console.log('[useFirebaseMessaging] Foreground parsed (silent):', { title, body, deeplink });
-
-          try {
-            // Store the deeplink globally for later retrieval
-            const finalDeeplink = deeplink || '/orders';
-            lastStoredDeeplink = finalDeeplink;
-
-            // SILENT MODE: Do not display any notification when app is in foreground
-            // The Pusher real-time notifications via useNotifications hook will handle display
-            console.log('[useFirebaseMessaging] Foreground: Stored deeplink silently (no notification shown):', { deeplink: finalDeeplink });
           } catch (error) {
-            console.error('[useFirebaseMessaging] Foreground silent handling error:', error);
+            console.error('[useFirebaseMessaging] Failed to register refreshed token:', error);
           }
-          });
-        } else {
-          console.log('[useFirebaseMessaging] Foreground handler already registered, skipping');
-          unsubscribe = () => {}; // dummy
-        }
-
-        // Handle notification press (when user clicks the notification and app opens from background)
-        const unsubscribeOnNotificationOpenedApp = onNotificationOpenedApp(messaging_, (remoteMessage) => {
-          console.log('[useFirebaseMessaging] App opened from notification:', remoteMessage);
-          // Notification deeplink handling removed - will be implemented manually
         });
-
-
-        // Handle app opened from closed state via notification or button press
-        let initialNotificationProcessed = false;
-
-        try {
-          const notificationOpenedApp = await getInitialNotification(messaging_);
-          if (notificationOpenedApp) {
-            console.log('[useFirebaseMessaging] App opened from closed state via Firebase notification', {
-              hasData: !!notificationOpenedApp.data,
-              data: notificationOpenedApp.data
-            });
-            // Notification deeplink handling removed - will be implemented manually
-          }
-        } catch (error) {
-          console.error('[useFirebaseMessaging] Error getting initial notification from Firebase:', error);
-        }
-
-
-        // Note: onNotificationOpenedApp is already handled above, so we don't need duplicate handler
-        const unsubscribeNotificationOpened = () => {};
 
         return () => {
-          unsubscribe();
-          unsubscribeNotificationOpened();
           unsubscribeTokenRefresh();
-          if (unsubscribeOnNotificationOpenedApp) {
-            unsubscribeOnNotificationOpenedApp();
-          }
         };
       } catch (error) {
-        console.error('[useFirebaseMessaging] Error:', error);
+        console.error('[useFirebaseMessaging] Error setting up token registration:', error);
       }
     };
 
-    setupMessaging();
+    setupTokenRegistration();
   }, [token, userId]);
 
   return null;

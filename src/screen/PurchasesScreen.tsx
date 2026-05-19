@@ -271,7 +271,6 @@ export default function PurchasesScreen({
   useEffect(() => {
     if (initialOrderId && allOrders.length > 0) {
       console.log('[PurchasesScreen] Looking for order with initialOrderId:', initialOrderId);
-      console.log('[PurchasesScreen] Available orders:', allOrders.map(o => ({ id: o.id, mobile_order_id: o.mobile_order_id, order_number: o.order_number, checkout_id: o.checkout_id, status: o.status })));
 
       // Try to find order by any of the IDs (they should all be the same value according to user)
       let order = allOrders.find(o =>
@@ -291,7 +290,7 @@ export default function PurchasesScreen({
         console.log('[PurchasesScreen] Updating status to:', normalizedStatus);
         setSelectedStatus(normalizedStatus);
       } else {
-        console.warn('[PurchasesScreen] Order not found with any ID:', { initialOrderId, availableIds: allOrders.map(o => ({ id: o.id, mobile_order_id: o.mobile_order_id, order_number: o.order_number, checkout_id: o.checkout_id })) });
+        console.warn('[PurchasesScreen] Order not found with ID:', initialOrderId);
       }
     }
   }, [initialOrderId, allOrders]);
