@@ -436,7 +436,7 @@ export default function AddToCartModal({
         </ScrollView>
 
         {/* Bottom Buttons */}
-        <View style={[styles.shopeeCheckoutFooterGradient, { backgroundColor: colors.bg, borderTopColor: colors.border, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }]}>
+        <View style={[styles.shopeeCheckoutFooterGradient, { backgroundColor: colors.bg, borderTopColor: colors.border, paddingHorizontal: 16, paddingTop: 12, paddingBottom: insets.bottom + 12 }]}>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.checkoutBtn, loading && { opacity: 0.6 }]}
