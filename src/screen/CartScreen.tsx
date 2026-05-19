@@ -55,6 +55,21 @@ interface CartItem {
   variant_status: number | null;
 }
 
+const hashBrandName = (brandName: string): number => {
+  let hash = 0;
+  for (let i = 0; i < brandName.length; i++) {
+    const char = brandName.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash;
+};
+
+interface BrandItem {
+  id: number;
+  name: string;
+}
+
 interface CartScreenProps {
   token?: string | null;
   user?: {
@@ -63,15 +78,18 @@ interface CartScreenProps {
     avatar_url?: string;
     badge_name?: string;
   } | null;
-  onCheckout?: () => void;
+  onCheckout?: (selectedItems: CartItem[]) => void;
   onBack?: () => void;
   onProductPress?: (productId: number) => void;
   onProfilePress?: () => void;
+  onWishlistPress?: () => void;
+  onShopNavigate?: (brandId: number, shopName: string) => void;
+  brands?: BrandItem[];
   wishlistCount?: number;
   isDarkMode?: boolean;
 }
 
-export default function CartScreen({ token, user, onCheckout, onBack, onProductPress, onProfilePress, wishlistCount = 0, isDarkMode = false }: CartScreenProps) {
+export default function CartScreen({ token, user, onCheckout, onBack, onProductPress, onProfilePress, onWishlistPress, onShopNavigate, brands = [], wishlistCount = 0, isDarkMode = false }: CartScreenProps) {
   const insets = useSafeAreaInsets();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,13 +249,38 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
     }
   };
 
-  const getSortedCartItems = () => {
-    // Sort by creation date
-    return cartItems.sort((a, b) => {
-      const dateA = new Date(a.crt_created_at).getTime();
-      const dateB = new Date(b.crt_created_at).getTime();
-      return sortOrder === 'new' ? dateB - dateA : dateA - dateB;
+  const getGroupedCartItems = () => {
+    // Group items by brand
+    const grouped: { [key: string]: CartItem[] } = {};
+    cartItems.forEach(item => {
+      const brand = item.brand_name || 'Unknown Brand';
+      if (!grouped[brand]) {
+        grouped[brand] = [];
+      }
+      grouped[brand].push(item);
     });
+
+    // Sort items within each group by creation date
+    Object.keys(grouped).forEach(brand => {
+      grouped[brand].sort((a, b) => {
+        const dateA = new Date(a.crt_created_at).getTime();
+        const dateB = new Date(b.crt_created_at).getTime();
+        return sortOrder === 'new' ? dateB - dateA : dateA - dateB;
+      });
+    });
+
+    // Return grouped items
+    return grouped;
+  };
+
+  const getSortedCartItems = () => {
+    // Flatten grouped items for display
+    const grouped = getGroupedCartItems();
+    const flattened: CartItem[] = [];
+    Object.keys(grouped).forEach(brand => {
+      flattened.push(...grouped[brand]);
+    });
+    return flattened;
   };
 
   const getSelectedTotal = () => {
@@ -247,7 +290,82 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
     }, 0);
   };
 
-  const renderCartItem = ({ item }: { item: CartItem }) => {
+  const getCartItemsWithBrandHeaders = () => {
+    const grouped = getGroupedCartItems();
+    const itemsWithHeaders: (CartItem & { isBrandHeader?: boolean })[] = [];
+
+    Object.keys(grouped).forEach(brand => {
+      // Add brand header
+      itemsWithHeaders.push({
+        crt_id: Math.random(),
+        brand_name: brand,
+        isBrandHeader: true,
+      } as CartItem & { isBrandHeader: boolean });
+
+      // Add items in this group
+      itemsWithHeaders.push(...grouped[brand]);
+    });
+
+    return itemsWithHeaders;
+  };
+
+  const handleBrandSelectAll = (brandName: string) => {
+    const brandItems = cartItems.filter(item => item.brand_name === brandName);
+    const brandItemIds = new Set(brandItems.map(item => item.crt_id));
+    const newSelected = new Set(selectedItems);
+
+    // Check if all items in this brand are selected
+    const allSelected = brandItems.every(item => newSelected.has(item.crt_id));
+
+    if (allSelected) {
+      // Deselect all items in this brand
+      brandItemIds.forEach(id => newSelected.delete(id));
+    } else {
+      // Select all items in this brand
+      brandItemIds.forEach(id => newSelected.add(id));
+    }
+
+    setSelectedItems(newSelected);
+  };
+
+  const isBrandFullySelected = (brandName: string) => {
+    const brandItems = cartItems.filter(item => item.brand_name === brandName);
+    return brandItems.length > 0 && brandItems.every(item => selectedItems.has(item.crt_id));
+  };
+
+  const renderCartItem = ({ item }: { item: CartItem & { isBrandHeader?: boolean } }) => {
+    if (item.isBrandHeader) {
+      const isSelected = isBrandFullySelected(item.brand_name || '');
+      return (
+        <View style={[styles.brandHeader, { backgroundColor: colors.containerBg, borderBottomColor: colors.border }]}>
+          <TouchableOpacity
+            style={styles.brandCheckbox}
+            onPress={() => handleBrandSelectAll(item.brand_name || '')}
+            activeOpacity={0.7}
+          >
+            <Animated.View style={[styles.checkboxBox, { borderColor: colors.border }, isSelected && styles.checkboxBoxChecked]}>
+              {isSelected && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+            </Animated.View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.brandHeaderContent}
+            onPress={() => {
+              if (onShopNavigate) {
+                const brandName = item.brand_name || '';
+                // Find the brand in the brands array by name
+                const brand = brands.find(b => b.name === brandName);
+                const brandId = brand?.id || Math.abs(hashBrandName(brandName));
+                onShopNavigate(brandId, brandName);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="storefront" size={16} color={Colors.sky} />
+            <Text style={[styles.brandHeaderText, { color: colors.text }]}>{item.brand_name}</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     const scaleAnim = new Animated.Value(1);
     const discount = Math.round(
       ((parseFloat(item.product_price_srp) - parseFloat(item.crt_unit_price)) / parseFloat(item.product_price_srp)) * 100
@@ -418,15 +536,15 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
     );
   };
 
-  const renderHiddenItem = (data: { item: CartItem }) => {
+  const renderHiddenItem = (data: { item: CartItem & { isBrandHeader?: boolean } }) => {
     const item = data.item;
+    if (item.isBrandHeader) return <View />;
     return (
       <View style={styles.rowBack}>
         <TouchableOpacity
           style={[styles.backLeftBtn, styles.backLeftBtnLeft]}
           onPress={() => {
-            handleSelectItem(item.crt_id);
-            onCheckout?.();
+            onCheckout?.([item]);
           }}
         >
           <View style={styles.cartActionInner}>
@@ -472,9 +590,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
             <TouchableOpacity
               style={[styles.headerIcon, { backgroundColor: isDarkMode ? '#374151' : '#f1f5f9', borderColor: colors.border }]}
               activeOpacity={0.7}
-              onPress={() => {
-
-              }}
+              onPress={onWishlistPress}
             >
               <Ionicons name="heart-outline" size={20} color={colors.text} />
               {wishlistCount > 0 && (
@@ -518,9 +634,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
             <TouchableOpacity
               style={[styles.headerIcon, { backgroundColor: isDarkMode ? '#374151' : '#f1f5f9', borderColor: colors.border }]}
               activeOpacity={0.7}
-              onPress={() => {
-
-              }}
+              onPress={onWishlistPress}
             >
               <Ionicons name="heart-outline" size={20} color={colors.text} />
               {wishlistCount > 0 && (
@@ -566,10 +680,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
           <TouchableOpacity
             style={[styles.headerIcon, isDarkMode ? { backgroundColor: '#374151', borderColor: '#4b5563' } : { backgroundColor: '#f1f5f9', borderColor: '#e5e7eb' }]}
             activeOpacity={0.7}
-            onPress={() => {
-              // Navigate to wishlist - you'll need to implement this navigation
-
-            }}
+            onPress={onWishlistPress}
           >
             <Ionicons name="heart-outline" size={20} color={colors.text} />
             {wishlistCount > 0 && (
@@ -624,7 +735,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
 
       {/* Cart Items */}
       <SwipeListView
-        data={getSortedCartItems()}
+        data={getCartItemsWithBrandHeaders()}
         renderItem={renderCartItem}
         renderHiddenItem={renderHiddenItem}
         leftOpenValue={90}
@@ -632,7 +743,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
         swipeToOpenPercent={30}
         swipeToClosePercent={30}
         useNativeDriver={false}
-        keyExtractor={(item) => item.crt_id.toString()}
+        keyExtractor={(item) => item.isBrandHeader ? `brand-${item.brand_name}` : item.crt_id.toString()}
         contentContainerStyle={[styles.listContent, { backgroundColor: colors.bg }]}
         scrollEnabled={true}
         refreshControl={
@@ -656,9 +767,15 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
           </View>
           <TouchableOpacity
             style={styles.checkoutBtn}
-            onPress={onCheckout}
+            onPress={() => {
+              const selectedItemsList = Array.from(selectedItems).map(crtId =>
+                cartItems.find(item => item.crt_id === crtId)
+              ).filter(Boolean) as CartItem[];
+              onCheckout?.(selectedItemsList);
+            }}
             activeOpacity={0.7}
           >
+            <Ionicons name="bag-check" size={18} color={Colors.white} />
             <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
           </TouchableOpacity>
         </View>
@@ -1062,6 +1179,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   checkoutBtnText: {
     color: Colors.white,
@@ -1084,28 +1204,23 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 2,
-    right: -8,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#ef4444',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
     borderColor: Colors.white,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: Colors.white,
-    lineHeight: 12,
+    lineHeight: 11,
   },
   swipeHint: {
     flexDirection: 'row',
@@ -1119,5 +1234,30 @@ const styles = StyleSheet.create({
   swipeHintText: {
     fontSize: 10,
     letterSpacing: 0.3,
+  },
+  brandHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    backgroundColor: Colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  brandCheckbox: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandHeaderContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  brandHeaderText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text,
   },
 });
