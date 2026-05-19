@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     position: 'relative',
   },
   headerTitle: {
@@ -1071,6 +1071,7 @@ const styles = StyleSheet.create({
   headerGradient: {
     paddingTop: 12,
     paddingBottom: 16,
+    borderBottomWidth: 1,
   },
   headerIcon: {
     width: 38,
