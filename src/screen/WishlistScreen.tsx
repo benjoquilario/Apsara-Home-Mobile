@@ -46,10 +46,11 @@ interface WishlistScreenProps {
   onRefresh: () => void;
   onProductPress?: (id: number) => void;
   onCartUpdate?: () => void;
+  onNavigateToCart?: () => void;
   isDarkMode?: boolean;
 }
 
-export default function WishlistScreen({ token, wishlistItems, loading, refreshing, onRefresh, onProductPress, onCartUpdate, isDarkMode = false }: WishlistScreenProps) {
+export default function WishlistScreen({ token, wishlistItems, loading, refreshing, onRefresh, onProductPress, onCartUpdate, onNavigateToCart, isDarkMode = false }: WishlistScreenProps) {
   const [wishlist, setWishlist] = useState<WishlistItem[]>(wishlistItems);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
@@ -224,14 +225,21 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
     }
   };
 
-  const handleAddMultipleToCart = async (items: Array<{ product_id: number; quantity: number; variant_id?: number }>) => {
+  const handleAddMultipleToCart = async (items: Array<{
+    product_id: number;
+    quantity: number;
+    variant_id?: number;
+    selected_color?: string | null;
+    selected_size?: string | null;
+    selected_type?: string | null;
+  }>) => {
     if (!token) return;
     try {
       setLoadingMultiple(true);
-      
-      // Add items to cart
+
+      // Add items to cart using bulk-add endpoint
       await axios.post(
-        `${API_CONFIG.BASE_URL}/cart/batch`,
+        `${API_CONFIG.BASE_URL}/cart/bulk-add`,
         { items },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -514,6 +522,8 @@ export default function WishlistScreen({ token, wishlistItems, loading, refreshi
           onClose={() => setShowModal(false)}
           onAddToCart={handleAddMultipleToCart}
           loading={loadingMultiple}
+          token={token}
+          onNavigateToCart={onNavigateToCart}
         />
       </Modal>
 
