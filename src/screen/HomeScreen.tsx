@@ -346,19 +346,6 @@ function HomeScreen({
       setCategories(sortByOrder(categoryData));
       setBrands(brandData);
 
-      // Filter for affordahome brand products and get at least 10
-      const affordahomeProducts = Array.isArray(productData)
-        ? productData.filter(p => p.brandName?.toLowerCase() === 'affordahome')
-        : [];
-
-      console.log('🏠 Affordahome Products Debug:', {
-        totalProducts: Array.isArray(productData) ? productData.length : 0,
-        affordahomeCount: affordahomeProducts.length,
-        affordahomeProducts: affordahomeProducts.slice(0, 10).map(p => ({ id: p.id, name: p.name, brand: p.brandName })),
-        allBrands: Array.isArray(productData) ? [...new Set(productData.map(p => p.brandName))].slice(0, 10) : [],
-      });
-
-      setFeaturedProducts(affordahomeProducts.slice(0, 10));
 
       setRoomTypes(roomData);
     } catch (error: any) {
@@ -752,62 +739,6 @@ function HomeScreen({
         )}
       </View>
 
-      <View style={[styles.sectionFeatured, { backgroundColor: colors.sectionEven }]}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Products</Text>
-          <View style={styles.sectionAction}>
-            <Text style={[styles.sectionMeta, { color: colors.textSec }]}>New arrivals</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
-          </View>
-        </View>
-        <View style={styles.featuredProductsContainer}>
-          {loadingFeatured ? (
-            <View style={styles.masonryGrid}>
-              <View style={styles.masonryColumn}>
-                <View style={styles.featuredProductItem}>
-                  <View style={styles.featuredProductSkeleton} />
-                </View>
-                <View style={styles.featuredProductItem}>
-                  <View style={styles.featuredProductSkeleton} />
-                </View>
-              </View>
-              <View style={styles.masonryColumn}>
-                <View style={styles.featuredProductItem}>
-                  <View style={styles.featuredProductSkeleton} />
-                </View>
-                <View style={styles.featuredProductItem}>
-                  <View style={styles.featuredProductSkeleton} />
-                </View>
-              </View>
-            </View>
-          ) : featuredProducts.length > 0 ? (
-            <View style={styles.masonryGrid}>
-              <View style={styles.masonryColumn}>
-                {masonryColumns.leftColumn.map((item) => {
-                  const wishlistItem = wishlistItems?.find(w => w.product.id === item.id);
-                  return (
-                    <View key={item.id} style={styles.featuredProductItem}>
-                      {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} token={token} isDarkMode={isDarkMode} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} isWishlisted={!!wishlistItem} wishlistId={wishlistItem?.wishlist_id} onWishlistToggle={onWishlistChange} />}
-                    </View>
-                  );
-                })}
-              </View>
-              <View style={styles.masonryColumn}>
-                {masonryColumns.rightColumn.map((item) => {
-                  const wishlistItem = wishlistItems?.find(w => w.product.id === item.id);
-                  return (
-                    <View key={item.id} style={styles.featuredProductItem}>
-                      {item.isAd ? <SampleAdCard title={item.title} subtitle={item.subtitle} /> : <ItemCard product={item as ProductCard} token={token} isDarkMode={isDarkMode} onPress={onProductPress ? (product) => onProductPress(product.id) : undefined} isWishlisted={!!wishlistItem} wishlistId={wishlistItem?.wishlist_id} onWishlistToggle={onWishlistChange} />}
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          ) : (
-            <Text style={[styles.noProductsText, { color: colors.textSec }]}>No featured products available</Text>
-          )}
-        </View>
-      </View>
       </ScrollView>
 
       {/* Chat Bot Icon */}
