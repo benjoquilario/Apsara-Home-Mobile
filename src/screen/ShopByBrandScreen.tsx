@@ -183,9 +183,23 @@ export default function ShopByBrandScreen({
         { brand_id: brandId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setIsFollowing(response.data?.is_following || false);
+      console.log('[ShopByBrandScreen] Follow status response for brandId', brandId, ':', JSON.stringify(response.data));
+
+      let isFollowingStatus = false;
+      // Try multiple possible response structures
+      if (response.data?.is_following !== undefined) {
+        isFollowingStatus = response.data.is_following === true || response.data.is_following === 1;
+      } else if (response.data?.data?.is_following !== undefined) {
+        isFollowingStatus = response.data.data.is_following === true || response.data.data.is_following === 1;
+      } else if (typeof response.data === 'boolean') {
+        isFollowingStatus = response.data === true;
+      }
+
+      console.log('[ShopByBrandScreen] Setting isFollowing to:', isFollowingStatus, 'for brandId:', brandId);
+      setIsFollowing(isFollowingStatus);
     } catch (error) {
       console.error('Error checking follow status:', error);
+      setIsFollowing(false);
     }
   }, [token, brandId]);
 
@@ -217,8 +231,15 @@ export default function ShopByBrandScreen({
   };
 
   useEffect(() => {
-    checkFollowingStatus();
-  }, [checkFollowingStatus]);
+    console.log('[ShopByBrandScreen] useEffect triggered for brandId:', brandId, 'token exists:', !!token);
+    if (token && brandId) {
+      console.log('[ShopByBrandScreen] Calling checkFollowingStatus for brandId:', brandId);
+      checkFollowingStatus();
+    } else {
+      console.log('[ShopByBrandScreen] Missing token or brandId, not checking follow status');
+      setIsFollowing(false);
+    }
+  }, [token, brandId]);
 
   const handleRoomSelect = (roomId: number | null) => {
     setSelectedRoomId(roomId);
