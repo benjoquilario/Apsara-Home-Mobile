@@ -224,6 +224,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [checkoutOrderData, setCheckoutOrderData] = useState(null);
   const [paymentCheckoutUrl, setPaymentCheckoutUrl] = useState('');
   const [checkoutItem, setCheckoutItem] = useState<any>(null);
+  const [checkoutCartItems, setCheckoutCartItems] = useState<any[]>([]);
   const [showProfileDetails, setShowProfileDetails] = useState(false);
   const [profileDetailsFromTab, setProfileDetailsFromTab] = useState(false);
   const [referralNetworkFromTab, setReferralNetworkFromTab] = useState(false);
@@ -271,6 +272,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [showAffiliateReferralModal, setShowAffiliateReferralModal] = useState(false);
   const [showShippingAddressScreen, setShowShippingAddressScreen] = useState(false);
   const [shippingAddressScreenData, setShippingAddressScreenData] = useState<any>(null);
+  const [shopSourceIsCart, setShopSourceIsCart] = useState(false);
+  const [shopSourceIsCheckout, setShopSourceIsCheckout] = useState(false);
 
   // Home screen data - persists across navigation
   const [homeCategories, setHomeCategories] = useState<CategoryItem[]>([]);
@@ -1065,7 +1068,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               linkedAccountsRefreshTrigger={linkedAccountsRefreshTrigger}
             />
           ) : activeTab === 'shop' ? (
-            selectedBrandId && selectedBrand ? (
+            selectedBrandId != null && selectedBrand ? (
               <ShopByBrandScreen
                 token={token}
                 user={enrichedUser}
@@ -1076,8 +1079,16 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 onBack={() => {
                   setSelectedBrandId(null);
                   setSelectedBrand(null);
-                  // If we came from ProductDetailScreen, restore it
-                  if (shopSourceProductId !== null) {
+                  // If we came from checkout, go back to checkout
+                  if (shopSourceIsCheckout) {
+                    setShowCheckout(true);
+                    setShopSourceIsCheckout(false);
+                  } else if (shopSourceIsCart) {
+                    // If we came from cart, go back to cart
+                    setShowCart(true);
+                    setShopSourceIsCart(false);
+                  } else if (shopSourceProductId !== null) {
+                    // If we came from ProductDetailScreen, restore it
                     setSelectedProductId(shopSourceProductId);
                     setShopSourceProductId(null);
                   } else {
@@ -1437,6 +1448,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             user={enrichedUser}
             wishlistCount={wishlistCount}
             isDarkMode={isDarkMode}
+            brands={homeBrands}
             onBack={() => setShowCart(false)}
             onProfilePress={() => {
               setShowCart(false);
@@ -1448,18 +1460,36 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setPreviousTab(activeTabRef.current);
               setSelectedProductId(productId);
             }}
-            onCheckout={async () => {
-              try {
-                const headers = { Authorization: `Bearer ${token}` };
-                const cartRes = await axios.get(`${API_CONFIG.BASE_URL}/cart`, { headers });
-                if (cartRes.data && cartRes.data.cart_items) {
-                  setCheckoutCartItems(cartRes.data.cart_items);
-                }
-              } catch (error) {
-                console.error('Failed to fetch cart items:', error);
+            onShopNavigate={(brandId, shopName) => {
+              setShowCart(false);
+              setShopSourceIsCart(true);
+              const brand = homeBrands.find(b => b.id === brandId) || {
+                id: brandId,
+                name: shopName,
+              };
+              setPreviousTab(activeTabRef.current);
+              setSelectedBrandId(brandId);
+              setSelectedBrand(brand);
+              setSelectedRoomId(null);
+              setSelectedCategoryId(null);
+              activeTabRef.current = 'shop';
+              setActiveTab('shop');
+            }}
+            onCheckout={(selectedItems) => {
+              if (selectedItems && selectedItems.length > 0) {
+                // Map cart items to checkout format with correct quantity field
+                const formattedItems = selectedItems.map(item => ({
+                  ...item,
+                  quantity: item.crt_quantity || item.quantity || 1,
+                }));
+                setCheckoutCartItems(formattedItems);
               }
               setShowCart(false);
               setShowCheckout(true);
+            }}
+            onWishlistPress={() => {
+              setShowCart(false);
+              setActiveTab('wishlist');
             }}
           />
         </View>
@@ -1469,24 +1499,29 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
         <View style={styles.cartScreenOverlay}>
           <CheckoutScreen
             item={checkoutItem}
+            items={checkoutCartItems}
             token={token}
             user={enrichedUser}
             isDarkMode={isDarkMode}
+            brands={homeBrands}
             onBack={() => {
               setShowCheckout(false);
-              setActiveTab(previousTab);
-              activeTabRef.current = previousTab;
+              setShowCart(true);
             }}
             onShopNavigate={(brandId, shopName) => {
               setShowCheckout(false);
-              setPreviousTab(activeTabRef.current);
-              setSelectedBrandId(brandId);
-              setSelectedBrand({
+              setShopSourceIsCheckout(true);
+              const brand = homeBrands.find(b => b.id === brandId) || {
                 id: brandId,
                 name: shopName,
-              });
-              setActiveTab('shop');
+              };
+              setPreviousTab(activeTabRef.current);
+              setSelectedBrandId(brandId);
+              setSelectedBrand(brand);
+              setSelectedRoomId(null);
+              setSelectedCategoryId(null);
               activeTabRef.current = 'shop';
+              setActiveTab('shop');
             }}
             onNavigateToOrderSuccess={(orderData) => {
               console.log('[AppNavigator] onNavigateToOrderSuccess called');
