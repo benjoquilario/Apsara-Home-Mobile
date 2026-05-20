@@ -467,6 +467,72 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           setPurchasesInitialOrderId(checkoutId);
           setShowPurchases(true);
         }
+      } else if (url.includes('/products/') || url.includes('/product/') || url.includes('apsarahome://product') || url.includes('apsarahome://products')) {
+        console.log('[AppNavigator] Product deep link triggered:', url);
+        // Parse product link - Formats:
+        // - https://afhome.ph/product/nxt-echo-i2834 (slug)
+        // - https://www.afhome.ph/product/nxt-echo-i2834 (slug)
+        // - apsarahome://product/nxt-echo-i2834 (slug)
+        let productSlugOrId: string = '';
+
+        if (url.includes('apsarahome://')) {
+          // Extract from app scheme: apsarahome://product/nxt-echo-i2834
+          productSlugOrId = url.split('/').pop()?.split('?')[0] || '';
+        } else {
+          // Extract from web URL: https://afhome.ph/product/nxt-echo-i2834
+          const pathMatch = url.match(/\/products?\/([^/?]+)/);
+          productSlugOrId = pathMatch?.[1] || '';
+        }
+
+        if (productSlugOrId) {
+          console.log('[AppNavigator] Opening product with slug:', productSlugOrId);
+
+          // Check if it's numeric (ID) or string (slug)
+          const isNumeric = /^\d+$/.test(productSlugOrId);
+          let endpoint = isNumeric
+            ? `${API_CONFIG.BASE_URL}/products/${productSlugOrId}`
+            : `${API_CONFIG.BASE_URL}/products/slug/${productSlugOrId}`;
+
+          if (token) {
+            try {
+              const headers = { Authorization: `Bearer ${token}` };
+              const productRes = await axios.get(endpoint, { headers });
+              const productData = productRes.data?.data || productRes.data;
+
+              if (productData && productData.id) {
+                console.log('[AppNavigator] Product loaded from deeplink:', productData.id, productData.name);
+                // Set the selected product ID to display the product detail
+                setSelectedProductId(productData.id);
+                Toast.show({
+                  type: 'success',
+                  text1: 'Opening Product',
+                  text2: productData.name || 'Product details',
+                });
+              } else {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Product Not Found',
+                  text2: 'The product could not be found',
+                });
+              }
+            } catch (error) {
+              console.error('[AppNavigator] Error loading product from deeplink:', error);
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to load product details',
+              });
+            }
+          } else {
+            // If no token, navigate to shop - user can search for product
+            setActiveTab('shop');
+            Toast.show({
+              type: 'info',
+              text1: 'Product Link',
+              text2: `Tap to search for ${productSlugOrId}`,
+            });
+          }
+        }
       } else if (url.includes('/ref/')) {
         console.log('[AppNavigator] Referral deep link triggered:', url);
         // Parse referral link - Format: https://www.afhome.ph/ref/username
