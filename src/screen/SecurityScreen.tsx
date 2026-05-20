@@ -5,6 +5,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Location from 'expo-location';
 import { Colors } from '../constants/colors';
 import { API_CONFIG } from '../config/api';
 import axios from 'axios';
@@ -34,6 +36,9 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [loadingBiometric, setLoadingBiometric] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [loadingQr, setLoadingQr] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f0f9ff',
@@ -71,6 +76,10 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
   useEffect(() => {
     checkBiometricAvailability();
   }, []);
+
+  useEffect(() => {
+    console.log('[QR Camera] Camera permission status:', permission);
+  }, [permission]);
 
   const fetchGoogleLinkedStatus = async () => {
     if (!token) return;
@@ -456,6 +465,73 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
     ]);
   };
 
+  const verifyQrCode = async (qrData: string) => {
+    try {
+      if (!token) {
+        Alert.alert('Error', 'Authentication token missing');
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.post(
+        `${API_CONFIG.BASE_URL}/auth/qr/verify`,
+        { qr_data: qrData },
+        { headers }
+      );
+
+      if (response.data?.success || response.status === 200) {
+        Alert.alert('Success', 'QR code verified! Website will login automatically.');
+      } else {
+        Alert.alert('Error', response.data?.message || 'Failed to verify QR code');
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to verify QR code';
+      console.error('QR verification error:', errorMsg);
+      Alert.alert('Error', errorMsg);
+    }
+  };
+
+  const handleBarcodeScanned = async (scanningResult: any) => {
+    console.log('[QR Scan] Barcode scanned:', scanningResult);
+
+    if (loadingQr) {
+      console.log('[QR Scan] Already loading, ignoring scan');
+      return;
+    }
+
+    const qrData = scanningResult.data || scanningResult.type;
+    console.log('[QR Scan] QR Data:', qrData);
+
+    if (qrData) {
+      setIsScanning(false);
+      setLoadingQr(true);
+
+      try {
+        // Directly verify QR code without confirmation screen
+        await verifyQrCode(qrData);
+      } catch (error) {
+        console.error('[QR Scan] Error in QR scan:', error);
+        setIsScanning(true);
+      } finally {
+        setLoadingQr(false);
+      }
+    } else {
+      console.log('[QR Scan] No QR data found in scan result');
+    }
+  };
+
+  const handleStartScanning = async () => {
+    if (!permission?.granted) {
+      const newPermission = await requestPermission();
+      if (!newPermission.granted) {
+        Alert.alert('Error', 'Camera permission is required to scan QR codes');
+        return;
+      }
+    }
+    setIsScanning(true);
+  };
+
+
   const handleUnlinkGoogle = () => {
     Alert.alert('Unlink Account', 'Are you sure you want to unlink your account?', [
       { text: 'Cancel', onPress: () => {} },
@@ -586,6 +662,71 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
             <Ionicons name="lock-closed" size={16} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.buttonText}>Update Password</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* QR Code Login Section */}
+        <View style={[styles.section, { backgroundColor: colors.containerBg, borderColor: colors.border }]}>
+          <View style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitleText, { color: colors.text }]}>QR Code Login</Text>
+            <Text style={[styles.sectionTitleDescription, { color: colors.textSec }]}>Scan a QR code from the website to approve login on another device.</Text>
+          </View>
+
+          {isScanning && permission?.granted ? (
+            <>
+              <View style={[styles.qrCamera, { borderColor: colors.border }]}>
+                {console.log('[QR Camera] Rendering camera view')}
+                <CameraView
+                  style={StyleSheet.absoluteFillObject}
+                  facing="back"
+                  onBarcodeScanned={(result) => {
+                    console.log('[QR Camera] onBarcodeScanned triggered:', result);
+                    handleBarcodeScanned(result);
+                  }}
+                  barCodeScannerSettings={{
+                    barCodeTypes: ['qr'],
+                  }}
+                />
+                <View style={styles.qrScannerOverlay}>
+                  <View style={styles.qrScanFrame}>
+                    <View style={[styles.qrCorner, styles.qrTopLeft]} />
+                    <View style={[styles.qrCorner, styles.qrTopRight]} />
+                    <View style={[styles.qrCorner, styles.qrBottomLeft]} />
+                    <View style={[styles.qrCorner, styles.qrBottomRight]} />
+                  </View>
+                  <Text style={styles.qrInstructions}>Point your camera at the QR code</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: '#ef4444', marginTop: 12 }]}
+                onPress={() => setIsScanning(false)}
+                disabled={loadingQr}
+              >
+                <Ionicons name="close" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>Cancel Scan</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: Colors.sky }]}
+                onPress={handleStartScanning}
+                disabled={loadingQr}
+              >
+                {loadingQr && <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />}
+                <Ionicons name="qr-code" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>Scan QR Code</Text>
+              </TouchableOpacity>
+              {!permission?.granted && (
+                <Text style={[styles.permissionText, { color: '#ef4444' }]}>
+                  Camera permission required to scan QR codes
+                </Text>
+              )}
+            </>
+          )}
+
+          <Text style={[styles.emptyText, { color: colors.textSec }]}>
+            Open the website login page and scan the QR code with your phone for seamless login.
+          </Text>
         </View>
 
         {/* Biometric Authentication */}
@@ -950,5 +1091,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  qrCamera: {
+    height: 300,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  qrScannerOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  qrScanFrame: {
+    width: 250,
+    height: 250,
+    borderWidth: 2,
+    borderColor: '#0ea5e9',
+    borderRadius: 12,
+    position: 'relative',
+    backgroundColor: 'rgba(14, 165, 233, 0.05)',
+  },
+  qrCorner: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderWidth: 3,
+    borderColor: '#0ea5e9',
+  },
+  qrTopLeft: {
+    top: -2,
+    left: -2,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  qrTopRight: {
+    top: -2,
+    right: -2,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+  },
+  qrBottomLeft: {
+    bottom: -2,
+    left: -2,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+  },
+  qrBottomRight: {
+    bottom: -2,
+    right: -2,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+  },
+  qrInstructions: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  permissionText: {
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
 });
