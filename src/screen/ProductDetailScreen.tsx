@@ -755,42 +755,31 @@ export default function ProductDetailScreen({
             </View>
 
             {/* Badges Section */}
-            <View style={[styles.badgesCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-              <Text style={[styles.badgesLabel, { color: colors.text }]}>Benefits & Info</Text>
-              <View style={styles.badgesRow}>
-            <LinearGradient
-              colors={[Colors.sky, Colors.skyDark]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.badge}
-            >
-              <Ionicons name="trending-up" size={10} color={Colors.white} />
-              <Text style={styles.badgeLabel}>PV {product.prodpv}</Text>
-            </LinearGradient>
-            {hasDiscount && (
-              <LinearGradient
-                colors={['#ef4444', '#dc2626']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={styles.badge}
-              >
-                <Ionicons name="pricetag" size={10} color={Colors.white} />
-                <Text style={styles.badgeLabel}>
-                  Save ₱{((product.priceSrp ?? 0) - (product.priceMember ?? 0)).toLocaleString()}
-                </Text>
-              </LinearGradient>
-            )}
-            {activeBadges.map(b => (
-              <LinearGradient
-                key={b.key}
-                colors={b.bg}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={styles.badge}
-              >
-                <Ionicons name={b.icon} size={10} color={Colors.white} />
-                <Text style={styles.badgeLabel}>{b.label}</Text>
-              </LinearGradient>
-            ))}
+            {(activeBadges.length > 0 || product.prodpv) && (
+              <View style={[styles.badgesCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                <View style={styles.badgesRow}>
+                  <LinearGradient
+                    colors={[Colors.sky, Colors.skyDark]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={styles.badge}
+                  >
+                    <Ionicons name="trending-up" size={10} color={Colors.white} />
+                    <Text style={styles.badgeLabel}>PV {product.prodpv}</Text>
+                  </LinearGradient>
+                  {activeBadges.map(b => (
+                    <LinearGradient
+                      key={b.key}
+                      colors={b.bg}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={styles.badge}
+                    >
+                      <Ionicons name={b.icon} size={10} color={Colors.white} />
+                      <Text style={styles.badgeLabel}>{b.label}</Text>
+                    </LinearGradient>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
           </View>
 
           {/* Product Name and Details */}
@@ -820,84 +809,17 @@ export default function ProductDetailScreen({
                 </View>
               </View>
 
-              {/* Divider */}
-              <View style={[styles.sectionDivider, { backgroundColor: colors.divider }]} />
 
-              {/* Details Grid */}
-              <View style={styles.detailsGrid}>
-                {/* SKU */}
-                <View style={styles.detailItem}>
-                  <Ionicons name="barcode-outline" size={15} color={Colors.sky} />
-                  <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: colors.textSec, fontWeight: '600' }]}>SKU</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{product.sku}</Text>
-                  </View>
+              {/* Trust Badge Row */}
+              <View style={[styles.trustBadgeRow, { paddingVertical: 12, paddingHorizontal: 12, backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderTopColor: colors.divider, borderTopWidth: 1 }]}>
+                <View style={styles.trustBadgeItem}>
+                  <Ionicons name="shield-checkmark" size={14} color={Colors.sky} />
+                  <Text style={[styles.trustBadgeText, { color: colors.text }]}>Authentic</Text>
                 </View>
-
-                {/* Stock Status */}
-                <View style={styles.detailItem}>
-                  <Ionicons name="cube-outline" size={15} color={product.qty > 10 ? Colors.forest : '#ef4444'} />
-                  <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: colors.textSec, fontWeight: '600' }]}>Stock</Text>
-                    <Text style={[styles.detailValue, product.qty > 10 ? { color: Colors.forest } : { color: '#ef4444' }]}>
-                      {product.qty > 10 ? `${product.qty} available` : product.qty > 0 ? `Only ${product.qty} left` : 'Out of stock'}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Delivery */}
-                <View style={styles.detailItem}>
-                  <Ionicons name="car-outline" size={15} color={Colors.sky} />
-                  <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: colors.textSec, fontWeight: '600' }]}>Delivery</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>2-3 days</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Trust & Guarantee Section */}
-              <View style={[styles.trustSection, { backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderTopColor: colors.divider, borderBottomColor: colors.divider }]}>
-                <Text style={[styles.trustSectionTitle, { color: colors.text }]}>🛡️ Buyer Protection</Text>
-                <View style={styles.trustGridRow}>
-                  <View style={[styles.trustItem, { backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderColor: colors.divider }]}>
-                    <View style={[styles.trustIconBox, { backgroundColor: isDarkMode ? '#111827' : '#eff6ff' }]}>
-                      <Ionicons name="shield-checkmark" size={16} color={Colors.sky} />
-                    </View>
-                    <Text style={[styles.trustItemLabel, { color: colors.text }]}>Authentic</Text>
-                    <Text style={[styles.trustItemSubtext, { color: colors.textSec }]}>100% Original</Text>
-                  </View>
-                  <View style={[styles.trustItem, { backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderColor: colors.divider }]}>
-                    <View style={[styles.trustIconBox, { backgroundColor: isDarkMode ? '#111827' : '#fef2f2' }]}>
-                      <Ionicons name="heart-half" size={16} color="#ef4444" />
-                    </View>
-                    <Text style={[styles.trustItemLabel, { color: colors.text }]}>Quality</Text>
-                    <Text style={[styles.trustItemSubtext, { color: colors.textSec }]}>Verified</Text>
-                  </View>
-                  <View style={[styles.trustItem, { backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderColor: colors.divider }]}>
-                    <View style={[styles.trustIconBox, { backgroundColor: isDarkMode ? '#111827' : '#f0fdf4' }]}>
-                      <Ionicons name="arrow-undo" size={16} color={Colors.forest} />
-                    </View>
-                    <Text style={[styles.trustItemLabel, { color: colors.text }]}>Easy Return</Text>
-                    <Text style={[styles.trustItemSubtext, { color: colors.textSec }]}>7 Days</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Additional Guarantees */}
-              <View style={styles.guaranteesSection}>
-                <View style={[styles.guaranteeItem, { backgroundColor: isDarkMode ? '#2d2a1a' : '#f9fafb' }]}>
-                  <Ionicons name="lock-closed" size={14} color="#f97316" />
-                  <View style={styles.guaranteeContent}>
-                    <Text style={[styles.guaranteeTitle, { color: colors.text }]}>Secure Checkout</Text>
-                    <Text style={[styles.guaranteeSubtext, { color: colors.textSec }]}>Safe payment processing</Text>
-                  </View>
-                </View>
-                <View style={[styles.guaranteeItem, { backgroundColor: isDarkMode ? '#2d2a1a' : '#f9fafb' }]}>
-                  <Ionicons name="rocket" size={14} color={Colors.sky} />
-                  <View style={styles.guaranteeContent}>
-                    <Text style={[styles.guaranteeTitle, { color: colors.text }]}>Fast Delivery</Text>
-                    <Text style={[styles.guaranteeSubtext, { color: colors.textSec }]}>Quick nationwide shipping</Text>
-                  </View>
+                <View style={[styles.trustBadgeDivider, { backgroundColor: colors.divider }]} />
+                <View style={styles.trustBadgeItem}>
+                  <Ionicons name="arrow-undo" size={14} color={Colors.forest} />
+                  <Text style={[styles.trustBadgeText, { color: colors.text }]}>7-Day Return</Text>
                 </View>
               </View>
             </View>
@@ -2235,6 +2157,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     fontWeight: '500',
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: 0,
+  },
+  trustBadgeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+  },
+  trustBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  trustBadgeDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#e5e7eb',
   },
   guaranteesSection: {
     gap: 8,
