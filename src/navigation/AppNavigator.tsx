@@ -1996,6 +1996,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           <AFWalletOverviewScreen
             isDarkMode={isDarkMode}
             onClose={() => setShowAFWalletOverview(false)}
+            token={token}
           />
         </View>
       )}
@@ -2005,6 +2006,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           <AFWalletVoucherScreen
             isDarkMode={isDarkMode}
             onClose={() => setShowAFWalletVoucher(false)}
+            token={token}
           />
         </View>
       )}
@@ -2014,6 +2016,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           <AFWalletRewardsScreen
             isDarkMode={isDarkMode}
             onClose={() => setShowAFWalletRewards(false)}
+            token={token}
           />
         </View>
       )}
@@ -2023,6 +2026,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
           <AFWalletNetworkScreen
             isDarkMode={isDarkMode}
             onClose={() => setShowAFWalletNetwork(false)}
+            token={token}
           />
         </View>
       )}
