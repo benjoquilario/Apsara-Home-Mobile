@@ -425,8 +425,8 @@ export default function LevelProgress({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderWidth: 0.5,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: '#e5e7eb',
     overflow: 'hidden',
   },
