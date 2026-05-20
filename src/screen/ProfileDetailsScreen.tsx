@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: Colors.sky,
+    borderColor: '#e5e7eb',
     overflow: 'hidden',
   },
   avatarImage: {
