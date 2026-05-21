@@ -14,6 +14,7 @@ interface AppHeaderProps {
     name: string;
     username?: string;
     avatar_url?: string;
+    avatar_original_url?: string;
     badge_name?: string;
     badge_image?: string | any;
     money_balance?: number;
@@ -169,7 +170,8 @@ export default function AppHeader({
   isDarkMode = false,
 }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
-  const photoUrl = user?.avatar_url ?? null;
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const photoUrl = !imageLoadError ? (user?.avatar_url || user?.avatar_original_url) : null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : null;
   const fullName = user?.name || 'Guest';
   const badgeName = user?.badge_name;
@@ -236,8 +238,12 @@ export default function AppHeader({
             activeOpacity={0.7}
           >
             <View style={[styles.avatar, isDarkMode && { backgroundColor: '#374151' }]}>
-              {photoUrl ? (
-                <Image source={{ uri: photoUrl }} style={styles.avatarImage} />
+              {photoUrl && !imageLoadError ? (
+                <Image
+                  source={{ uri: photoUrl }}
+                  style={styles.avatarImage}
+                  onError={() => setImageLoadError(true)}
+                />
               ) : initial ? (
                 <Text style={styles.avatarInitial}>{initial}</Text>
               ) : (
