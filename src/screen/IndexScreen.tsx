@@ -98,6 +98,15 @@ export default function IndexScreen({
   const handleBiometricLogin = async () => {
     if (biometricLoading) return;
 
+    if (!biometricAvailable) {
+      Alert.alert(
+        'Enable Biometric Login',
+        'Go to Profile > Security > Enable Biometric to use fingerprint login',
+        [{ text: 'OK', onPress: () => {} }]
+      );
+      return;
+    }
+
     setBiometricLoading(true);
     try {
       console.log('[IndexScreen] Starting biometric login');
@@ -292,25 +301,23 @@ export default function IndexScreen({
 
 
             {/* Bottom section */}
-            {biometricAvailable && (
-              <Pressable
-                style={[styles.biometricButton, biometricLoading && styles.disabledButton]}
-                onPress={handleBiometricLogin}
-                disabled={biometricLoading || googleLoading}
-              >
-                {biometricLoading ? (
-                  <>
-                    <ActivityIndicator color={Colors.white} style={styles.buttonLoader} />
-                    <Text style={styles.biometricButtonText}>Authenticating...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="finger-print" size={18} color={Colors.white} />
-                    <Text style={styles.biometricButtonText}>Login with Biometric</Text>
-                  </>
-                )}
-              </Pressable>
-            )}
+            <Pressable
+              style={[styles.biometricButton, biometricLoading && styles.disabledButton]}
+              onPress={handleBiometricLogin}
+              disabled={biometricLoading || googleLoading}
+            >
+              {biometricLoading ? (
+                <>
+                  <ActivityIndicator color={Colors.white} style={styles.buttonLoader} />
+                  <Text style={styles.biometricButtonText}>Authenticating...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="finger-print" size={18} color={Colors.white} />
+                  <Text style={styles.biometricButtonText}>Login with Biometric</Text>
+                </>
+              )}
+            </Pressable>
 
             <Pressable
               style={[styles.googleButton, googleLoading && styles.disabledButton]}
