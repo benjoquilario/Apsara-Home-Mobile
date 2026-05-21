@@ -15,6 +15,7 @@ interface ProfileDetailsScreenProps {
   onClose?: () => void;
   cartCount?: number;
   onCartPress?: () => void;
+  onEditProfile?: (profileData: any) => void;
 }
 
 export default function ProfileDetailsScreen({
@@ -22,6 +23,7 @@ export default function ProfileDetailsScreen({
   onClose,
   cartCount = 0,
   onCartPress,
+  onEditProfile,
 }: ProfileDetailsScreenProps) {
   const insets = useSafeAreaInsets();
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -198,6 +200,28 @@ export default function ProfileDetailsScreen({
                 </View>
               </View>
             </TouchableOpacity>
+
+            {/* Edit/Complete Profile Button */}
+            {(() => {
+              const isEmpty = (value: any) => !value || value === 'Not specified' || value === '0000';
+              const hasNoAddress = isEmpty(userProfile.address) || isEmpty(userProfile.city) ||
+                isEmpty(userProfile.region) || isEmpty(userProfile.province) ||
+                isEmpty(userProfile.barangay) || isEmpty(userProfile.zip_code);
+
+              const buttonText = hasNoAddress ? 'Complete Profile' : 'Edit Profile';
+              const buttonIcon = hasNoAddress ? 'checkmark-circle' : 'pencil';
+
+              return (
+                <TouchableOpacity
+                  style={[styles.editButton, hasNoAddress && styles.completeProfileButton]}
+                  onPress={() => onEditProfile?.(userProfile)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={buttonIcon as any} size={18} color={Colors.white} />
+                  <Text style={styles.editButtonText}>{buttonText}</Text>
+                </TouchableOpacity>
+              );
+            })()}
 
             {/* Personal Information */}
             {renderSection('Personal Information', (
@@ -705,5 +729,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
     fontWeight: '600',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.sky,
+    marginHorizontal: 8,
+    marginVertical: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  completeProfileButton: {
+    backgroundColor: '#10b981',
   },
 });
