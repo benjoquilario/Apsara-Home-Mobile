@@ -56,6 +56,7 @@ import OurBranchesScreen from '../screen/OurBranchesScreen';
 import FAQsScreen from '../screen/FAQsScreen';
 import ShippingInfoScreen from '../screen/ShippingInfoScreen';
 import ReturnsScreen from '../screen/ReturnsScreen';
+import ProfileEditScreen from '../screen/ProfileEditScreen';
 import { orderService } from '../services/orderService';
 import Toast from 'react-native-toast-message';
 import { useNotifications } from '../hooks/useNotifications';
@@ -233,6 +234,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [checkoutItem, setCheckoutItem] = useState<any>(null);
   const [checkoutCartItems, setCheckoutCartItems] = useState<any[]>([]);
   const [showProfileDetails, setShowProfileDetails] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [profileDetailsFromTab, setProfileDetailsFromTab] = useState(false);
   const [referralNetworkFromTab, setReferralNetworkFromTab] = useState(false);
   const [referralTree, setReferralTree] = useState<any>(null);
@@ -1789,6 +1792,73 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             onCartPress={() => {
               setShowProfileDetails(false);
               setShowCart(true);
+            }}
+            onEditProfile={(profileData) => {
+              setCurrentProfile(profileData);
+              setShowProfileDetails(false);
+              setShowProfileEdit(true);
+            }}
+          />
+        </View>
+      )}
+
+      {showProfileEdit && (
+        <View style={styles.cartScreenOverlay}>
+          <ProfileEditScreen
+            user={currentProfile || enrichedUser}
+            isDarkMode={isDarkMode}
+            onBack={() => {
+              setShowProfileEdit(false);
+              setShowProfileDetails(true);
+            }}
+            onSave={async (profileData) => {
+              try {
+                console.log('[AppNavigator] Profile save requested with data:', profileData);
+                const updatePayload = {
+                  name: profileData.firstName || '',
+                  phone: profileData.phone,
+                  middle_name: profileData.middleName,
+                  birth_date: profileData.birthDate,
+                  gender: profileData.gender?.toLowerCase() || 'male',
+                  occupation: profileData.occupation,
+                  work_location: profileData.workLocation?.toLowerCase() === 'overseas' ? 'overseas' : 'local',
+                  country: profileData.country,
+                  address: profileData.streetAddress,
+                  region: profileData.region,
+                  province: profileData.province,
+                  city: profileData.city,
+                  barangay: profileData.barangay,
+                  zip_code: profileData.zipCode,
+                };
+
+                console.log('[AppNavigator] Sending update payload:', updatePayload);
+                const response = await axios.put(
+                  `${API_CONFIG.BASE_URL}/auth/me`,
+                  updatePayload,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                    },
+                  }
+                );
+
+                console.log('[AppNavigator] Profile updated successfully, response:', response.data);
+                Toast.show({
+                  type: 'success',
+                  text1: 'Success',
+                  text2: 'Profile updated successfully',
+                });
+                setShowProfileEdit(false);
+                setShowProfileDetails(true);
+              } catch (error: any) {
+                console.log('[AppNavigator] Error updating profile:', error.response?.data || error.message);
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: error.response?.data?.message || error.message || 'Failed to update profile',
+                });
+              }
             }}
           />
         </View>
