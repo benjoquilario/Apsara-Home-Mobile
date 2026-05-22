@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
 import type { ProductCard } from '../../services/productService';
+import { userBehaviorService } from '../../services/userBehaviorService';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api';
 import Toast from 'react-native-toast-message';
@@ -116,6 +117,15 @@ function ItemCard({
     try {
       setIsTogglingWishlist(true);
 
+      // DEBUG: Log product data
+      console.log('🎯 ItemCard Wishlist Toggle:', {
+        productId: product.id,
+        productName: product.name,
+        categoryId: product.categoryId,
+        brandId: product.brandId,
+        fullProduct: product,
+      });
+
       if (wishlisted) {
         // Remove from wishlist - DELETE request using product_id
         await axios.delete(`${API_CONFIG.BASE_URL}/wishlist/${product.id}`, {
@@ -132,6 +142,18 @@ function ItemCard({
 
       setWishlisted(!wishlisted);
       onWishlistToggle?.(product.id, !wishlisted);
+
+      // Track wishlist behavior
+      const behaviorType = !wishlisted ? 'wishlist_add' : 'wishlist_remove';
+      console.log('📊 Tracking behavior:', {
+        behaviorType,
+        productId: product.id,
+        categoryId: product.categoryId,
+        brandId: product.brandId,
+      });
+      userBehaviorService.trackBehavior(token, behaviorType, product.id, product.categoryId, product.brandId).catch((err) => {
+        console.error('❌ Behavior tracking failed:', err);
+      });
 
       Toast.show({
         type: 'success',
