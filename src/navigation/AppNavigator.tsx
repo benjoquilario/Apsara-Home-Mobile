@@ -216,10 +216,6 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   // Initialize real-time notifications
   const { notifications, unreadCount } = useNotifications(user?.id || '', token || '');
 
-  // Sync unread count with state
-  useEffect(() => {
-    setNotificationUnreadCount(unreadCount);
-  }, [unreadCount]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -256,7 +252,6 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<BrandItem | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [notificationTotalCount, setNotificationTotalCount] = useState(0);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
@@ -349,7 +344,6 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     if (!token) return;
     try {
       const data = await orderService.getNotifications(token);
-      setNotificationUnreadCount(data.unread_count || 0);
       setNotificationTotalCount(data.total || data.notifications?.length || 0);
     } catch (error) {
       console.error('Error refreshing notification count:', error);
@@ -401,9 +395,15 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
     const handleDeepLink = async ({ url }: { url: string }) => {
       console.log('[AppNavigator] Deep link received:', url);
 
-      if (url.includes('payment/success')) {
-        console.log('[AppNavigator] Payment success deep link triggered');
+      if (url.includes('payment/success') || url.includes('/app/checkout/success')) {
+        console.log('[AppNavigator] Payment success deep link triggered:', url);
         setShowPaymentWebView(false);
+
+        // Extract checkout_id from URL if present
+        const checkoutIdMatch = url.match(/checkout_id=([^&]+)/);
+        const checkoutId = checkoutIdMatch?.[1];
+
+        console.log('[AppNavigator] Checkout ID from URL:', checkoutId);
 
         // Fetch latest order and user info to show in confirmation screen
         if (token) {
@@ -411,6 +411,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             console.log('[AppNavigator] Fetching latest order and user details for confirmation...');
             const headers = { Authorization: `Bearer ${token}` };
 
+            console.log('[AppNavigator] 🔄 Fetching order history from backend...');
             const [orderRes, userRes] = await Promise.all([
               axios.get(`${API_CONFIG.BASE_URL}/orders/history`, { headers }),
               axios.get(`${API_CONFIG.BASE_URL}/auth/me`, { headers }),
@@ -419,10 +420,28 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             const orders = orderRes.data?.orders || [];
             const userData = userRes.data?.data || userRes.data || {};
 
+            console.log('[AppNavigator] 📦 Orders received:', {
+              count: orders.length,
+              firstOrder: orders[0],
+            });
+
             if (orders.length > 0) {
               const latestOrder = orders[0]; // Most recent order first
-              console.log('[AppNavigator] Latest order fetched:', latestOrder);
-              console.log('[AppNavigator] User data fetched:', userData);
+              console.log('[AppNavigator] ✅ Latest order details:', {
+                orderId: latestOrder.id,
+                orderNumber: latestOrder.order_number,
+                status: latestOrder.status,
+                paymentStatus: latestOrder.payment_status,
+                fulfillmentStatus: latestOrder.fulfillment_status,
+                amount: latestOrder.total_amount,
+                paymentMethod: latestOrder.payment_method,
+                fullOrder: JSON.stringify(latestOrder, null, 2),
+              });
+              console.log('[AppNavigator] 👤 User data fetched:', {
+                name: userData.name,
+                email: userData.email,
+                phone: userData.phone,
+              });
 
               // Prepare confirmation data with user info from auth/me
               const confirmationData = {
@@ -461,8 +480,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             setShowPaymentSuccess(true);
           }
         }
-      } else if (url.includes('payment/cancel')) {
-        console.log('[AppNavigator] Payment cancel deep link triggered');
+      } else if (url.includes('payment/cancel') || url.includes('/app/checkout/cancel')) {
+        console.log('[AppNavigator] Payment cancel deep link triggered:', url);
         setShowPaymentCancel(true);
         setShowPaymentWebView(false);
       } else if (url.includes('purchases://') || url.includes('apsarahome://purchases/')) {
@@ -630,7 +649,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
       wishlistInitialFetchRef.current = true;
       fetchWishlistData();
     }
-  }, [refreshNotificationCount]);
+  }, [token, refreshNotificationCount]);
 
   const fetchHomeData = async () => {
     if (!token) return;
@@ -912,7 +931,7 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   };
 
   const badgeCount: Partial<Record<TabKey, number>> = {
-    notification: notificationUnreadCount,
+    notification: unreadCount,
     wishlist: wishlistCount,
   };
 
