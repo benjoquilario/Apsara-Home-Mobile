@@ -2034,6 +2034,25 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
               setPaymentSourceScreen('purchases');
               setShowPaymentWebView(true);
             }}
+            onBuyAgain={(items) => {
+              // Transform order items to checkout format
+              const checkoutItems = items.map(item => ({
+                product_id: item.product_id,
+                product_name: item.name,
+                product_image: item.image,
+                product_price_member: item.price,
+                quantity: item.quantity,
+                variant_color: item.selected_color,
+                variant_size: item.selected_size,
+                variant_type: item.selected_type,
+                brand_name: item.brand_name,
+                brand_id: item.brand_id,
+              }));
+              setCheckoutCartItems(checkoutItems);
+              setShowPurchases(false);
+              setCheckoutSource('cart');
+              setShowCheckout(true);
+            }}
           />
         </View>
       )}
