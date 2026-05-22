@@ -339,8 +339,10 @@ export default function PurchasesScreen({
     fetchCancellationReasons();
   }, [token]);
 
+  const hasSetInitialOrder = React.useRef(false);
+
   useEffect(() => {
-    if (initialOrderId && allOrders.length > 0) {
+    if (initialOrderId && allOrders.length > 0 && !hasSetInitialOrder.current) {
       console.log('[PurchasesScreen] Looking for order with initialOrderId:', initialOrderId);
 
       // Try to find order by any of the IDs (they should all be the same value according to user)
@@ -360,6 +362,7 @@ export default function PurchasesScreen({
         const normalizedStatus = normalizeStatusKey(order.status);
         console.log('[PurchasesScreen] Updating status to:', normalizedStatus);
         setSelectedStatus(normalizedStatus);
+        hasSetInitialOrder.current = true;
       } else {
         console.warn('[PurchasesScreen] Order not found with ID:', initialOrderId);
       }
