@@ -72,6 +72,15 @@ function ShopScreen({
   const shopScreenLoadStartRef = useRef(Date.now());
   const flatListRef = useRef<FlatList>(null);
 
+  // Refs to preserve filter state across navigation
+  const filterStateRef = useRef({
+    roomId: roomId || null,
+    categoryId: categoryId || null,
+    brandId: brandId || null,
+    sort: 'Relevant',
+    price: 'All',
+  });
+
   const colors = {
     bg: isDarkMode ? '#0f172a' : Colors.white,
     text: isDarkMode ? '#f8fafc' : Colors.text,
@@ -88,11 +97,11 @@ function ShopScreen({
     console.log('🛍️ ShopScreen MOUNTED');
   }, []);
 
-  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(roomId);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(categoryId);
-  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(brandId);
-  const [selectedSort, setSelectedSort] = useState('Relevant');
-  const [selectedPrice, setSelectedPrice] = useState<any>('All');
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(() => filterStateRef.current.roomId);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(() => filterStateRef.current.categoryId);
+  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(() => filterStateRef.current.brandId);
+  const [selectedSort, setSelectedSort] = useState(() => filterStateRef.current.sort);
+  const [selectedPrice, setSelectedPrice] = useState<any>(() => filterStateRef.current.price);
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const prefetchedPageRef = useRef(2);
@@ -144,6 +153,7 @@ function ShopScreen({
   }, [currentPage, data, fetchNextPage]);
 
   const handleRoomSelect = useCallback((roomId: number | null) => {
+    filterStateRef.current.roomId = roomId;
     setSelectedRoomId(roomId);
     setCurrentPage(1);
     prefetchedPageRef.current = 2;
@@ -151,6 +161,7 @@ function ShopScreen({
   }, []);
 
   const handleCategorySelect = useCallback((categoryId: number | null) => {
+    filterStateRef.current.categoryId = categoryId;
     setSelectedCategoryId(categoryId);
     setCurrentPage(1);
     prefetchedPageRef.current = 2;
@@ -158,6 +169,7 @@ function ShopScreen({
   }, []);
 
   const handleBrandSelect = useCallback((brandId: number | null) => {
+    filterStateRef.current.brandId = brandId;
     setSelectedBrandId(brandId);
     setCurrentPage(1);
     prefetchedPageRef.current = 2;
@@ -165,6 +177,7 @@ function ShopScreen({
   }, []);
 
   const handleSortSelect = useCallback((sort: string) => {
+    filterStateRef.current.sort = sort;
     setSelectedSort(sort);
     setCurrentPage(1);
     prefetchedPageRef.current = 2;
@@ -172,6 +185,7 @@ function ShopScreen({
   }, []);
 
   const handlePriceSelect = useCallback((price: any) => {
+    filterStateRef.current.price = price;
     setSelectedPrice(price);
     setCurrentPage(1);
     prefetchedPageRef.current = 2;
@@ -303,12 +317,24 @@ function ShopScreen({
       pv: item.prodpv,
       brandName: item.brand,
       variantCount: item.variants?.length ?? 0,
+      categoryId: item.catid,
+      brandId: item.brandType,
       badges: {
         musthave: item.musthave,
         bestseller: item.bestseller,
         salespromo: item.salespromo,
       },
     };
+
+    // DEBUG: Log product card
+    console.log('📦 ShopScreen renderItem:', {
+      id: item.id,
+      name: item.name,
+      catid: item.catid,
+      brandType: item.brandType,
+      categoryId: productCard.categoryId,
+      brandId: productCard.brandId,
+    });
 
     return (
       <View style={styles.masonryItem}>
