@@ -25,6 +25,7 @@ import {
   BrandCardSkeleton
 } from '../components/SkeletonLoader/SkeletonLoader';
 import { usePrefetchProducts } from '../hooks/usePrefetchProducts';
+import { useRecommendations } from '../hooks/useRecommendations';
 import { ChatBotIcon } from '../components/ChatBot';
 
 interface HomeScreenProps {
@@ -323,6 +324,12 @@ function HomeScreen({
   // Prefetch products in background for instant Shop screen load
   usePrefetchProducts(token);
 
+  // Fetch personalized recommendations
+  const { recommendations, loading: recommendationsLoading } = useRecommendations({
+    token,
+    limit: 20,
+    enabled: !!token,
+  });
 
   const fetchHomeData = async (isRefreshing = false) => {
     if (!token) return;
@@ -738,6 +745,66 @@ function HomeScreen({
           </ScrollView>
         )}
       </View>
+
+      {/* For You - Personalized Recommendations */}
+      {token && (
+        <View style={[styles.section, { backgroundColor: colors.bg }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>For You</Text>
+            <View style={styles.sectionAction}>
+              <Text style={[styles.sectionMeta, { color: colors.textSec }]}>Personalized</Text>
+              <Ionicons name="sparkles" size={16} color={colors.textSec} />
+            </View>
+          </View>
+          {recommendationsLoading ? (
+            <View style={styles.recommendationsLoading}>
+              <ActivityIndicator size="small" color={Colors.sky} />
+              <Text style={[styles.loadingText, { color: colors.textSec }]}>Loading personalized items...</Text>
+            </View>
+          ) : recommendations.length > 0 ? (
+            <FlatList
+              data={recommendations}
+              renderItem={({ item }) => (
+                <ItemCard
+                  product={{
+                    id: item.id,
+                    name: item.name,
+                    image: item.image,
+                    soldCount: 0,
+                    originalPrice: item.priceSrp,
+                    memberPrice: item.priceMember,
+                    pv: 0,
+                    brandName: '',
+                    variantCount: 0,
+                    badges: {
+                      musthave: false,
+                      bestseller: false,
+                      salespromo: false,
+                    },
+                  }}
+                  isDarkMode={isDarkMode}
+                  onPress={() => onProductPress?.(item.id)}
+                  onWishlistChange={onWishlistChange}
+                  isWishlisted={wishlistItems?.some(w => w.product_id === item.id) || false}
+                  colors={colors}
+                />
+              )}
+              keyExtractor={item => `rec-${item.id}`}
+              numColumns={2}
+              contentContainerStyle={styles.productGrid}
+              scrollEnabled={false}
+            />
+          ) : (
+            <View style={[styles.emptyState, { backgroundColor: colors.card }]}>
+              <Ionicons name="bag-outline" size={32} color={colors.textSec} />
+              <Text style={[styles.emptyStateText, { color: colors.text }]}>No personalized items yet</Text>
+              <Text style={[styles.emptyStateSubtext, { color: colors.textSec }]}>
+                Browse products to get personalized recommendations
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       </ScrollView>
 
@@ -1333,6 +1400,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  recommendationsLoading: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 8,
+  },
+  productGrid: {
+    gap: 8,
+  },
+  emptyState: {
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyStateSubtext: {
+    fontSize: 12,
+    textAlign: 'center',
   },
 
 });
