@@ -17,7 +17,7 @@ class PusherService {
     });
 
     this.pusher = new Pusher(process.env.EXPO_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.PUSHER_APP_CLUSTER || 'ap3',
+      cluster: process.env.EXPO_PUBLIC_PUSHER_APP_CLUSTER || 'ap3',
       authorizer: (channel: any) => ({
         authorize: (socketId: string, callback: (error: any, authData: any) => void) => {
           fetch('https://backend.afhome.ph/api/realtime/pusher/auth', {
