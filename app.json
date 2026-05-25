@@ -52,12 +52,18 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_APP_RESUME",
+      "channel": "production"
+    },
     "plugins": [
       "expo-video",
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-updates"
     ],
     "extra": {
       "eas": {
