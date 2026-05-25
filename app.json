@@ -47,15 +47,19 @@
         "icon": "./assets/af_home_logo.png",
         "color": "#13a1d4"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "updates": {
       "enabled": true,
-      "checkAutomatically": "ON_APP_RESUME",
-      "channel": "production"
+      "checkAutomatically": "on-load",
+      "channel": "production",
+      "url": "https://u.expo.dev/778fba47-8b53-41eb-a97f-4a5ed0b3b366"
     },
     "plugins": [
       "expo-video",
