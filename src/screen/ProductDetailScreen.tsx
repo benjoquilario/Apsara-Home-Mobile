@@ -790,7 +790,7 @@ export default function ProductDetailScreen({
           </View>
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* Product Name and Brand Section */}
           <View style={[styles.newNameSection, { backgroundColor: colors.card }]}>
@@ -804,7 +804,7 @@ export default function ProductDetailScreen({
           </View>
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* Delivery Information */}
           <View style={[styles.deliverySection, { backgroundColor: colors.card }]}>
@@ -818,7 +818,7 @@ export default function ProductDetailScreen({
           </View>
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* Variants */}
           {(() => {
@@ -936,7 +936,7 @@ export default function ProductDetailScreen({
           })()}
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* Description & Specifications Wrapper */}
           {(!!product.description || !!product.specifications || !!product.material || !!product.warranty || product.pswidth || product.pslenght || product.psheight) && (
@@ -1195,7 +1195,7 @@ export default function ProductDetailScreen({
           </View>
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* Brand Information */}
           {brandProfile && (
@@ -1246,7 +1246,7 @@ export default function ProductDetailScreen({
           )}
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* Related Products */}
           {relatedProducts.length > 0 && (
@@ -1268,11 +1268,11 @@ export default function ProductDetailScreen({
           )}
 
           {/* Gray Gap Separator */}
-          <View style={{ height: 8, backgroundColor: '#ffffff' }} />
+          <View style={{ height: 12, backgroundColor: '#ffffff' }} />
 
           {/* You May Also Like Section - With Lazy Loading */}
           {youMayAlsoLike.length > 0 && (
-            <View style={[styles.youMayAlsoLikeSection, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f5f5' }]}>
+            <View style={[styles.youMayAlsoLikeSection, { backgroundColor: colors.card }]}>
               <View style={[styles.youMayAlsoLikeHeader, { borderTopColor: colors.divider, borderBottomColor: colors.divider }]}>
                 <View style={[styles.youMayAlsoLikeBorder, { backgroundColor: colors.divider }]} />
                 <Text style={[styles.youMayAlsoLikeTitle, { color: colors.text }]}>You May Also Like</Text>
@@ -2413,7 +2413,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   variantsSection: {
-    paddingVertical: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 0,
   },
   variantsScrollView: {
     paddingHorizontal: 8,
@@ -3249,8 +3250,8 @@ const styles = StyleSheet.create({
   // New Shopee-style price section
   newPriceSection: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
+    paddingVertical: 16,
+    gap: 12,
   },
   bigPriceRow: {
     flexDirection: 'row',
@@ -3318,7 +3319,7 @@ const styles = StyleSheet.create({
   // Product name and brand section
   newNameSection: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 14,
   },
   productNameNew: {
     fontSize: 16,
@@ -3339,7 +3340,7 @@ const styles = StyleSheet.create({
   // Delivery section
   deliverySection: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 14,
   },
   deliveryRow: {
     flexDirection: 'row',
