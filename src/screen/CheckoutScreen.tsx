@@ -668,7 +668,7 @@ export default function CheckoutScreen({
               <Text style={[styles.shippingTitle, { color: colors.text }]}>Shipping To</Text>
             </View>
             <View style={styles.viewShippingContainer}>
-              {addresses.length > 1 && !isAddressExpanded && (
+              {!isAddressExpanded && (
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation();
@@ -676,7 +676,9 @@ export default function CheckoutScreen({
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.viewShippingText, { color: colors.textSec }]}>Change</Text>
+                  <Text style={[styles.viewShippingText, { color: colors.textSec }]}>
+                    {selectedAddress ? 'Change Address' : 'Add Address'}
+                  </Text>
                 </TouchableOpacity>
               )}
               <Ionicons
@@ -1090,7 +1092,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   section: {
-    borderRadius: 8,
     padding: 14,
     marginHorizontal: 0,
     width: '100%',
@@ -1104,7 +1105,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 14,
-    borderRadius: 8,
     borderWidth: 1,
   },
   shopHeader: {
@@ -1461,13 +1461,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addressCard: {
-    borderRadius: 8,
     padding: 12,
     borderWidth: 1,
     marginBottom: 10,
   },
   addressCardCompact: {
-    borderRadius: 8,
     padding: 10,
     borderWidth: 1,
   },
@@ -1577,7 +1575,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 8,
     padding: 12,
     marginTop: 10,
     marginBottom: 10,
@@ -1654,7 +1651,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   referrerCard: {
-    borderRadius: 8,
     padding: 12,
     borderWidth: 1,
     flexDirection: 'row',
