@@ -978,17 +978,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
                 }
               }}
               onWishlistToggle={(productId, isWishlisted) => {
-                if (isWishlisted) {
-                  // Product added to wishlist - add it to the list
-                  setWishlistItems(prev => {
-                    const exists = prev.some(item => item.product_id === productId);
-                    if (exists) return prev;
-                    return [...prev, { wishlist_id: Date.now(), product_id: productId, date_added: new Date().toISOString() }];
-                  });
-                } else {
-                  // Product removed from wishlist - remove it from the list
-                  setWishlistItems(prev => prev.filter(item => item.product_id !== productId));
-                }
+                // Refresh wishlist data to get complete product details
+                fetchWishlistData();
               }}
               onShopNavigate={(brandType, shopName) => {
                 // Store the current product ID so we can return to it
