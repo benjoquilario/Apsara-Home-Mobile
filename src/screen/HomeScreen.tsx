@@ -918,7 +918,8 @@ const styles = StyleSheet.create({
   rankingBadgeSection: {
     flexDirection: 'column',
     paddingHorizontal: 8,
-    paddingVertical: 10,
+    paddingTop: 0,
+    paddingBottom: 10,
     marginBottom: 0,
     borderBottomWidth: 0.5,
     gap: 12,
