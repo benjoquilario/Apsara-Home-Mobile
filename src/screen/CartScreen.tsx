@@ -10,6 +10,11 @@ import {
   RefreshControl,
   Animated,
   BackHandler,
+  Modal,
+  Pressable,
+  PanResponder,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +27,7 @@ import ConfirmationModal from '../components/ConfirmationModal/ConfirmationModal
 import { Colors } from '../constants/colors';
 import Toast from 'react-native-toast-message';
 import { userBehaviorService } from '../services/userBehaviorService';
+import { productService } from '../services/productService';
 
 interface CartItem {
   crt_id: number;
@@ -53,6 +59,7 @@ interface CartItem {
   variant_prodpv: string | null;
   variant_color: string | null;
   variant_size: string | null;
+  variant_image: string | null;
   variant_status: number | null;
 }
 
@@ -77,6 +84,19 @@ interface BrandItem {
   name: string;
 }
 
+interface CartVariant {
+  id: number;
+  name: string;
+  color?: string;
+  size?: string;
+  price: string;
+  price_dp?: string;
+  price_member?: string;
+  prodpv?: string;
+  image?: string;
+  colorHex?: string;
+}
+
 interface CartScreenProps {
   token?: string | null;
   user?: {
@@ -96,6 +116,9 @@ interface CartScreenProps {
   isDarkMode?: boolean;
 }
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const VARIANT_MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
+
 export default function CartScreen({ token, user, onCheckout, onBack, onProductPress, onProfilePress, onWishlistPress, onShopNavigate, brands = [], wishlistCount = 0, isDarkMode = false }: CartScreenProps) {
   const insets = useSafeAreaInsets();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -104,16 +127,52 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [updatingQuantity, setUpdatingQuantity] = useState<number | null>(null);
   const [removingItem, setRemovingItem] = useState<number | null>(null);
-  const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number; name: string; productId: number } | null>(null);
+
+  // Variant modal state
+  const [variantModalOpen, setVariantModalOpen] = useState<number | null>(null);
+  const [variantsList, setVariantsList] = useState<CartVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+  const [updatingVariant, setUpdatingVariant] = useState<number | null>(null);
+  const [variantImageCache, setVariantImageCache] = useState<{ [key: number]: { [key: number]: string } }>({});
+  const variantModalTranslateY = useRef(new Animated.Value(VARIANT_MODAL_HEIGHT)).current;
+  const variantPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (gestureState.dy > 0) {
+          variantModalTranslateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy > 100) {
+          Animated.timing(variantModalTranslateY, {
+            toValue: VARIANT_MODAL_HEIGHT,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => setVariantModalOpen(null));
+        } else {
+          Animated.spring(variantModalTranslateY, {
+            toValue: 0,
+            friction: 8,
+            tension: 60,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f5f5f5',
     containerBg: isDarkMode ? '#111827' : Colors.white,
     text: isDarkMode ? '#f8fafc' : Colors.text,
     textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
-    border: isDarkMode ? '#1f2937' : '#e5e7eb',
+    border: isDarkMode ? '#374151' : '#e5e7eb',
     borderLight: isDarkMode ? '#374151' : '#f1f5f9',
     cardBg: isDarkMode ? '#1f2937' : '#f8fafc',
     hint: isDarkMode ? '#1e293b' : '#f9fafb',
@@ -131,6 +190,21 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
 
     return () => sub.remove();
   }, [onBack]);
+
+  useEffect(() => {
+    if (variantModalOpen !== null) {
+      // Animate modal into view
+      Animated.spring(variantModalTranslateY, {
+        toValue: 0,
+        friction: 8,
+        tension: 60,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Reset modal position when closing
+      variantModalTranslateY.setValue(VARIANT_MODAL_HEIGHT);
+    }
+  }, [variantModalOpen, variantModalTranslateY]);
 
   const fetchCart = async () => {
     if (!token) return;
@@ -194,7 +268,6 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
           ? {
               ...item,
               crt_quantity: newQuantity,
-              crt_total_price: (parseFloat(item.crt_unit_price) * newQuantity).toString(),
             }
           : item
       ));
@@ -216,6 +289,89 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
 
     setItemToDelete({ id: crtId, name: productName, productId: item?.crt_product_id || 0 });
     setConfirmDeleteModal(true);
+  };
+
+  const fetchProductVariants = async (productId: number) => {
+    try {
+      setLoadingVariants(true);
+      const product = await productService.getProductById(productId, token ?? undefined);
+      const variants = product.variants || [];
+
+      // Transform product variants to CartVariant format and cache images
+      const formattedVariants: CartVariant[] = variants.map((v: any) => ({
+        id: v.id,
+        name: v.name || v.variant_name || '',
+        color: v.color || v.variant_color,
+        size: v.size || v.variant_size,
+        price: v.priceMember || v.price || '0',
+        price_dp: v.priceDp || v.price_dp,
+        price_member: v.priceMember || v.price_member,
+        prodpv: v.prodpv,
+        image: v.images?.[0] || v.image,
+        colorHex: v.colorHex || v.color_hex,
+      }));
+
+      // Cache variant images
+      const imageCache: { [key: number]: string } = {};
+      variants.forEach((v: any) => {
+        if (v.id && (v.images?.[0] || v.image)) {
+          imageCache[v.id] = v.images?.[0] || v.image;
+        }
+      });
+
+      setVariantImageCache(prev => ({
+        ...prev,
+        [productId]: imageCache,
+      }));
+
+      setVariantsList(formattedVariants);
+    } catch (error: any) {
+      console.error('Error fetching variants:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load variants',
+      });
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
+  const handleVariantPress = (crtId: number, productId: number) => {
+    setVariantModalOpen(crtId);
+    fetchProductVariants(productId);
+  };
+
+  const handleVariantSelect = async (crtId: number, variantId: number) => {
+    if (!token) return;
+
+    try {
+      setUpdatingVariant(crtId);
+      await axios.patch(
+        `${API_CONFIG.BASE_URL}/cart/${crtId}`,
+        { variant_id: variantId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Refresh cart to get updated variant info
+      await fetchCart();
+      setVariantModalOpen(null);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Variant updated',
+      });
+    } catch (error: any) {
+      console.error('Error updating variant:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update variant',
+      });
+    } finally {
+      setUpdatingVariant(null);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -272,17 +428,30 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
       grouped[brand].push(item);
     });
 
-    // Sort items within each group by creation date
+    // Sort items within each group by creation date (newest first)
     Object.keys(grouped).forEach(brand => {
       grouped[brand].sort((a, b) => {
         const dateA = new Date(a.crt_created_at).getTime();
         const dateB = new Date(b.crt_created_at).getTime();
-        return sortOrder === 'new' ? dateB - dateA : dateA - dateB;
+        return dateB - dateA;
       });
     });
 
-    return grouped;
-  }, [cartItems, sortOrder]);
+    // Sort brands by their newest item's creation date
+    const sortedBrands = Object.keys(grouped).sort((brandA, brandB) => {
+      const brandANewest = new Date(grouped[brandA][0].crt_created_at).getTime();
+      const brandBNewest = new Date(grouped[brandB][0].crt_created_at).getTime();
+      return brandBNewest - brandANewest;
+    });
+
+    // Rebuild grouped object with sorted brands
+    const sortedGrouped: { [key: string]: CartItem[] } = {};
+    sortedBrands.forEach(brand => {
+      sortedGrouped[brand] = grouped[brand];
+    });
+
+    return sortedGrouped;
+  }, [cartItems]);
 
   const getSortedCartItems = useMemo(() => {
     const flattened: CartItem[] = [];
@@ -351,11 +520,12 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
     return brandItemIds ? brandItemIds.length > 0 && brandItemIds.every(id => selectedItems.has(id)) : false;
   };
 
-  const renderCartItem = ({ item }: { item: CartItem & { isBrandHeader?: boolean } }) => {
+  const renderCartItem = ({ item, index }: { item: CartItem & { isBrandHeader?: boolean }, index?: number }) => {
     if (item.isBrandHeader) {
       const isSelected = isBrandFullySelected(item.brand_name || '');
+      const isFirstBrand = index === 0;
       return (
-        <View style={[styles.brandHeader, { backgroundColor: colors.containerBg, borderBottomColor: colors.border }]}>
+        <View style={[styles.brandHeader, { backgroundColor: colors.containerBg, borderBottomColor: colors.border, marginTop: isFirstBrand ? 0 : 12 }]}>
           <TouchableOpacity
             style={styles.brandCheckbox}
             onPress={() => handleBrandSelectAll(item.brand_name || '')}
@@ -443,15 +613,26 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
           </Animated.View>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <View
           style={styles.contentWrapper}
-          onPress={() => onProductPress?.(item.crt_product_id)}
-          activeOpacity={0.7}
         >
           {/* Image Container */}
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: item.product_image }}
+              source={{
+                uri: (() => {
+                  // If variant_image is available and not empty, use it
+                  if (item.variant_image && item.variant_image.trim()) {
+                    return item.variant_image;
+                  }
+                  // Check variant image cache
+                  if (item.variant_id && variantImageCache[item.crt_product_id]?.[item.variant_id]) {
+                    return variantImageCache[item.crt_product_id][item.variant_id];
+                  }
+                  // Fallback to product image
+                  return item.product_image;
+                })()
+              }}
               style={styles.productImage}
               resizeMode="cover"
             />
@@ -470,57 +651,89 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
               <Text style={[styles.productName, { color: colors.text }]} numberOfLines={2}>{item.product_name}</Text>
             </View>
 
-            {/* Variants Display */}
+            {/* Variants Display with Quantity */}
             {hasVariants && (
-              <View style={styles.variantContainer}>
-                {/* Display variant color from new API fields */}
-                {item.variant_color && (
-                  <Text style={styles.variantText}>
-                    <Ionicons name="color-palette" size={10} color={Colors.sky} /> {item.variant_color}
-                  </Text>
-                )}
-                {/* Fallback to old fields for compatibility */}
-                {!item.variant_color && item.crt_selected_color && (
-                  <Text style={styles.variantText}>
-                    <Ionicons name="color-palette" size={10} color={Colors.sky} /> {item.crt_selected_color}
-                  </Text>
-                )}
-                
-                {/* Display variant size from new API fields */}
-                {item.variant_size && (
-                  <Text style={styles.variantText}>
-                    <Ionicons name="resize" size={10} color={Colors.sky} /> {item.variant_size}
-                  </Text>
-                )}
-                {/* Fallback to old fields for compatibility */}
-                {!item.variant_size && item.crt_selected_size && (
-                  <Text style={styles.variantText}>
-                    <Ionicons name="resize" size={10} color={Colors.sky} /> {item.crt_selected_size}
-                  </Text>
-                )}
-                
-                {/* Display variant name from new API fields */}
-                {item.variant_name && (
-                  <Text style={styles.variantText}>
-                    <Ionicons name="cube" size={10} color={Colors.sky} /> {item.variant_name}
-                  </Text>
-                )}
-                {/* Fallback to old fields for compatibility */}
-                {!item.variant_name && item.crt_selected_type && (
-                  <Text style={styles.variantText}>
-                    <Ionicons name="cube" size={10} color={Colors.sky} /> {item.crt_selected_type}
-                  </Text>
-                )}
+              <View style={styles.variantQuantityRow}>
+                <TouchableOpacity
+                  style={[styles.variantDropdown, { backgroundColor: colors.cardBg, borderColor: colors.border, flex: 1 }]}
+                  onPress={() => handleVariantPress(item.crt_id, item.crt_product_id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.variantDropdownContent}>
+                    {/* Display variant color from new API fields */}
+                    {item.variant_color && (
+                      <Text style={styles.variantDropdownText}>
+                        <Ionicons name="color-palette" size={11} color={Colors.sky} /> {item.variant_color}
+                      </Text>
+                    )}
+                    {/* Fallback to old fields for compatibility */}
+                    {!item.variant_color && item.crt_selected_color && (
+                      <Text style={styles.variantDropdownText}>
+                        <Ionicons name="color-palette" size={11} color={Colors.sky} /> {item.crt_selected_color}
+                      </Text>
+                    )}
+
+                    {/* Display variant size from new API fields */}
+                    {item.variant_size && (
+                      <Text style={styles.variantDropdownText}>
+                        <Ionicons name="resize" size={11} color={Colors.sky} /> {item.variant_size}
+                      </Text>
+                    )}
+                    {/* Fallback to old fields for compatibility */}
+                    {!item.variant_size && item.crt_selected_size && (
+                      <Text style={styles.variantDropdownText}>
+                        <Ionicons name="resize" size={11} color={Colors.sky} /> {item.crt_selected_size}
+                      </Text>
+                    )}
+
+                    {/* Display variant name from new API fields */}
+                    {item.variant_name && (
+                      <Text style={styles.variantDropdownText}>
+                        <Ionicons name="cube" size={11} color={Colors.sky} /> {item.variant_name}
+                      </Text>
+                    )}
+                    {/* Fallback to old fields for compatibility */}
+                    {!item.variant_name && item.crt_selected_type && (
+                      <Text style={styles.variantDropdownText}>
+                        <Ionicons name="cube" size={11} color={Colors.sky} /> {item.crt_selected_type}
+                      </Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-down" size={14} color={Colors.sky} />
+                </TouchableOpacity>
+
+                {/* Quantity Control */}
+                <View style={styles.quantityControlCompact}>
+                  <TouchableOpacity
+                    style={[styles.quantityBtnSmall, { borderColor: colors.border, backgroundColor: colors.bg }]}
+                    onPress={() => handleUpdateQuantity(item.crt_id, item.crt_quantity - 1)}
+                    disabled={updatingQuantity === item.crt_id}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="remove" size={10} color={colors.text} />
+                  </TouchableOpacity>
+                  <Text style={[styles.quantityTextCompact, { color: colors.text }]}>{item.crt_quantity}</Text>
+                  <TouchableOpacity
+                    style={[styles.quantityBtnSmall, { borderColor: colors.border, backgroundColor: colors.bg }]}
+                    onPress={() => handleUpdateQuantity(item.crt_id, item.crt_quantity + 1)}
+                    disabled={updatingQuantity === item.crt_id}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="add" size={10} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
-            {/* Price Row */}
-            <View style={styles.priceRow}>
-              <Text style={[styles.memberPrice, { color: colors.text }]}>₱{parseFloat(item.crt_unit_price).toLocaleString()}</Text>
-              {parseFloat(item.product_price_srp) > parseFloat(item.crt_unit_price) && (
-                <Text style={[styles.srpPrice, { color: colors.textSec }]}>₱{parseFloat(item.product_price_srp).toLocaleString()}</Text>
-              )}
-            </View>
+            {/* Price Row - Only show if no variants */}
+            {!hasVariants && (
+              <View style={styles.priceRow}>
+                <Text style={[styles.memberPrice, { color: colors.text }]}>₱{parseFloat(item.crt_unit_price).toLocaleString()}</Text>
+                {parseFloat(item.product_price_srp) > parseFloat(item.crt_unit_price) && (
+                  <Text style={[styles.srpPrice, { color: colors.textSec }]}>₱{parseFloat(item.product_price_srp).toLocaleString()}</Text>
+                )}
+              </View>
+            )}
 
             {/* Badge Row */}
             <View style={styles.badgeRow}>
@@ -535,28 +748,8 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
               </LinearGradient>
             </View>
 
-            {/* Quantity & Total */}
-            <View style={styles.quantityTotalRow}>
-              <View style={styles.quantityControl}>
-                <TouchableOpacity
-                  style={[styles.quantityBtn, { borderColor: colors.border, backgroundColor: colors.bg }, updatingQuantity === item.crt_id && { opacity: 0.6 }]}
-                  onPress={() => handleUpdateQuantity(item.crt_id, item.crt_quantity - 1)}
-                  disabled={updatingQuantity === item.crt_id}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="remove" size={12} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={[styles.quantityText, { color: colors.text }]}>{item.crt_quantity}</Text>
-                <TouchableOpacity
-                  style={[styles.quantityBtn, { borderColor: colors.border, backgroundColor: colors.bg }, updatingQuantity === item.crt_id && { opacity: 0.6 }]}
-                  onPress={() => handleUpdateQuantity(item.crt_id, item.crt_quantity + 1)}
-                  disabled={updatingQuantity === item.crt_id}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="add" size={12} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
+            {/* Price & Remove */}
+            <View style={styles.priceRemoveRow}>
               <Text style={[styles.itemPrice, { color: Colors.sky }]}>₱{parseFloat(item.crt_total_price).toLocaleString()}</Text>
 
               <TouchableOpacity
@@ -569,7 +762,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
         </View>
     );
   };
@@ -730,38 +923,6 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
         </View>
       </LinearGradient>
 
-      {/* Select All */}
-      <View style={[styles.selectAllContainer, { backgroundColor: colors.containerBg, borderBottomColor: colors.borderLight }]}>
-        <TouchableOpacity
-          style={styles.selectAllBtn}
-          onPress={handleSelectAll}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.selectAllCheckbox, { borderColor: colors.border }, selectedItems.size > 0 && styles.selectAllCheckboxChecked]}>
-            {selectedItems.size > 0 && (
-              <Ionicons name="checkmark" size={14} color={Colors.white} />
-            )}
-          </View>
-          <Text style={[styles.selectAllText, selectedItems.size > 0 && styles.selectAllTextActive, { color: colors.text }]}>
-            {selectedItems.size > 0 ? `${selectedItems.size} selected` : 'Select All'}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.filterSection}>
-          <TouchableOpacity
-            style={[styles.filterBtn, { backgroundColor: sortOrder === 'new' ? Colors.sky : (isDarkMode ? '#374151' : '#f3f4f6') }]}
-            onPress={() => setSortOrder('new')}
-          >
-            <Text style={[styles.filterText, sortOrder === 'new' && styles.filterTextActive, sortOrder !== 'new' && { color: colors.text }]}>New</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterBtn, { backgroundColor: sortOrder === 'old' ? Colors.sky : (isDarkMode ? '#374151' : '#f3f4f6') }]}
-            onPress={() => setSortOrder('old')}
-          >
-            <Text style={[styles.filterText, sortOrder === 'old' && styles.filterTextActive, sortOrder !== 'old' && { color: colors.text }]}>Old</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
       {/* Swipe Hint */}
       <View style={[styles.swipeHint, { backgroundColor: colors.hint, borderBottomColor: colors.border }]}>
@@ -798,29 +959,149 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
       />
 
       {/* Footer */}
-      {selectedItems.size > 0 && (
-        <View style={[styles.footer, { backgroundColor: colors.containerBg, borderTopColor: colors.border, paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.totalSection}>
-            <View>
-              <Text style={[styles.totalLabel, { color: colors.textSec }]}>Total ({selectedItems.size}):</Text>
-              <Text style={[styles.totalPrice, { color: colors.text }]}>₱{getSelectedTotal.toLocaleString()}</Text>
-            </View>
-          </View>
+      <View style={[styles.footer, { backgroundColor: colors.containerBg, borderTopColor: colors.border, paddingBottom: insets.bottom + 12 }]}>
+        <View style={styles.footerLeft}>
           <TouchableOpacity
-            style={styles.checkoutBtn}
+            style={styles.selectAllBtn}
+            onPress={handleSelectAll}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.selectAllCheckbox, { borderColor: colors.border }, selectedItems.size > 0 && styles.selectAllCheckboxChecked]}>
+              {selectedItems.size > 0 && (
+                <Ionicons name="checkmark" size={14} color={Colors.white} />
+              )}
+            </View>
+            <Text style={[styles.selectAllText, selectedItems.size > 0 && styles.selectAllTextActive, { color: colors.text }]}>
+              {selectedItems.size > 0 ? `${selectedItems.size} selected` : 'Select All'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.footerRight}>
+          <Text style={[styles.totalPrice, selectedItems.size > 0 ? { color: colors.text } : { color: colors.textSec }]}>
+            ₱{selectedItems.size > 0 ? getSelectedTotal.toLocaleString() : '0'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.checkoutBtn, selectedItems.size === 0 && { opacity: 0.5 }]}
             onPress={() => {
+              if (selectedItems.size === 0) return;
               const selectedItemsList = Array.from(selectedItems).map(crtId =>
                 cartItems.find(item => item.crt_id === crtId)
               ).filter(Boolean) as CartItem[];
               onCheckout?.(selectedItemsList);
             }}
+            disabled={selectedItems.size === 0}
             activeOpacity={0.7}
           >
-            <Ionicons name="bag-check" size={18} color={Colors.white} />
-            <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
+            <Text style={styles.checkoutBtnText}>Checkout</Text>
           </TouchableOpacity>
         </View>
-      )}
+      </View>
+      {/* Variant Selection Modal */}
+      <Modal
+        visible={variantModalOpen !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setVariantModalOpen(null)}
+      >
+        <View style={styles.modalContainer}>
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setVariantModalOpen(null)}
+          />
+          <Animated.View
+            style={[
+              styles.variantModal,
+              { backgroundColor: colors.containerBg },
+              {
+                transform: [{ translateY: variantModalTranslateY }],
+              },
+            ]}
+            {...variantPanResponder.panHandlers}
+          >
+            <View style={styles.variantModalHandleContainer}>
+              <View style={[styles.variantModalHandle, { backgroundColor: isDarkMode ? '#475569' : '#cbd5e1' }]} />
+            </View>
+            <View style={[styles.variantModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.variantModalTitle, { color: colors.text }]}>Choose Variant</Text>
+            </View>
+
+            {loadingVariants ? (
+              <View style={styles.variantLoadingContainer}>
+                <ActivityIndicator size="large" color={Colors.sky} />
+              </View>
+            ) : (
+              <ScrollView style={styles.variantList} showsVerticalScrollIndicator={false}>
+                {variantsList.map((variant, index) => {
+                  const currentItem = cartItems.find(c => c.crt_id === variantModalOpen);
+                  const isCurrentVariant =
+                    (currentItem?.variant_id === variant.id) ||
+                    (currentItem?.crt_variant_id === variant.id);
+
+                  return (
+                    <TouchableOpacity
+                      key={variant.id}
+                      style={[
+                        styles.variantItem,
+                        { borderBottomColor: colors.border },
+                        index === variantsList.length - 1 && styles.variantItemLast,
+                        isCurrentVariant && {
+                          backgroundColor: isDarkMode ? 'rgba(14, 165, 233, 0.1)' : 'rgba(14, 165, 233, 0.08)',
+                        },
+                      ]}
+                      onPress={() => {
+                        if (variantModalOpen !== null && !isCurrentVariant) {
+                          handleVariantSelect(variantModalOpen, variant.id);
+                        }
+                      }}
+                      activeOpacity={0.6}
+                      disabled={updatingVariant === variantModalOpen}
+                    >
+                      {/* Variant Image or Color */}
+                      <View style={[styles.variantThumbnail, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                        {variant.image ? (
+                          <Image
+                            source={{ uri: variant.image }}
+                            style={styles.variantThumbnailImage}
+                            resizeMode="cover"
+                          />
+                        ) : variant.colorHex ? (
+                          <View style={[styles.variantColorBox, { backgroundColor: variant.colorHex }]} />
+                        ) : (
+                          <Ionicons name="image-outline" size={20} color={colors.textSec} />
+                        )}
+                      </View>
+
+                      <View style={styles.variantItemContent}>
+                        <Text style={[styles.variantItemName, isCurrentVariant && { color: Colors.sky, fontWeight: '700' }, { color: colors.text }]}>
+                          {variant.name}
+                        </Text>
+                        {(variant.color || variant.size) && (
+                          <Text style={[styles.variantItemDetails, { color: colors.textSec }]}>
+                            {[variant.color, variant.size].filter(Boolean).join(' • ')}
+                          </Text>
+                        )}
+                        <Text style={[styles.variantItemPrice, { color: Colors.sky }]}>
+                          ₱{parseFloat(variant.price).toLocaleString()}
+                        </Text>
+                      </View>
+                      {isCurrentVariant && (
+                        <View style={styles.variantCheckmark}>
+                          <Ionicons name="checkmark-circle" size={24} color={Colors.sky} />
+                        </View>
+                      )}
+                      {updatingVariant === variantModalOpen && (
+                        <ActivityIndicator size="small" color={Colors.sky} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
+
       {/* Confirmation Delete Modal */}
       <ConfirmationModal
         visible={confirmDeleteModal}
@@ -837,9 +1118,6 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
         }}
       />
     </View>
-
-    {/* Chat Bot Icon */}
-    <ChatBotIcon position="bottom-right" visible={true} isDarkMode={isDarkMode} />
     </View>
   );
 }
@@ -887,25 +1165,16 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  selectAllContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   selectAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   selectAllCheckbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 3,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -920,28 +1189,6 @@ const styles = StyleSheet.create({
   },
   selectAllTextActive: {
     color: Colors.sky,
-    fontWeight: '700',
-  },
-  filterSection: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  filterBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 0,
-  },
-  filterBtnActive: {
-    backgroundColor: Colors.sky,
-  },
-  filterText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  filterTextActive: {
-    color: Colors.white,
     fontWeight: '700',
   },
   listContent: {
@@ -1109,14 +1356,51 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 16,
   },
-  variantContainer: {
-    gap: 2,
-    marginTop: 2,
+  variantQuantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
   },
-  variantText: {
-    fontSize: 10,
+  variantDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 8,
+  },
+  variantDropdownContent: {
+    flex: 1,
+    gap: 3,
+  },
+  variantDropdownText: {
+    fontSize: 12,
     fontWeight: '500',
     color: Colors.sky,
+    lineHeight: 14,
+  },
+  quantityControlCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  quantityBtnSmall: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quantityTextCompact: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.text,
+    minWidth: 24,
+    textAlign: 'center',
   },
   priceRow: {
     flexDirection: 'row',
@@ -1156,7 +1440,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     letterSpacing: 0.2,
   },
-  quantityTotalRow: {
+  priceRemoveRow: {
     flexDirection: 'row',
     gap: 6,
     alignItems: 'center',
@@ -1197,12 +1481,26 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    gap: 10,
+    gap: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  footerLeft: {
+    flex: 0,
+  },
+  footerRight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   totalSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
     alignItems: 'flex-start',
+    gap: 2,
   },
   totalLabel: {
     fontSize: 13,
@@ -1218,16 +1516,19 @@ const styles = StyleSheet.create({
   checkoutBtn: {
     backgroundColor: Colors.sky,
     paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
+    flex: 1,
   },
   checkoutBtnText: {
     color: Colors.white,
     fontSize: 14,
     fontWeight: '700',
+    flexShrink: 1,
   },
   headerGradient: {
     paddingTop: 12,
@@ -1300,5 +1601,106 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.text,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  modalOverlay: {
+    flex: 1,
+  },
+  variantModal: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: VARIANT_MODAL_HEIGHT,
+    width: '100%',
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  variantModalHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  variantModalHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  variantModalHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+    alignItems: 'flex-start',
+  },
+  variantModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  variantLoadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  variantList: {
+    flex: 1,
+    paddingHorizontal: 0,
+  },
+  variantItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+  },
+  variantItemLast: {
+    borderBottomWidth: 0,
+  },
+  variantThumbnail: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    overflow: 'hidden',
+  },
+  variantThumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  variantColorBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  variantItemContent: {
+    flex: 1,
+  },
+  variantItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  variantItemDetails: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  variantItemPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.sky,
+  },
+  variantCheckmark: {
+    marginLeft: 20,
+    flexShrink: 0,
   },
 });
