@@ -77,12 +77,16 @@ export default function AddAddressScreen({
   // Fetch regions on mount
   useEffect(() => {
     fetchRegions();
+  }, []);
+
+  // Handle back button
+  useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       onBack?.();
       return true;
     });
     return () => backHandler.remove();
-  }, []);
+  }, [onBack]);
 
   const fetchRegions = async () => {
     try {
@@ -643,7 +647,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   section: {
-    borderRadius: 8,
     padding: 12,
     marginHorizontal: 4,
     borderWidth: 1,
