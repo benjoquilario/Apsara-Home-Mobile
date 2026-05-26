@@ -19,12 +19,17 @@ interface ReferralNetworkScreenProps {
   token?: string | null;
   onBack?: () => void;
   tree?: ReferralTree | null;
+  isDarkMode?: boolean;
 }
 
-export default function ReferralNetworkScreen({ token, onBack, tree }: ReferralNetworkScreenProps) {
+export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode = false }: ReferralNetworkScreenProps) {
   const insets = useSafeAreaInsets();
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [expandedStats, setExpandedStats] = useState<Set<number>>(new Set());
+
+  const colors = {
+    bg: isDarkMode ? '#0f172a' : '#f5f5f5',
+  };
 
   useEffect(() => {
     if (tree) {
@@ -199,7 +204,7 @@ export default function ReferralNetworkScreen({ token, onBack, tree }: ReferralN
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       {/* Header with Gradient extending to top */}
       <LinearGradient
         colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
@@ -305,13 +310,10 @@ const styles = StyleSheet.create({
 
   section: {
     backgroundColor: Colors.white,
-    borderRadius: 0,
-    borderWidth: 0,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: '#e5e7eb',
     overflow: 'hidden',
-    marginHorizontal: 0,
-    marginBottom: 12,
-    width: '100%',
   },
 
   sectionHeader: {
@@ -363,9 +365,9 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingHorizontal: 0,
-    gap: 0,
-    paddingBottom: 20,
+    padding: 8,
+    gap: 8,
+    paddingBottom: 16,
   },
 
   treeScrollView: {
