@@ -58,12 +58,16 @@ export default function ShippingAddressSelectionScreen({
 
   React.useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (showAddAddress) {
+        setShowAddAddress(false);
+        return true;
+      }
       onBack?.();
       return true;
     });
 
     return () => backHandler.remove();
-  }, [onBack]);
+  }, [onBack, showAddAddress]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -231,7 +235,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   addressCard: {
-    borderRadius: 8,
     padding: 12,
     marginHorizontal: 4,
   },
