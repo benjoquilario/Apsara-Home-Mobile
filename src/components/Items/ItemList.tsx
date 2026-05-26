@@ -62,6 +62,11 @@ export default function ItemList({
   const [isWishlisted, setIsWishlisted] = useState(true);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Handle undefined product
+  if (!product) {
+    return null;
+  }
+
   const colors = {
     bg: isDarkMode ? '#1e293b' : Colors.white,
     text: isDarkMode ? '#f8fafc' : Colors.text,
@@ -70,10 +75,12 @@ export default function ItemList({
     selectedBg: isDarkMode ? '#0f4c7f' : '#f0f7ff',
   };
 
-  const discount = Math.round(
-    ((product.priceSrp - product.priceMember) / product.priceSrp) * 100
-  );
-  const inStock = product.qty > 0;
+  const priceSrp = product.priceSrp ?? 0;
+  const priceMember = product.priceMember ?? 0;
+  const discount = priceSrp > 0 ? Math.round(
+    ((priceSrp - priceMember) / priceSrp) * 100
+  ) : 0;
+  const inStock = (product.qty ?? 0) > 0;
   const activeBadges = BADGE_CONFIG.filter(b => product[b.key as keyof typeof product]);
 
   const handleSelectWithAnimation = () => {
@@ -164,10 +171,10 @@ export default function ItemList({
 
           <View style={styles.priceRow}>
             <Text style={[styles.memberPrice, { color: colors.text }]}>
-              ₱{product.priceMember.toLocaleString()}
+              ₱{priceMember.toLocaleString()}
             </Text>
             <Text style={[styles.srpPrice, { color: colors.textSec }]}>
-              ₱{product.priceSrp.toLocaleString()}
+              ₱{priceSrp.toLocaleString()}
             </Text>
           </View>
 
@@ -179,7 +186,7 @@ export default function ItemList({
               style={styles.pvBadge}
             >
               <Ionicons name="trending-up" size={10} color={Colors.white} />
-              <Text style={styles.pvText}>{product.prodpv} PV</Text>
+              <Text style={styles.pvText}>{product.prodpv ?? 0} PV</Text>
             </LinearGradient>
 
             {activeBadges.map(b => (
