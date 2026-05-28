@@ -44,7 +44,7 @@
         "backgroundColor": "#13a1d4"
       },
       "notification": {
-        "icon": "./assets/af_home_logo.png",
+        "icon": "./assets/notification.png",
         "color": "#13a1d4"
       },
       "predictiveBackGestureEnabled": false,
