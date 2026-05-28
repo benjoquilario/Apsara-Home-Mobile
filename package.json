@@ -39,6 +39,7 @@
     "pusher-js": "^8.5.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-get-sms-android": "^2.1.0",
     "react-native-keychain": "^10.0.0",
     "react-native-onesignal": "^4.5.4",
     "react-native-render-html": "^6.3.4",
