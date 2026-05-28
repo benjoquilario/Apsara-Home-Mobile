@@ -210,18 +210,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val srcRect = Rect(0, 0, bitmap.width, bitmap.height)
+        val rect = Rect(0, 0, bitmap.width, bitmap.height)
+        val rectF = RectF(rect)
 
-        // Keep a small transparent inset so rounded corners remain visible
-        // even when RemoteViews scales/crops the image.
-        val inset = (bitmap.width.coerceAtMost(bitmap.height) * 0.03f).toInt().coerceAtLeast(8)
-        val dstRect = Rect(inset, inset, bitmap.width - inset, bitmap.height - inset)
-        val dstRectF = RectF(dstRect)
-
-        canvas.drawARGB(0, 0, 0, 0)
-        canvas.drawRoundRect(dstRectF, cornerRadiusPx, cornerRadiusPx, paint)
+        canvas.drawRoundRect(rectF, cornerRadiusPx, cornerRadiusPx, paint)
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+        canvas.drawBitmap(bitmap, rect, rect, paint)
         paint.xfermode = null
 
         return output
