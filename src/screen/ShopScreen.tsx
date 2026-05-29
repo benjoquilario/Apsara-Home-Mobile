@@ -71,6 +71,7 @@ function ShopScreen({
 }: ShopScreenProps) {
   const shopScreenLoadStartRef = useRef(Date.now());
   const flatListRef = useRef<FlatList>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   // Refs to preserve filter state across navigation
   const filterStateRef = useRef({
@@ -292,6 +293,15 @@ function ShopScreen({
     prefetchedPageRef.current = 2;
     refetch();
   }, [refetch]);
+
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setShowScrollToTop(scrollY > 300);
+  }, []);
+
+  const handleScrollToTop = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
   const handleNextPage = useCallback(() => {
     if (currentPage < paginationInfo.totalPages) {
@@ -564,6 +574,8 @@ function ShopScreen({
         showBrandFilter={true}
         selectedBrand={selectedBrandId ? brands.find(b => b.id === selectedBrandId)?.name : 'All Brands'}
         brands={brands}
+        showScrollToTop={showScrollToTop}
+        onScrollToTop={handleScrollToTop}
         onRoomFilterChange={(filterType, value) => {
           if (filterType === 'room') {
             handleRoomSelect(value === 'All Room Types' ? null : ROOMS.find(r => r.room_name === value)?.room_id || null);
@@ -600,6 +612,8 @@ function ShopScreen({
           <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={isDarkMode ? '#fff' : Colors.sky} />
         }
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
     </SafeAreaView>
 
