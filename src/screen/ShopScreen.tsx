@@ -130,13 +130,13 @@ function ShopScreen({
     brandId: selectedBrandId,
   });
 
-  // Scroll to top when page changes or filters change
+  // Scroll to top only when filters change (not when page changes for infinite scroll)
   useEffect(() => {
     const scrollTimeout = setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     }, 50);
     return () => clearTimeout(scrollTimeout);
-  }, [currentPage, selectedRoomId, selectedCategoryId, selectedBrandId]);
+  }, [selectedRoomId, selectedCategoryId, selectedBrandId]);
 
   // Background prefetch ONLY the next page (not multiple pages)
   useEffect(() => {
@@ -193,9 +193,16 @@ function ShopScreen({
     console.log(`Price filter changed to:`, price);
   }, []);
 
-  // Get products from current page only
+  // Get all products accumulated from all loaded pages
   const currentPageProducts = useMemo(() => {
-    let products = data?.pages?.[currentPage - 1]?.products || [];
+    let products: Product[] = [];
+
+    // Accumulate products from all loaded pages
+    if (data?.pages) {
+      for (let i = 0; i < currentPage && i < data.pages.length; i++) {
+        products = [...products, ...(data.pages[i]?.products || [])];
+      }
+    }
 
     // Apply price filter
     if (selectedPrice && selectedPrice !== 'All') {
@@ -249,7 +256,7 @@ function ShopScreen({
 
     if (products.length > 0) {
       const loadTime = Date.now() - shopScreenLoadStartRef.current;
-      console.log(`⚡ ShopScreen READY: ${products.length} products (page ${currentPage}) loaded in ${loadTime}ms`);
+      console.log(`⚡ ShopScreen READY: ${products.length} products (${currentPage} pages) loaded in ${loadTime}ms`);
     }
     return products;
   }, [data?.pages, currentPage, selectedSort, selectedPrice]);
@@ -261,16 +268,15 @@ function ShopScreen({
     }
     const lastPage = data.pages[data.pages.length - 1];
     const total = lastPage.total;
-    const startProduct = ((currentPage - 1) * 20) + 1;
-    const endProduct = Math.min(currentPage * 20, total);
+    const endProduct = Math.min(currentPageProducts.length, total);
     return {
       currentPage,
       totalPages: lastPage.totalPages,
       total,
-      startProduct,
+      startProduct: 1,
       endProduct,
     };
-  }, [data, currentPage]);
+  }, [data, currentPageProducts.length, currentPage]);
 
   // Prepare data for masonry layout
   const masonryData = useMemo(() => {
@@ -510,47 +516,14 @@ function ShopScreen({
   };
 
   const renderFooter = () => {
-    if (currentPageProducts.length === 0) return null;
+    if (currentPageProducts.length === 0 || currentPage >= paginationInfo.totalPages) return null;
 
     return (
       <View style={[styles.paginationContainer, { backgroundColor: colors.bg }]}>
-        <Pressable
-          onPress={handlePreviousPage}
-          disabled={currentPage === 1}
-          style={[
-            styles.paginationButton,
-            {
-              backgroundColor: currentPage === 1 ? colors.paginationBgDisabled : colors.paginationBg,
-              borderColor: currentPage === 1 ? colors.border : colors.paginationBorder,
-            },
-            currentPage === 1 && styles.paginationButtonDisabled
-          ]}
-        >
-          <Ionicons name="chevron-back" size={18} color={currentPage === 1 ? colors.textSec : Colors.sky} />
-          <Text style={[styles.paginationText, { color: currentPage === 1 ? colors.textSec : Colors.sky }, currentPage === 1 && styles.paginationTextDisabled]}>Prev</Text>
-        </Pressable>
-
+        <ActivityIndicator size="small" color={Colors.sky} />
         <Text style={[styles.paginationInfo, { color: colors.text }]}>
-          {paginationInfo.currentPage} / {paginationInfo.totalPages}
+          Loading more products...
         </Text>
-
-        <Pressable
-          onPress={handleNextPage}
-          disabled={currentPage >= paginationInfo.totalPages}
-          style={[
-            styles.paginationButton,
-            {
-              backgroundColor: currentPage >= paginationInfo.totalPages ? colors.paginationBgDisabled : colors.paginationBg,
-              borderColor: currentPage >= paginationInfo.totalPages ? colors.border : colors.paginationBorder,
-            },
-            currentPage >= paginationInfo.totalPages && styles.paginationButtonDisabled
-          ]}
-        >
-          <Text style={[styles.paginationText, { color: currentPage >= paginationInfo.totalPages ? colors.textSec : Colors.sky }, currentPage >= paginationInfo.totalPages && styles.paginationTextDisabled]}>
-            Next
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color={currentPage >= paginationInfo.totalPages ? colors.textSec : Colors.sky} />
-        </Pressable>
       </View>
     );
   };
@@ -614,6 +587,12 @@ function ShopScreen({
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        onEndReached={() => {
+          if (currentPage < paginationInfo.totalPages && !isFetchingNextPage) {
+            handleNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.5}
       />
     </SafeAreaView>
 
