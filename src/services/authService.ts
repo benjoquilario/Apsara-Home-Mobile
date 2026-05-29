@@ -105,6 +105,23 @@ export interface MobileRegisterResponse {
   email: string;
 }
 
+export interface SendSmsOtpResponse {
+  message: string;
+  requires_otp: boolean;
+  verification_token: string;
+  phone: string;
+}
+
+export interface VerifySmsOtpResponse {
+  message: string;
+  phone: string;
+}
+
+export interface SmsOtpError extends AuthError {
+  error?: 'OTP_EXPIRED' | 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_OTP';
+  attempts_remaining?: number;
+}
+
 export const authService = {
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
@@ -177,9 +194,18 @@ export const authService = {
 
   async mobileRegister(payload: MobileRegisterPayload): Promise<MobileRegisterResponse> {
     try {
+      console.log('[AuthService] mobileRegister - Sending payload:', payload);
+      console.log('[AuthService] mobileRegister - API BASE_URL:', API_CONFIG.BASE_URL);
       const response = await api.post('/auth/mobile/register', payload);
+      console.log('[AuthService] mobileRegister - Success:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('[AuthService] mobileRegister - Error:', {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        data: error.response?.data,
+        error: error.message,
+      });
       throw {
         message: error.response?.data?.message || 'Registration failed',
         details: error.response?.data,
@@ -201,6 +227,59 @@ export const authService = {
         details: error.response?.data,
         status: error.response?.status,
       } as AuthError;
+    }
+  },
+
+  async sendSmsOtp(verificationToken: string, phone: string): Promise<SendSmsOtpResponse> {
+    try {
+      const response = await api.post('/auth/send-sms-otp', {
+        verification_token: verificationToken,
+        phone,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw {
+        message: error.response?.data?.message || 'Failed to send OTP',
+        error: error.response?.data?.error,
+        details: error.response?.data,
+        status: error.response?.status,
+      } as SmsOtpError;
+    }
+  },
+
+  async verifySmsOtp(verificationToken: string, otp: string): Promise<VerifySmsOtpResponse> {
+    try {
+      const response = await api.post('/auth/verify-sms-otp', {
+        verification_token: verificationToken,
+        otp,
+      });
+      return response.data;
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      throw {
+        message: errorData?.message || 'OTP verification failed',
+        error: errorData?.error,
+        attempts_remaining: errorData?.attempts_remaining,
+        details: errorData,
+        status: error.response?.status,
+      } as SmsOtpError;
+    }
+  },
+
+  async resendSmsOtp(verificationToken: string, phone: string): Promise<SendSmsOtpResponse> {
+    try {
+      const response = await api.post('/auth/send-sms-otp', {
+        verification_token: verificationToken,
+        phone,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw {
+        message: error.response?.data?.message || 'Failed to resend OTP',
+        error: error.response?.data?.error,
+        details: error.response?.data,
+        status: error.response?.status,
+      } as SmsOtpError;
     }
   },
 
