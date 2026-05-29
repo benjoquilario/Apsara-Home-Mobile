@@ -34,6 +34,7 @@ import LoadingScreen from '../screen/LoadingScreen';
 import ReferralNetworkScreen from '../screen/ReferralNetworkScreen';
 import ReferralScreen from '../screen/ReferralScreen';
 import ReferralSignupScreen from '../screen/ReferralSignupScreen';
+import ReferralOtpScreen from '../screen/ReferralOtpScreen';
 import CheckoutScreen from '../screen/CheckoutScreen';
 import OrderSuccessScreen from '../screen/OrderSuccessScreen';
 import PaymentWebViewScreen from '../screen/PaymentWebViewScreen';
@@ -289,6 +290,8 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
   const [showAFWalletNetwork, setShowAFWalletNetwork] = useState(false);
   const [showReferralScreen, setShowReferralScreen] = useState(false);
   const [showReferralSignupScreen, setShowReferralSignupScreen] = useState(false);
+  const [showReferralOtpScreen, setShowReferralOtpScreen] = useState(false);
+  const [referralOtpData, setReferralOtpData] = useState<{ phone: string; verificationToken: string } | null>(null);
 
   // Home screen data - persists across navigation
   const [homeCategories, setHomeCategories] = useState<CategoryItem[]>([]);
@@ -2151,11 +2154,37 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             onBack={() => {
               setShowReferralSignupScreen(false);
             }}
-            onContinueToOtp={() => {
+            onContinueToOtp={(phone: string, verificationToken: string) => {
               setShowReferralSignupScreen(false);
+              setReferralOtpData({ phone, verificationToken });
+              setShowReferralOtpScreen(true);
+            }}
+          />
+        </View>
+      )}
+
+      {showReferralOtpScreen && referralOtpData && (
+        <View style={styles.cartScreenOverlay}>
+          <ReferralOtpScreen
+            phone={referralOtpData.phone}
+            verificationToken={referralOtpData.verificationToken}
+            isDarkMode={isDarkMode}
+            onBack={() => {
+              setShowReferralOtpScreen(false);
+              setReferralOtpData(null);
+              setShowReferralSignupScreen(true);
+            }}
+            onSuccess={() => {
+              setShowReferralOtpScreen(false);
+              setReferralOtpData(null);
               setShowReferralScreen(false);
               setReferralCodeFromDeepLink(null);
               setReferrerProfileData(null);
+              Toast.show({
+                type: 'success',
+                text1: 'Registration Complete',
+                text2: 'Welcome to AF Home!',
+              });
             }}
           />
         </View>
