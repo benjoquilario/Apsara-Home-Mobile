@@ -194,24 +194,31 @@ export default function ReferralSignupScreen({
         zip_code: '0000',
       };
       const response = await authService.mobileRegister(payload);
-      if (response.requires_otp && response.verification_token) {
-        try {
-          // Send SMS OTP to phone number
-          const smsResponse = await authService.sendSmsOtp(response.verification_token, signupData.mobileNumber);
-          // Clear saved draft after successful registration
-          await storageService.setItem('referral_signup_draft', '');
-          Toast.show({
-            type: 'success',
-            text1: response.message || 'Registration successful',
-            text2: 'A 4-digit verification code has been sent to your phone number.',
-          });
-          setTimeout(() => {
-            onContinueToOtp?.(signupData.mobileNumber, response.verification_token);
-          }, 900);
-        } catch (smsError: any) {
-          console.error('[SignupError] SMS OTP failed:', smsError);
-          setErrors({ mobileNumber: smsError.message || 'Failed to send SMS OTP' });
-        }
+      const verificationToken = (response?.verification_token || '').trim();
+      if (!verificationToken) {
+        setErrors({
+          form: 'Registration response is missing verification token. Please try again.',
+        });
+        return;
+      }
+
+      // Proceed to OTP only when verification token is present
+      try {
+        // Send SMS OTP to phone number
+        await authService.sendSmsOtp(verificationToken, signupData.mobileNumber);
+        // Clear saved draft after successful registration
+        await storageService.setItem('referral_signup_draft', '');
+        Toast.show({
+          type: 'success',
+          text1: response.message || 'Registration successful',
+          text2: 'A 4-digit verification code has been sent to your phone number.',
+        });
+        setTimeout(() => {
+          onContinueToOtp?.(signupData.mobileNumber, verificationToken);
+        }, 900);
+      } catch (smsError: any) {
+        console.error('[SignupError] SMS OTP failed:', smsError);
+        setErrors({ mobileNumber: smsError.message || 'Failed to send SMS OTP' });
       }
     } catch (error: any) {
       console.error('[SignupError] Registration failed:', error);

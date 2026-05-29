@@ -72,6 +72,7 @@ function ShopScreen({
   const shopScreenLoadStartRef = useRef(Date.now());
   const flatListRef = useRef<FlatList>(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const lastScrollOffsetRef = useRef(0);
 
   // Refs to preserve filter state across navigation
   const filterStateRef = useRef({
@@ -98,6 +99,25 @@ function ShopScreen({
     console.log('🛍️ ShopScreen MOUNTED');
   }, []);
 
+  // Restore scroll position when products are available
+  useEffect(() => {
+    if (!currentPageProducts || currentPageProducts.length === 0) return;
+
+    if (lastScrollOffsetRef.current > 0) {
+      const restoreTimeout = setTimeout(() => {
+        try {
+          flatListRef.current?.scrollToOffset({
+            offset: lastScrollOffsetRef.current,
+            animated: false,
+          });
+        } catch (error) {
+          console.log('Scroll restore error:', error);
+        }
+      }, 100);
+      return () => clearTimeout(restoreTimeout);
+    }
+  }, [currentPageProducts]);
+
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(() => filterStateRef.current.roomId);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(() => filterStateRef.current.categoryId);
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(() => filterStateRef.current.brandId);
@@ -111,6 +131,17 @@ function ShopScreen({
     () => selectedRoomId ? ROOMS.find(r => r.room_id === selectedRoomId) : null,
     [selectedRoomId]
   );
+
+  // Map frontend sorts to backend sorts
+  const backendSort = useMemo(() => {
+    if (selectedSort === 'Relevant') return 'random';
+    if (selectedSort === 'A-Z') return null; // Backend doesn't support A-Z, frontend only
+    if (selectedSort === 'Z-A') return null; // Backend doesn't support Z-A, frontend only
+    if (selectedSort === 'Price: Low') return 'price_asc';
+    if (selectedSort === 'Price: High') return 'price_desc';
+    if (selectedSort === 'Newest') return 'newest';
+    return null;
+  }, [selectedSort]);
 
   const {
     data,
@@ -128,6 +159,7 @@ function ShopScreen({
     roomId: selectedRoomId,
     categoryId: selectedCategoryId,
     brandId: selectedBrandId,
+    sortBy: backendSort,
   });
 
   // Scroll to top only when filters change (not when page changes for infinite scroll)
@@ -228,31 +260,7 @@ function ShopScreen({
       });
     }
 
-    // Apply sort
-    if (selectedSort && selectedSort !== 'Relevant') {
-      products = [...products];
-      switch (selectedSort) {
-        case 'A-Z':
-          products.sort((a: Product, b: Product) => (a.name || '').localeCompare(b.name || ''));
-          break;
-        case 'Z-A':
-          products.sort((a: Product, b: Product) => (b.name || '').localeCompare(a.name || ''));
-          break;
-        case 'Price: Low':
-          products.sort((a: Product, b: Product) => (a.price || 0) - (b.price || 0));
-          break;
-        case 'Price: High':
-          products.sort((a: Product, b: Product) => (b.price || 0) - (a.price || 0));
-          break;
-        case 'Newest':
-          products.sort((a: Product, b: Product) => {
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
-            return dateB - dateA;
-          });
-          break;
-      }
-    }
+    // Sorting is now handled by backend - don't re-sort on frontend
 
     if (products.length > 0) {
       const loadTime = Date.now() - shopScreenLoadStartRef.current;
@@ -302,6 +310,7 @@ function ShopScreen({
 
   const handleScroll = useCallback((event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
+    lastScrollOffsetRef.current = scrollY;
     setShowScrollToTop(scrollY > 300);
   }, []);
 
@@ -498,15 +507,15 @@ function ShopScreen({
     return (
       <View style={styles.masonryGrid}>
         <View style={styles.masonryColumn}>
-          {masonryData.leftColumn.map((product) => (
-            <View key={`left-${product.id}`} style={styles.masonryItem}>
+          {masonryData.leftColumn.map((product, index) => (
+            <View key={`left-${product.id}-${index}`} style={styles.masonryItem}>
               {renderItem(product)}
             </View>
           ))}
         </View>
         <View style={styles.masonryColumn}>
-          {masonryData.rightColumn.map((product) => (
-            <View key={`right-${product.id}`} style={styles.masonryItem}>
+          {masonryData.rightColumn.map((product, index) => (
+            <View key={`right-${product.id}-${index}`} style={styles.masonryItem}>
               {renderItem(product)}
             </View>
           ))}
@@ -592,7 +601,7 @@ function ShopScreen({
             handleNextPage();
           }
         }}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.3}
       />
     </SafeAreaView>
 
