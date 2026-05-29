@@ -28,7 +28,7 @@ interface ReferralSignupScreenProps {
   pendingOtpEmail?: string;
   pendingOtpToken?: string;
   onBack: () => void;
-  onContinueToOtp?: (email: string, verificationToken: string) => void;
+  onContinueToOtp?: (phone: string, verificationToken: string) => void;
   onResumOtp?: () => void;
 }
 
@@ -159,6 +159,7 @@ export default function ReferralSignupScreen({
     if (phoneDigits.length !== 11) next.mobileNumber = 'Use 11 digits only.';
     if (signupData.password.length < 8) next.password = 'Password must be at least 8 characters.';
     if (signupData.passwordConfirmation !== signupData.password) next.passwordConfirmation = 'Passwords do not match.';
+    if (!signupData.referralCode.trim()) next.referralCode = 'Referral code is required.';
     if (!acceptedTerms) next.terms = 'Please agree to the Terms and Conditions.';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -167,13 +168,14 @@ export default function ReferralSignupScreen({
   async function handleRegister() {
     if (!validate()) return;
     setLoading(true);
+    console.log('[ReferralSignup] Starting registration...');
     try {
       const payload = {
         first_name: signupData.firstName,
         last_name: signupData.lastName,
         middle_name: '',
         name: `${signupData.firstName} ${signupData.lastName}`.trim(),
-        email: signupData.email,
+        email: signupData.email || null,
         username: signupData.username,
         phone: signupData.mobileNumber,
         birth_date: '2000-01-01',
@@ -193,24 +195,55 @@ export default function ReferralSignupScreen({
       };
       const response = await authService.mobileRegister(payload);
       if (response.requires_otp && response.verification_token) {
-        // Clear saved draft after successful registration
-        await storageService.setItem('referral_signup_draft', '');
-        Toast.show({
-          type: 'success',
-          text1: response.message || 'Registration successful',
-          text2: 'A 4-digit verification code has been sent to your email.',
-        });
-        setTimeout(() => {
-          onContinueToOtp?.(response.email, response.verification_token);
-        }, 900);
+        try {
+          // Send SMS OTP to phone number
+          const smsResponse = await authService.sendSmsOtp(response.verification_token, signupData.mobileNumber);
+          // Clear saved draft after successful registration
+          await storageService.setItem('referral_signup_draft', '');
+          Toast.show({
+            type: 'success',
+            text1: response.message || 'Registration successful',
+            text2: 'A 4-digit verification code has been sent to your phone number.',
+          });
+          setTimeout(() => {
+            onContinueToOtp?.(signupData.mobileNumber, response.verification_token);
+          }, 900);
+        } catch (smsError: any) {
+          console.error('[SignupError] SMS OTP failed:', smsError);
+          setErrors({ mobileNumber: smsError.message || 'Failed to send SMS OTP' });
+        }
       }
     } catch (error: any) {
-      setErrors({ form: error.message || 'Registration failed' });
-      Toast.show({
-        type: 'error',
-        text1: 'Registration failed',
-        text2: error.message || 'Please try again.',
-      });
+      console.error('[SignupError] Registration failed:', error);
+      const fieldErrors: Record<string, string> = {};
+
+      // Extract field-specific errors from backend
+      if (error.details?.errors) {
+        const backendErrors = error.details.errors;
+        const fieldMap: Record<string, string> = {
+          first_name: 'firstName',
+          last_name: 'lastName',
+          username: 'username',
+          email: 'email',
+          phone: 'mobileNumber',
+          password: 'password',
+          password_confirmation: 'passwordConfirmation',
+          referred_by: 'referralCode',
+        };
+
+        Object.entries(backendErrors).forEach(([backendField, messages]: [string, any]) => {
+          const fieldKey = fieldMap[backendField] || backendField;
+          const message = Array.isArray(messages) ? messages[0] : messages;
+          if (message) fieldErrors[fieldKey] = message;
+        });
+      }
+
+      // If no field errors, set form error
+      if (Object.keys(fieldErrors).length === 0) {
+        fieldErrors.form = error.message || 'Registration failed';
+      }
+
+      setErrors(fieldErrors);
     } finally {
       setLoading(false);
     }
@@ -303,7 +336,7 @@ export default function ReferralSignupScreen({
                     {field1.key === 'email' ? <Text style={[styles.hint, { color: colors.textSec }]}>Optional</Text> : null}
                     {field1.key === 'mobileNumber' ? <Text style={[styles.hint, { color: colors.textSec }]}>Use 11 digits only.</Text> : null}
                     {field1.key === 'username' ? <Text style={[styles.hint, { color: colors.textSec }]}>Letters and numbers only, no spaces or symbols.</Text> : null}
-                    {field1.key === 'referralCode' ? <Text style={[styles.hint, { color: colors.textSec }]}>{referrerUsername ? 'Pre-filled from your referral link.' : 'Optional - Enter referral code if you have one.'}</Text> : null}
+                    {field1.key === 'referralCode' ? <Text style={[styles.hint, { color: colors.textSec }]}>{referrerUsername ? 'Pre-filled from your referral link.' : 'Enter a valid referral code.'}</Text> : null}
                     {errors[field1.key] ? <Text style={styles.errorText}>{errors[field1.key]}</Text> : null}
                   </View>
                 )}
@@ -440,8 +473,6 @@ export default function ReferralSignupScreen({
                 </Text>
               </TouchableOpacity>
             </View>
-
-            {errors.form ? <Text style={[styles.errorText, { marginBottom: 8 }]}>{errors.form}</Text> : null}
 
             {pendingOtpEmail && pendingOtpToken ? (
               <>
