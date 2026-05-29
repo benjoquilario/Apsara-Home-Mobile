@@ -108,20 +108,25 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             )
 
             val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val testOnlyIntent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("deeplink", deeplink)
-                putExtra("test_only", true)
-            }
-            val testOnlyPendingIntent = PendingIntent.getActivity(
-                this, 3, testOnlyIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+
+            // Get button text from data payload - only show button if provided
+            val buttonText = data["buttonText"] ?: ""
+            val hasButton = buttonText.isNotEmpty()
 
             val expandedRemoteView = RemoteViews(packageName, R.layout.notification_expanded).apply {
                 setTextViewText(R.id.notification_title, title)
                 setTextViewText(R.id.notification_body, body)
-                setOnClickPendingIntent(R.id.btn_test_only, testOnlyPendingIntent)
+
+                // Show/hide button container based on whether buttonText is provided
+                if (hasButton) {
+                    setViewVisibility(R.id.button_container, View.VISIBLE)
+                    setTextViewText(R.id.btn_action, buttonText)
+                    setOnClickPendingIntent(R.id.btn_action, pendingIntent)
+                } else {
+                    setViewVisibility(R.id.button_container, View.GONE)
+                }
+
+                // Default: hide image, will show if imageUrl is provided
                 setViewVisibility(R.id.notification_image, View.GONE)
             }
             val collapsedRemoteView = RemoteViews(packageName, R.layout.notification_collapsed).apply {
@@ -149,24 +154,27 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 .setCustomContentView(collapsedRemoteView)
                 .setCustomBigContentView(expandedRemoteView)
 
-            // Render optional image inside custom expanded layout so button stays at bottom.
+            // Load and display image if provided
             if (!imageUrl.isNullOrEmpty()) {
                 try {
                     val bitmap = getBitmapFromUrl(imageUrl)
                     if (bitmap != null) {
-                        // Collapsed: show small right-side thumbnail in custom collapsed view only.
+                        // Collapsed view: show small thumbnail on right side
                         collapsedRemoteView.setImageViewBitmap(R.id.notification_collapsed_image, bitmap)
                         collapsedRemoteView.setViewVisibility(R.id.notification_collapsed_image, View.VISIBLE)
 
-                        // Rounded image for expanded custom layout.
-                        val roundedBitmap = createRoundedBitmap(bitmap, 40f)
-                        expandedRemoteView.setImageViewBitmap(R.id.notification_image, roundedBitmap)
+                        // Expanded view: show larger image
+                        expandedRemoteView.setImageViewBitmap(R.id.notification_image, bitmap)
                         expandedRemoteView.setViewVisibility(R.id.notification_image, View.VISIBLE)
-                        Log.d(TAG, "Image loaded successfully: $imageUrl")
+                        Log.d(TAG, "✓ Image loaded: $imageUrl")
+                    } else {
+                        Log.w(TAG, "Failed to decode image bitmap")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error loading notification image: ${e.message}")
                 }
+            } else {
+                Log.d(TAG, "No image URL provided in notification")
             }
 
 
