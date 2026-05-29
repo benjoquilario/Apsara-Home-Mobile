@@ -96,7 +96,7 @@ export default function SignupScreen({ onGoToLogin, onGoToIndex, onContinueToOtp
         last_name: signupData.lastName,
         middle_name: '',
         name: `${signupData.firstName} ${signupData.lastName}`.trim(),
-        email: signupData.email,
+        email: signupData.email || null,
         username: signupData.username,
         phone: signupData.mobileNumber,
         birth_date: '2000-01-01',
