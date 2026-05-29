@@ -81,7 +81,9 @@ export const useOptimizedProducts = ({
       if (brandId) url.searchParams.set('brand_type', brandId.toString());
 
       // Add sorting parameter if specified
-      if (sortBy === 'best_selling') {
+      if (sortBy === 'random') {
+        url.searchParams.set('sort', 'random');
+      } else if (sortBy === 'best_selling') {
         url.searchParams.set('sort', 'bestseller');
       } else if (sortBy === 'lowest_price') {
         url.searchParams.set('sort', 'price_asc');
@@ -138,7 +140,8 @@ export const useOptimizedProducts = ({
             if (presetFilter.roomId) url.searchParams.set('room_type', presetFilter.roomId.toString());
             if (presetFilter.categoryId) url.searchParams.set('cat_id', presetFilter.categoryId.toString());
             if (presetFilter.brandId) url.searchParams.set('brand_type', presetFilter.brandId.toString());
-            if (presetFilter.sortBy === 'best_selling') url.searchParams.set('sort', 'bestseller');
+            if (presetFilter.sortBy === 'random') url.searchParams.set('sort', 'random');
+            else if (presetFilter.sortBy === 'best_selling') url.searchParams.set('sort', 'bestseller');
             else if (presetFilter.sortBy === 'lowest_price') url.searchParams.set('sort', 'price_asc');
             else if (presetFilter.sortBy === 'newest') url.searchParams.set('sort', 'newest');
 
@@ -171,11 +174,10 @@ export const useOptimizedProducts = ({
   useEffect(() => {
     if (!token) return;
 
-    // Prefetch best selling, lowest price, and newest in background
+    // Prefetch best selling and lowest price only - behavior-based personalization is prioritized
     const prefetchTimeout = setTimeout(() => {
       prefetchFilter({ roomId: null, categoryId: null, brandId: null, sortBy: 'best_selling' });
       prefetchFilter({ roomId: null, categoryId: null, brandId: null, sortBy: 'lowest_price' });
-      prefetchFilter({ roomId: null, categoryId: null, brandId: null, sortBy: 'newest' });
     }, 500);
 
     return () => clearTimeout(prefetchTimeout);
