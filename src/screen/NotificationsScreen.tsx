@@ -361,6 +361,7 @@ export default function NotificationsScreen({ token, userId, isDarkMode = false,
                     key={item.id}
                     style={[
                       {
+                        width: '100%',
                         borderBottomColor: colors.border,
                         backgroundColor: !item.is_read ? colors.unreadBg : 'transparent',
                       },
@@ -559,6 +560,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 8,
+    paddingHorizontal: 0,
   },
   notificationItem: {
     flexDirection: 'row',
