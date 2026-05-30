@@ -366,13 +366,14 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   return (
     <View style={{ flex: 1, position: 'relative' }}>
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
-      {/* ── Header ── */}
-      <LinearGradient
-        colors={isDarkMode ? ['rgba(59,130,246,0.15)', 'rgba(31,41,55,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}
-      >
+      {/* ── Header with Background Image ── */}
+      <View style={[styles.headerBackground, { borderBottomColor: colors.border }]}>
+        <Image
+          source={require('../../assets/profile_bg.png')}
+          style={styles.headerBackgroundImage}
+          resizeMode="cover"
+        />
+        <View style={[styles.headerContent, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerLeft} onPress={() => setShowProfileDetails(true)} activeOpacity={0.7}>
           <View style={styles.headerAvatar}>
             {photoUrl ? (
@@ -383,12 +384,12 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
           </View>
           <View style={styles.headerNameContainer}>
             <View style={styles.headerNameRow}>
-              <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1}>{user?.name ?? 'Guest'}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSec} style={styles.profileIcon} />
+              <Text style={[styles.headerName, { color: Colors.white }]} numberOfLines={1}>{user?.name ?? 'Guest'}</Text>
+              <Ionicons name="chevron-forward" size={14} color={Colors.white} style={styles.profileIcon} />
             </View>
             {user?.username && (
               <View style={styles.usernameRow}>
-                <Text style={[styles.usernameText, { color: Colors.sky }]}>@{user.username}</Text>
+                <Text style={[styles.usernameText, { color: Colors.white }]}>@{user.username}</Text>
                 {user?.badge_name && (
                   <>
                     <View style={styles.usernameDot} />
@@ -399,25 +400,26 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                   </>
                 )}
                 <View style={styles.usernameDot} />
-                <Text style={styles.usernamePvText}>{user.monthly_activation?.remaining_pv ?? 0} PV</Text>
+                <Text style={[styles.usernamePvText, { color: Colors.white }]}>{user.monthly_activation?.remaining_pv ?? 0} PV</Text>
               </View>
             )}
           </View>
         </TouchableOpacity>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.cardBg, borderColor: colors.border }]} activeOpacity={0.7} onPress={onCartPress}>
-            <Ionicons name="cart-outline" size={20} color={colors.text} />
+          <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} onPress={onCartPress}>
+            <Ionicons name="cart-outline" size={20} color={Colors.white} />
             {cartCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
               </View>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.cardBg, borderColor: colors.border }]} activeOpacity={0.7} onPress={onNavigateSettings}>
-            <Ionicons name="settings-outline" size={20} color={colors.text} />
+          <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} onPress={onNavigateSettings}>
+            <Ionicons name="settings-outline" size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+        </View>
+      </View>
 
       {/* ── Scrollable body ── */}
       <ScrollView
@@ -955,18 +957,41 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#f0f9ff',
   },
 
   // ── Header ──
+  headerBackground: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 90,
+    borderBottomWidth: 1,
+  },
+  headerBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingBottom: 8,
+    borderBottomWidth: 0,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -1060,14 +1085,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   badge: {
     position: 'absolute',
