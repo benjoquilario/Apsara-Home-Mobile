@@ -44,7 +44,7 @@ export default function PVEarnerScreen({
           style={styles.headerBackgroundImage}
           resizeMode="cover"
         />
-        <View style={[styles.headerContent, { paddingTop: insets.top, paddingHorizontal: 12 }]}>
+        <View style={[styles.headerContent, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7}>
             <Ionicons name="chevron-back-outline" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -99,6 +99,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingRight: 12,
     paddingBottom: 8,
   },
   backBtn: {
@@ -109,7 +110,8 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 17,
