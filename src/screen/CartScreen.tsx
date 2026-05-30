@@ -114,12 +114,13 @@ interface CartScreenProps {
   brands?: BrandItem[];
   wishlistCount?: number;
   isDarkMode?: boolean;
+  refreshTrigger?: number;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const VARIANT_MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
-export default function CartScreen({ token, user, onCheckout, onBack, onProductPress, onProfilePress, onWishlistPress, onShopNavigate, brands = [], wishlistCount = 0, isDarkMode = false }: CartScreenProps) {
+export default function CartScreen({ token, user, onCheckout, onBack, onProductPress, onProfilePress, onWishlistPress, onShopNavigate, brands = [], wishlistCount = 0, isDarkMode = false, refreshTrigger = 0 }: CartScreenProps) {
   const insets = useSafeAreaInsets();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,6 +182,13 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
   useEffect(() => {
     fetchCart();
   }, []);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('[CartScreen] Refresh triggered, fetching cart...');
+      fetchCart();
+    }
+  }, [refreshTrigger]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
