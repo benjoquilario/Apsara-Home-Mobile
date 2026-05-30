@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, TextInput, Alert, ActivityIndicator, Animated, Linking, Platform,
+  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, TextInput, Alert, ActivityIndicator, Animated, Linking, Platform, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
@@ -656,20 +655,20 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
       ]}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
-        <LinearGradient
-          colors={isDarkMode ? ['rgba(59,130,246,0.15)', 'rgba(31,41,55,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[styles.header, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#1f2937' : Colors.white, borderBottomColor: colors.border }]}
-        >
-          <View style={styles.headerContent}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name="chevron-back-outline" size={24} color={isDarkMode ? '#e5e7eb' : Colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>Security</Text>
-          <View style={{ width: 40 }} />
+        <View style={[styles.headerBackground, { borderBottomColor: colors.border }]}>
+          <Image
+            source={require('../../assets/security_bg.png')}
+            style={styles.headerBackgroundImage}
+            resizeMode="cover"
+          />
+          <View style={[styles.headerContent, { paddingTop: insets.top }]}>
+            <TouchableOpacity onPress={onBack} style={styles.headerIcon} activeOpacity={0.7}>
+              <Ionicons name="chevron-back-outline" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: Colors.white }]}>Security</Text>
+            <View style={{ width: 36 }} />
+          </View>
         </View>
-        </LinearGradient>
 
         <ScrollView style={[styles.scroll, { backgroundColor: colors.bg }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Change Password */}
@@ -1058,31 +1057,47 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  headerBackground: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 90,
     borderBottomWidth: 1,
   },
+  headerBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
   headerContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginLeft: -10,
-    marginRight: 12,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '800',
-    color: Colors.text,
-  },
-  headerTitleDark: {
-    color: '#f8fafc',
+    color: Colors.white,
+    flex: 1,
+    textAlign: 'center',
   },
   content: {
     padding: 8,
