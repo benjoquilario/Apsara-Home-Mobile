@@ -481,7 +481,10 @@ export default function ProductDetailScreen({
   };
 
   const toggleWishlist = async () => {
-    if (!token) {
+    console.log('[ProductDetail] toggleWishlist - token:', token ? 'exists' : 'missing', 'user:', user ? 'exists' : 'missing');
+
+    if (!token || !user) {
+      console.log('[ProductDetail] Auth check failed - token:', !!token, 'user:', !!user);
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -826,26 +829,32 @@ export default function ProductDetailScreen({
 
           {/* Price Section - Shopee Style (Price First, Large & Bold) */}
           <View style={[styles.newPriceSection, { backgroundColor: colors.card }]}>
-            {/* Big Price Row */}
-            <View style={styles.bigPriceRow}>
-              {(() => {
-                let memberPrice = product.priceMember ?? 0;
-                let srpPrice = product.priceSrp ?? 0;
-                let variantDiscount = 0;
+            {(() => {
+              let memberPrice = product.priceMember ?? 0;
+              let srpPrice = product.priceSrp ?? 0;
+              let variantDiscount = 0;
 
-                // If variant is selected, use variant prices
-                if (selectedVariant && product.variants) {
-                  const selectedVar = product.variants.find(v => v.id === selectedVariant);
-                  if (selectedVar) {
-                    memberPrice = selectedVar.priceMember ?? 0;
-                    srpPrice = selectedVar.priceSrp ?? 0;
-                  }
+              // If variant is selected, use variant prices
+              if (selectedVariant && product.variants) {
+                const selectedVar = product.variants.find(v => v.id === selectedVariant);
+                if (selectedVar) {
+                  memberPrice = selectedVar.priceMember ?? 0;
+                  srpPrice = selectedVar.priceSrp ?? 0;
                 }
+              }
 
-                variantDiscount = (memberPrice < srpPrice) ? Math.round(((srpPrice - memberPrice) / srpPrice) * 100) : 0;
+              variantDiscount = (memberPrice < srpPrice) ? Math.round(((srpPrice - memberPrice) / srpPrice) * 100) : 0;
 
-                return (
-                  <>
+              return (
+                <>
+                  {variantDiscount > 0 && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="checkmark-circle" size={14} color={Colors.sky} />
+                      <Text style={[styles.priceLabel, { color: colors.textSec }]}>Member Price Applied</Text>
+                    </View>
+                  )}
+                  {/* Big Price Row */}
+                  <View style={styles.bigPriceRow}>
                     <Text style={[styles.bigPrice, { color: Colors.sky }]}>₱{memberPrice.toLocaleString()}</Text>
                     {variantDiscount > 0 && (
                       <>
@@ -855,10 +864,11 @@ export default function ProductDetailScreen({
                         </View>
                       </>
                     )}
-                  </>
-                );
-              })()}
-            </View>
+                  </View>
+                </>
+              );
+            })()}
+
 
             {/* Social Proof Row - Rating, Sold, PV */}
             <View style={styles.socialProofRow}>
@@ -1269,7 +1279,14 @@ export default function ProductDetailScreen({
                 <View style={styles.relatedRow}>
                   {relatedProducts.map(p => (
                     <View key={p.id} style={styles.relatedCard}>
-                      <ItemCard product={p} onPress={item => onProductPress?.(item.id)} isDarkMode={isDarkMode} />
+                      <ItemCard
+                        product={p}
+                        token={token}
+                        isWishlisted={wishlistItems?.some(item => item.product_id === p.id) || false}
+                        onPress={item => onProductPress?.(item.id)}
+                        onWishlistToggle={onWishlistToggle}
+                        isDarkMode={isDarkMode}
+                      />
                     </View>
                   ))}
                 </View>
@@ -1295,7 +1312,14 @@ export default function ProductDetailScreen({
                     .filter((_, i) => i % 2 === 0)
                     .map(p => (
                       <View key={p.id} style={styles.youMayAlsoLikeItem}>
-                        <ItemCard product={p} onPress={item => onProductPress?.(item.id)} isDarkMode={isDarkMode} />
+                        <ItemCard
+                          product={p}
+                          token={token}
+                          isWishlisted={wishlistItems?.some(item => item.product_id === p.id) || false}
+                          onPress={item => onProductPress?.(item.id)}
+                          onWishlistToggle={onWishlistToggle}
+                          isDarkMode={isDarkMode}
+                        />
                       </View>
                     ))}
                 </View>
@@ -1305,7 +1329,14 @@ export default function ProductDetailScreen({
                     .filter((_, i) => i % 2 === 1)
                     .map(p => (
                       <View key={p.id} style={styles.youMayAlsoLikeItem}>
-                        <ItemCard product={p} onPress={item => onProductPress?.(item.id)} isDarkMode={isDarkMode} />
+                        <ItemCard
+                          product={p}
+                          token={token}
+                          isWishlisted={wishlistItems?.some(item => item.product_id === p.id) || false}
+                          onPress={item => onProductPress?.(item.id)}
+                          onWishlistToggle={onWishlistToggle}
+                          isDarkMode={isDarkMode}
+                        />
                       </View>
                     ))}
                 </View>
@@ -3263,8 +3294,9 @@ const styles = StyleSheet.create({
   // New Shopee-style price section
   newPriceSection: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 2,
   },
   bigPriceRow: {
     flexDirection: 'row',
