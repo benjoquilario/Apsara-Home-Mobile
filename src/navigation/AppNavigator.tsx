@@ -1657,8 +1657,12 @@ export default function AppNavigator({ user, token, onLogout }: { user?: User | 
             isDarkMode={isDarkMode}
             onBack={() => {
               setShowOrderSuccess(false);
-              setShowCheckout(true);
+              setShowCheckout(false);
+              setShowCart(true);
               setCheckoutOrderData(null);
+              setCheckoutItem(null);
+              setCheckoutCartItems([]);
+              setCartRefreshTrigger(prev => prev + 1);
             }}
             onNavigateToPayment={(checkoutUrl) => {
               console.log('[AppNavigator] onNavigateToPayment called with URL:', checkoutUrl);
