@@ -52,7 +52,7 @@ export default function SearchResultScreen({
         params: { q: query.trim() },
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (res.data?.success && Array.isArray(res.data?.results)) {
         const mapped: ProductCard[] = res.data.results.map((item: any) => ({
           id: item.id,
@@ -136,9 +136,9 @@ export default function SearchResultScreen({
               <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#f8fafc' : Colors.text} />
             </TouchableOpacity>
           )}
-          <View>
-            <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>Search Results</Text>
-            <Text style={[styles.headerQuery, isDarkMode && styles.headerQueryDark]}>"{query}"</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]} numberOfLines={1}>Search Results</Text>
+            <Text style={[styles.headerQuery, isDarkMode && styles.headerQueryDark]} numberOfLines={2}>{`"${query}"`}</Text>
           </View>
         </View>
         <Text style={[styles.headerCount, isDarkMode && styles.headerCountDark]}>{products.length} items</Text>
@@ -190,7 +190,7 @@ export default function SearchResultScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fbff',
+    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingHorizontal: 16,
@@ -206,10 +206,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   backBtn: {
     padding: 4,
     marginLeft: -4,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 14,
@@ -220,6 +224,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Colors.text,
+    flexWrap: 'wrap',
+    paddingRight: 12,
   },
   headerCount: {
     fontSize: 13,
@@ -228,6 +234,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   listContent: {
     paddingHorizontal: 8,
