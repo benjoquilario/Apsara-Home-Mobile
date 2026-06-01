@@ -136,6 +136,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   const [showSecurityBanner, setShowSecurityBanner] = useState(true);
   const [walletData, setWalletData] = useState<any>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
+  const [dailyCheckinClaimed, setDailyCheckinClaimed] = useState(false);
   const photoUrl = user?.avatar_url ?? null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : '?';
   const firstName = user?.name?.split(' ')[0] ?? 'User';
@@ -491,11 +492,18 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
             {/* Daily Check-In Button */}
             <TouchableOpacity
               style={[styles.dailyCheckinBtn, { borderTopColor: colors.borderLight }]}
-              onPress={() => setShowPVEarner(true)}
+              onPress={() => {
+                setShowPVEarner(true);
+              }}
               activeOpacity={0.8}
             >
               <View style={styles.dailyCheckinBtnLeft}>
-                <Ionicons name="gift-outline" size={16} color={Colors.sky} />
+                <View style={styles.dailyCheckinIconContainer}>
+                  <Ionicons name="gift-outline" size={16} color={Colors.sky} />
+                  {!dailyCheckinClaimed && (
+                    <View style={styles.dailyCheckinBadge} />
+                  )}
+                </View>
                 <Text style={[styles.dailyCheckinBtnText, { color: colors.text }]}>Daily Check-In</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSec} />
@@ -1801,6 +1809,22 @@ const styles = StyleSheet.create({
   dailyCheckinBtnText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  dailyCheckinIconContainer: {
+    position: 'relative',
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dailyCheckinBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ff4444',
   },
 
 });
