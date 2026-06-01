@@ -48,13 +48,13 @@ export default function SearchResultScreen({
     }
     try {
       setLoading(true);
-      const res = await axios.get(`${API_CONFIG.BASE_URL}/search/live`, {
+      const res = await axios.get(`${API_CONFIG.BASE_URL}/meilisearch/search`, {
         params: { q: query.trim() },
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      if (res.data?.success && Array.isArray(res.data?.data)) {
-        const mapped: ProductCard[] = res.data.data.map((item: any) => ({
+      if (res.data?.success && Array.isArray(res.data?.results)) {
+        const mapped: ProductCard[] = res.data.results.map((item: any) => ({
           id: item.id,
           name: item.name,
           image: item.image || '',
