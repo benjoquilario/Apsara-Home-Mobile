@@ -94,11 +94,14 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         data: Map<String, String>
     ) {
         try {
+            Log.d(TAG, "📢 sendNotification called with deeplink: $deeplink")
             val intent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                action = Intent.ACTION_VIEW
                 putExtra("deeplink", deeplink)
                 putExtra("notification_data", data.toMutableMap() as? android.os.Bundle)
             }
+            Log.d(TAG, "📢 Intent created with deeplink extra: ${intent.getStringExtra("deeplink")}")
 
             val pendingIntent = PendingIntent.getActivity(
                 this,

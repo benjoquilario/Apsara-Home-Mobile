@@ -23,10 +23,12 @@ class MainActivity : ReactActivity() {
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
-    super.onCreate(null)
 
-    // Handle deeplink from notification when app is opened from closed state
+    // Handle deeplink from notification BEFORE React initializes
+    // This ensures React's Linking.getInitialURL() picks up the deeplink
     handleNotificationIntent(intent)
+
+    super.onCreate(null)
   }
 
   /**
@@ -57,13 +59,33 @@ class MainActivity : ReactActivity() {
   }
 
   private fun handleNotificationIntent(intent: Intent?) {
+    Log.d(TAG, "handleNotificationIntent called with intent: $intent")
+    Log.d(TAG, "Intent action before: ${intent?.action}")
+    Log.d(TAG, "Intent data before: ${intent?.data}")
+
     val deeplink = intent?.getStringExtra("deeplink")
+    Log.d(TAG, "Deeplink from extras: $deeplink")
+
     if (!deeplink.isNullOrEmpty()) {
       Log.d(TAG, "Notification deeplink received: $deeplink")
       // Create URI from deeplink string - React Navigation will handle it through app.json config
       val uri = Uri.parse(deeplink)
+      Log.d(TAG, "Parsed URI: $uri")
+      Log.d(TAG, "URI scheme: ${uri.scheme}, host: ${uri.host}, path: ${uri.path}")
+
       intent?.data = uri
-      Log.d(TAG, "Intent data set to: ${intent?.data}")
+      intent?.action = Intent.ACTION_VIEW
+      intent?.addCategory(Intent.CATEGORY_BROWSABLE)
+
+      Log.d(TAG, "Intent data after setting: ${intent?.data}")
+      Log.d(TAG, "Intent action after setting: ${intent?.action}")
+
+      setIntent(intent)
+
+      Log.d(TAG, "After setIntent - getIntent().data: ${getIntent().data}")
+      Log.d(TAG, "After setIntent - getIntent().action: ${getIntent().action}")
+    } else {
+      Log.d(TAG, "⚠️ No deeplink found in intent extras")
     }
   }
 

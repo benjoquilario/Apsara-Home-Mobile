@@ -416,7 +416,10 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
   // Handle deep linking for payment redirects and notification orders
   useEffect(() => {
     const handleDeepLink = async ({ url }: { url: string }) => {
-      console.log('[AppNavigator] Deep link received:', url);
+      console.log('[AppNavigator] 🔗 Deep link received:', url);
+      console.log('[AppNavigator] 🔗 Deep link type:', typeof url);
+      console.log('[AppNavigator] 🔗 Deep link includes purchases://:', url.includes('purchases://'));
+      console.log('[AppNavigator] 🔗 Deep link includes apsarahome://purchases/:', url.includes('apsarahome://purchases/'));
 
       if (url.includes('payment/success') || url.includes('/app/checkout/success')) {
         console.log('[AppNavigator] Payment success deep link triggered:', url);
@@ -515,9 +518,11 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
         const normalized = url.includes('apsarahome://purchases/')
           ? url.replace('apsarahome://purchases/', '')
           : url.replace('purchases://', '');
+        console.log('[AppNavigator] Normalized deeplink:', normalized);
         const parts = normalized.split('/');
         const status = parts[0];
         const checkoutId = parts[1];
+        console.log('[AppNavigator] Parsed deeplink parts:', { status, checkoutId, totalParts: parts.length });
 
         if (checkoutId) {
           console.log('[AppNavigator] Opening purchases screen with order:', { status, checkoutId });
@@ -525,6 +530,8 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
           setPurchasesStatus(normalizePurchaseStatus(status));
           setPurchasesInitialOrderId(checkoutId);
           setShowPurchases(true);
+        } else {
+          console.log('[AppNavigator] ⚠️ No checkout ID found in deeplink:', { normalized, parts });
         }
       } else if (url.includes('/products/') || url.includes('/product/') || url.includes('apsarahome://product') || url.includes('apsarahome://products')) {
         // Parse product link - Formats:
@@ -599,7 +606,11 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
       if (url != null) {
         console.log('[AppNavigator] Initial deep link:', url);
         handleDeepLink({ url });
+      } else {
+        console.log('[AppNavigator] ℹ️ No initial deep link found');
       }
+    }).catch((err) => {
+      console.log('[AppNavigator] ⚠️ Error getting initial URL:', err);
     });
 
     return () => {

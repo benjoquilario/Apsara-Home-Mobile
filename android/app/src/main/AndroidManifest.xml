@@ -38,6 +38,10 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="apsarahome"/>
         <data android:scheme="exp+afhomeph"/>
+        <data android:scheme="purchases"/>
+        <data android:scheme="wallet"/>
+        <data android:scheme="profile"/>
+        <data android:scheme="referral"/>
       </intent-filter>
     </activity>
     <service
