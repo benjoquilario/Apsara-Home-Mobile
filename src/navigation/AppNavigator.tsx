@@ -63,6 +63,7 @@ import Toast from 'react-native-toast-message';
 import { useNotifications } from '../hooks/useNotifications';
 import { useFirebaseMessaging } from '../hooks/useFirebaseMessaging';
 import { NotificationService } from '../services/notificationService';
+import { useWishlist } from '../hooks/useWishlist';
 
 type TabKey = 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
 
@@ -242,7 +243,6 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
   const [referrerProfileData, setReferrerProfileData] = useState<any>(null);
   const [referrerProfileLoading, setReferrerProfileLoading] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [previousTab, setPreviousTab] = useState<TabKey>('home');
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
@@ -325,11 +325,8 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
   const [isInitialHomeDataReady, setIsInitialHomeDataReady] = useState(false);
   const homeInitialFetchRef = useRef(false);
 
-  // Wishlist data - persists across navigation
-  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
-  const [wishlistRefreshing, setWishlistRefreshing] = useState(false);
-  const wishlistInitialFetchRef = useRef(false);
+  // Wishlist data using React Query
+  const { data: wishlistItems = [], isLoading: wishlistLoading, isFetching: wishlistRefreshing, invalidateWishlist } = useWishlist({ token });
 
   // Navigation ref for notification handling
   const navigationRef = useRef<any>(null);
@@ -672,11 +669,6 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
       fetchHomeData();
     }
 
-    // Fetch wishlist data ONCE when token becomes available
-    if (!wishlistInitialFetchRef.current) {
-      wishlistInitialFetchRef.current = true;
-      fetchWishlistData();
-    }
   }, [token, refreshNotificationCount]);
 
   const fetchHomeData = async () => {
@@ -741,40 +733,6 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
     }
   };
 
-  const fetchWishlistData = async (isRefreshing = false) => {
-    if (!token) return;
-
-    const setLoading = isRefreshing ? setWishlistRefreshing : setWishlistLoading;
-
-    // Load from cache first if not refreshing
-    if (!isRefreshing) {
-      try {
-        const cachedWishlist = await cacheUtils.get<any[]>('wishlist_items');
-        if (cachedWishlist) {
-          setWishlistItems(cachedWishlist);
-          setWishlistCount(cachedWishlist.length);
-          console.log('💾 LOADED CACHED WISHLIST');
-        }
-      } catch (error) {
-        console.log('Wishlist cache load error:', error);
-      }
-    }
-
-    // Fetch fresh data in background
-    try {
-      setLoading(true);
-      const data = await productService.getWishlist(token);
-      setWishlistItems(data);
-      setWishlistCount(data.length);
-
-      // Cache the fresh data
-      await cacheUtils.set('wishlist_items', data);
-    } catch (error: any) {
-      console.error('Wishlist fetch error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOpenAffiliateReferralModal = async () => {
     if (!token) {
@@ -970,7 +928,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
 
   const badgeCount: Partial<Record<TabKey, number>> = {
     notification: unreadCount,
-    wishlist: wishlistCount,
+    wishlist: wishlistItems.length,
   };
 
   // Navigation context value for notifications to use
@@ -1017,7 +975,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
               }}
               onWishlistToggle={(productId, isWishlisted) => {
                 // Refresh wishlist data to get complete product details
-                fetchWishlistData();
+                invalidateWishlist();
               }}
               onShopNavigate={(brandType, shopName) => {
                 // Store the current product ID so we can return to it
@@ -1149,7 +1107,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 loading={wishlistLoading}
                 refreshing={wishlistRefreshing}
                 isDarkMode={isDarkMode}
-                onRefresh={() => fetchWishlistData(true)}
+                onRefresh={() => invalidateWishlist()}
                 onProductPress={(id: number) => {
                   setPreviousSearchQuery(null);
                   setPreviousTab(activeTabRef.current);
@@ -1233,7 +1191,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 onCartPress={() => setShowCart(true)}
                 wishlistItems={wishlistItems}
                 isDarkMode={isDarkMode}
-                onWishlistChange={() => fetchWishlistData()}
+                onWishlistChange={() => invalidateWishlist()}
               />
             ) : (
               <ShopScreen
@@ -1263,7 +1221,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 }}
                 wishlistItems={wishlistItems}
                 isDarkMode={isDarkMode}
-                onWishlistChange={() => fetchWishlistData()}
+                onWishlistChange={() => invalidateWishlist()}
               />
             )
           ) : activeTab === 'home' ? (
@@ -1309,7 +1267,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 setLoadingFeatured={setHomeLoadingFeatured}
                 dataFetchedRef={homeInitialFetchRef}
                 wishlistItems={wishlistItems}
-                onWishlistChange={() => fetchWishlistData()}
+                onWishlistChange={() => invalidateWishlist()}
                 onShopByRoomPress={(roomId: number) => {
                   setPreviousTab(activeTabRef.current);
                   setSelectedRoomId(roomId);
@@ -1601,7 +1559,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
               }
             }}
             onWishlistToggle={(productId, isWishlisted) => {
-              fetchWishlistData();
+              invalidateWishlist();
             }}
             onShopNavigate={(brandType, shopName) => {
               setShowShopProductDetail(false);
@@ -1644,7 +1602,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
           <CartScreen
             token={token}
             user={enrichedUser}
-            wishlistCount={wishlistCount}
+            wishlistCount={wishlistItems.length}
             isDarkMode={isDarkMode}
             brands={homeBrands}
             refreshTrigger={cartRefreshTrigger}
