@@ -7,7 +7,9 @@ import {
   ScrollView,
   Animated,
   Image,
+  Modal,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 
 interface DailyCheckinProps {
@@ -22,6 +24,8 @@ const DAY_LABELS = ['Today', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7
 export default function DailyCheckin({ isDarkMode = false, onCheckin }: DailyCheckinProps) {
   const [checkedInDays, setCheckedInDays] = useState<number[]>([]);
   const [scaleAnims] = useState(DAY_LABELS.map(() => new Animated.Value(1)));
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimedReward, setClaimedReward] = useState(0);
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f5f5f5',
@@ -49,33 +53,15 @@ export default function DailyCheckin({ isDarkMode = false, onCheckin }: DailyChe
       ]).start();
 
       setCheckedInDays([...checkedInDays, day]);
+      setClaimedReward(CHECKIN_REWARDS[day - 1]);
+      setShowClaimModal(true);
+
       if (onCheckin) {
         onCheckin(day);
       }
     }
   };
 
-  React.useEffect(() => {
-    const bounceAnims = scaleAnims.map((anim, index) => {
-      const day = index + 1;
-      if (day === 1 && !checkedInDays.includes(1)) {
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(anim, {
-              toValue: 1.05,
-              duration: 500,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim, {
-              toValue: 1,
-              duration: 500,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-      }
-    });
-  }, [checkedInDays, scaleAnims]);
 
   const todayReward = CHECKIN_REWARDS[0];
   const totalPV = CHECKIN_REWARDS.reduce((sum, pv) => sum + pv, 0);
@@ -115,7 +101,7 @@ export default function DailyCheckin({ isDarkMode = false, onCheckin }: DailyChe
                   style={[
                     styles.dayCard,
                     {
-                      backgroundColor: 'transparent',
+                      backgroundColor: isChecked ? Colors.sky + '15' : 'transparent',
                       borderColor: isToday ? Colors.sky : colors.border,
                       borderWidth: 1,
                     },
@@ -124,18 +110,34 @@ export default function DailyCheckin({ isDarkMode = false, onCheckin }: DailyChe
                   disabled={isChecked}
                   activeOpacity={1}
                 >
-                  {/* Reward Badge */}
-                  <View style={styles.rewardBadge}>
-                    <Text style={styles.rewardBadgeText}>+{reward}</Text>
+                  {/* Reward Badge with Check Icon */}
+                  <View style={styles.rewardBadgeContainer}>
+                    <View style={styles.rewardBadge}>
+                      <Text style={styles.rewardBadgeText}>+{reward}</Text>
+                    </View>
+                    {isChecked && (
+                      <View style={styles.checkIconContainer}>
+                        <Ionicons name="checkmark-circle" size={16} color={Colors.sky} />
+                      </View>
+                    )}
                   </View>
 
-                  {/* Coin Image */}
-                  <View style={styles.coinContainer}>
-                    <Image
-                      source={day <= 6 ? require('../../../assets/coin_1.png') : require('../../../assets/coin_2.png')}
-                      style={styles.coinImage}
-                      resizeMode="contain"
-                    />
+                  {/* Coin Image with Glow */}
+                  <View style={[
+                    styles.coinGlowContainer,
+                    {
+                      backgroundColor: isChecked
+                        ? Colors.sky + '35'
+                        : day === 7 ? Colors.sky + '25' : Colors.sky + '10',
+                    }
+                  ]}>
+                    <View style={styles.coinContainer}>
+                      <Image
+                        source={day <= 6 ? require('../../../assets/coin_1.png') : require('../../../assets/coin_2.png')}
+                        style={styles.coinImage}
+                        resizeMode="contain"
+                      />
+                    </View>
                   </View>
                 </TouchableOpacity>
 
@@ -162,7 +164,8 @@ export default function DailyCheckin({ isDarkMode = false, onCheckin }: DailyChe
         onPress={() => handleCheckin(1)}
         disabled={checkedInDays.includes(1)}
       >
-        <Text style={styles.checkinButtonText}>Check in to get total of {totalPV} PV</Text>
+        <Ionicons name="flash" size={16} color={Colors.sky} />
+        <Text style={styles.checkinButtonText}>Claim +{todayReward} PV Points</Text>
       </TouchableOpacity>
     </View>
   );
@@ -214,11 +217,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
+  coinGlowContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 50,
+    height: 50,
+    borderRadius: 50,
+    padding: 6,
+  },
   coinContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 36,
     height: 36,
+    backgroundColor: Colors.white,
+    borderRadius: 18,
   },
   coinImage: {
     width: 36,
@@ -229,19 +242,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  rewardBadge: {
+  rewardBadgeContainer: {
     position: 'absolute',
     top: 8,
     alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0,
+    zIndex: 10,
+  },
+  rewardBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Colors.sky,
-    zIndex: 10,
+    backgroundColor: 'transparent',
   },
   rewardBadgeText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.sky,
   },
@@ -251,10 +268,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   checkinButtonText: {
     fontSize: 15,
     fontWeight: '700',
     color: Colors.sky,
+  },
+  checkIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
