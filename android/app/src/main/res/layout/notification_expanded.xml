@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="?android:attr/textColorPrimary"
+        android:textColor="@color/notification_text_primary"
         android:layout_marginBottom="4dp" />
 
     <!-- Body -->
@@ -25,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"
-        android:textColor="?android:attr/textColorSecondary"
+        android:textColor="@color/notification_text_secondary"
         android:layout_marginBottom="8dp" />
 
     <ImageView
