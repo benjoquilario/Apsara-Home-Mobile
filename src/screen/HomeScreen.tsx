@@ -64,19 +64,19 @@ interface HomeScreenProps {
 interface RoomType {
   room_id: number;
   room_name: string;
-  images: string[];
+  image: string;
   count: number;
 }
 
 const FALLBACK_ROOMS: RoomType[] = [
-  { room_id: 1, room_name: 'Bedroom',           images: [], count: 0 },
-  { room_id: 2, room_name: 'Kitchen',            images: [], count: 0 },
-  { room_id: 3, room_name: 'Living Room',        images: [], count: 0 },
-  { room_id: 4, room_name: 'Outdoor',            images: [], count: 0 },
-  { room_id: 5, room_name: 'Study & Office',     images: [], count: 0 },
-  { room_id: 6, room_name: 'Dining Room',        images: [], count: 0 },
-  { room_id: 7, room_name: 'Laundry Room',       images: [], count: 0 },
-  { room_id: 8, room_name: 'Bath Room',          images: [], count: 0 },
+  { room_id: 1, room_name: 'Bedroom',           image: '', count: 0 },
+  { room_id: 2, room_name: 'Kitchen',            image: '', count: 0 },
+  { room_id: 3, room_name: 'Living Room',        image: '', count: 0 },
+  { room_id: 4, room_name: 'Outdoor',            image: '', count: 0 },
+  { room_id: 5, room_name: 'Study & Office',     image: '', count: 0 },
+  { room_id: 6, room_name: 'Dining Room',        image: '', count: 0 },
+  { room_id: 7, room_name: 'Laundry Room',       image: '', count: 0 },
+  { room_id: 8, room_name: 'Bath Room',          image: '', count: 0 },
 ];
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -86,16 +86,10 @@ function sortByOrder(items: CategoryItem[]) {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-function getCategoryImage(category: CategoryItem) {
-  if (category.image) return category.image;
-  const seed = encodeURIComponent(category.url || category.name);
-  return `https://picsum.photos/seed/${seed}/240/240`;
-}
-
 function getCategoryImages(category: CategoryItem) {
-  const images = (category.images ?? []).filter(Boolean);
-  if (images.length > 0) return images;
-  return [getCategoryImage(category)];
+  if (category.image) return [category.image];
+  const seed = encodeURIComponent(category.url || category.name);
+  return [`https://picsum.photos/seed/${seed}/240/240`];
 }
 
 function getBrandImage(brand: BrandItem) {
@@ -253,9 +247,9 @@ function RoomItemComponent({ item, onPress, isDarkMode, colors }: { item: RoomTy
       >
         <View style={styles.roomCircleContainer}>
           <View style={[styles.roomCircleWrap, { borderColor: isDarkMode ? colors?.border : '#e0f2fe' }]}>
-            {item.images && item.images.length > 0 ? (
+            {item.image ? (
               <Image
-                source={{ uri: item.images[0] }}
+                source={{ uri: item.image }}
                 style={styles.roomImage}
                 resizeMode="cover"
               />
