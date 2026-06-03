@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   BackHandler,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -173,25 +174,27 @@ export default function OrderSuccessScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: Colors.white }]}>
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.headerGradient, { paddingTop: insets.top }]}
-      >
-        <View style={styles.header}>
+      {/* Header with Background Image */}
+      <View style={styles.headerBackground}>
+        <Image
+          source={require('../../assets/purchases_bg.png')}
+          style={styles.headerBackgroundImage}
+          resizeMode="cover"
+        />
+        <View style={[styles.headerContent, { paddingTop: insets.top, paddingRight: 12 }]}>
           <TouchableOpacity
             style={styles.headerIcon}
             onPress={onBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back-outline" size={20} color={Colors.text} />
+            <Ionicons name="chevron-back-outline" size={24} color={Colors.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Summary</Text>
-          <View style={{ width: 38 }} />
+          <View style={styles.headerInfo}>
+            <Text style={[styles.headerTitle, { color: Colors.white }]}>Order Summary</Text>
+          </View>
+          <View style={{ width: 40 }} />
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Content */}
       <ScrollView
@@ -357,32 +360,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  headerGradient: {
-    paddingTop: 12,
-    paddingBottom: 16,
+  headerBackground: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 100,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
-  header: {
+  headerBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   headerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
+    width: 40,
+    height: 40,
     justifyContent: 'center',
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    alignItems: 'center',
+  },
+  headerInfo: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: Colors.text,
   },
   scrollContent: {
     padding: 0,
