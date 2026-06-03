@@ -1199,6 +1199,10 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
               onShowPVEarner={(show) => setShowPVEarnerFromTab(show)}
               wishlistItems={wishlistItems}
               onWishlistChange={invalidateWishlist}
+              onProductPress={(id) => {
+                setPreviousSearchQuery(null);
+                setSelectedProductId(id);
+              }}
             />
           ) : activeTab === 'shop' ? (
             selectedBrandId != null && selectedBrand ? (
