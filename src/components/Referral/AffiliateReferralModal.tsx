@@ -13,6 +13,7 @@ import {
   BackHandler,
   Animated,
   PanResponder,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,7 @@ interface AffiliateReferralModalProps {
   referralTree?: ReferralTree | null;
   isDarkMode?: boolean;
   onViewNetwork?: () => void;
+  loading?: boolean;
 }
 
 export default function AffiliateReferralModal({
@@ -42,6 +44,7 @@ export default function AffiliateReferralModal({
   referralTree,
   isDarkMode = false,
   onViewNetwork,
+  loading = false,
 }: AffiliateReferralModalProps) {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -169,6 +172,13 @@ export default function AffiliateReferralModal({
           </View>
         </View>
 
+        {loading && (
+          <View style={[styles.loadingContainer, { backgroundColor: colors.bg }]}>
+            <ActivityIndicator size="large" color={Colors.sky} />
+          </View>
+        )}
+
+        {!loading && (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.content, { backgroundColor: colors.bg }]}
@@ -253,6 +263,7 @@ export default function AffiliateReferralModal({
           </View>
 
         </ScrollView>
+        )}
       </Animated.View>
     </View>
   );
@@ -301,6 +312,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 300,
   },
   closeBtn: {
     width: 36,
