@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, LogBox, Linking, Modal } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 
 // Suppress the "Text strings must be rendered within a <Text> component" error
 LogBox.ignoreLogs(['Text strings must be rendered within a <Text> component']);
@@ -302,7 +303,9 @@ export default function App() {
         ) : !hasOnboarded ? (
           <OnboardingScreen onDone={handleOnboardingDone} />
         ) : authenticated ? (
-          <AppNavigator user={authUser} token={authToken} onLogout={logout} productSlugFromDeepLink={productSlugFromDeepLink} onProductDeepLinkHandled={() => setProductSlugFromDeepLink(null)} />
+          <NavigationContainer>
+            <AppNavigator user={authUser} token={authToken} onLogout={logout} productSlugFromDeepLink={productSlugFromDeepLink} onProductDeepLinkHandled={() => setProductSlugFromDeepLink(null)} />
+          </NavigationContainer>
         ) : (
           <>
             {renderAuth()}
