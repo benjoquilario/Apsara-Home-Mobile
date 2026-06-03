@@ -52,6 +52,7 @@ interface ShopScreenProps {
   onOpenSearch?: () => void;
   wishlistItems?: any[];
   onWishlistChange?: () => void;
+  onWishlistToggle?: (productId: number, isWishlisted: boolean, productData?: any) => void;
   isDarkMode?: boolean;
 }
 
@@ -70,6 +71,7 @@ function ShopScreen({
   onOpenSearch = () => {},
   wishlistItems = [],
   onWishlistChange = () => {},
+  onWishlistToggle,
   isDarkMode = false,
 }: ShopScreenProps) {
   const shopScreenLoadStartRef = useRef(Date.now());
@@ -395,6 +397,8 @@ function ShopScreen({
       memberPrice: item.priceMember,
       pv: item.prodpv,
       brandName: item.brand,
+      avgRating: item.avgRating,
+      qty: item.qty,
       variantCount: item.variants?.length ?? 0,
       categoryId: item.catid,
       brandId: item.brandType,
@@ -414,11 +418,11 @@ function ShopScreen({
           onPress={(product) => onProductPress(product.id)}
           isWishlisted={!!wishlistItem}
           wishlistId={wishlistItem?.wishlist_id}
-          onWishlistToggle={onWishlistChange}
+          onWishlistToggle={onWishlistToggle || (() => onWishlistChange())}
         />
       </View>
     );
-  }, [wishlistItems, token, isDarkMode, onProductPress, onWishlistChange]);
+  }, [wishlistItems, token, isDarkMode, onProductPress, onWishlistChange, onWishlistToggle]);
 
   const renderLoadingPlaceholders = () => {
     const dummyProducts = Array.from({ length: 6 }, (_, i) => ({
@@ -473,64 +477,8 @@ function ShopScreen({
 
   const renderHeader = () => (
     <View style={[styles.filterInfoContainer, { backgroundColor: isDarkMode ? '#1e293b' : 'transparent' }]}>
-      <View style={styles.viewToggleWrapper}>
-        <TouchableOpacity
-          style={[
-            styles.viewToggleButton,
-            { backgroundColor: isDarkMode && viewType !== 'grid' ? colors.buttonBg : 'transparent' },
-            viewType === 'grid' && styles.viewToggleButtonActive,
-          ]}
-          onPress={() => setViewType('grid')}
-        >
-          <Ionicons
-            name="apps-outline"
-            size={14}
-            color={viewType === 'grid' ? Colors.white : colors.text}
-          />
-          <Text
-            style={[
-              styles.viewToggleText,
-              { color: viewType === 'grid' ? Colors.white : colors.text },
-              viewType === 'grid' && styles.viewToggleTextActive,
-            ]}
-          >
-            Card
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.viewToggleButton,
-            styles.viewToggleButtonLast,
-            { backgroundColor: isDarkMode && viewType !== 'list' ? colors.buttonBg : 'transparent' },
-            viewType === 'list' && styles.viewToggleButtonActive,
-          ]}
-          onPress={() => setViewType('list')}
-        >
-          <Ionicons
-            name="reader-outline"
-            size={14}
-            color={viewType === 'list' ? Colors.white : colors.text}
-          />
-          <Text
-            style={[
-              styles.viewToggleText,
-              { color: viewType === 'list' ? Colors.white : colors.text },
-              viewType === 'list' && styles.viewToggleTextActive,
-            ]}
-          >
-            List
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.productCountContainer}>
-        <Text style={[styles.productCountInfo, { color: colors.textSec }]}>
-          {paginationInfo.startProduct} to {paginationInfo.endProduct} of {paginationInfo.total} products
-        </Text>
-        {isTransitioning && (
-          <ActivityIndicator size="small" color={Colors.sky} style={styles.filterLoadingIndicator} />
-        )}
-      </View>
+      <View style={styles.viewToggleWrapper} />
+      <View style={styles.productCountContainer} />
     </View>
   );
 
@@ -677,7 +625,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderBottomWidth: 0,
     paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingVertical: 4,
     gap: 8,
   },
   viewToggleWrapper: {
