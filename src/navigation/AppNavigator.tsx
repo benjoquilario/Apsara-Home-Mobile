@@ -1203,6 +1203,10 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 setPreviousSearchQuery(null);
                 setSelectedProductId(id);
               }}
+              onShopNavigate={() => {
+                setPreviousTab('profile');
+                setActiveTab('shop');
+              }}
             />
           ) : activeTab === 'shop' ? (
             selectedBrandId != null && selectedBrand ? (
