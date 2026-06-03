@@ -248,7 +248,7 @@ export default function SearchScreen({ onBack, token, onProductPress, onSearchSu
             />
             {hasQuery ? (
               <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                <Ionicons name="close-circle" size={16} color={Colors.white} />
               </TouchableOpacity>
             ) : (
               <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
