@@ -60,10 +60,14 @@ function ItemCard({
   const [imageError, setImageError] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuScaleAnim = useRef(new Animated.Value(0)).current;
+  const lastClickTimeRef = useRef(0);
 
-  // Sync incoming isWishlisted prop to local state
+  // Sync incoming isWishlisted prop, but only if user didn't just click (avoid override)
   useEffect(() => {
-    setWishlisted(isWishlisted);
+    const now = Date.now();
+    if (now - lastClickTimeRef.current > 100) {
+      setWishlisted(isWishlisted);
+    }
   }, [isWishlisted]);
 
   useEffect(() => {
@@ -110,30 +114,35 @@ function ItemCard({
   const activeBadges = useMemo(() => BADGE_CONFIG.filter(b => product.badges[b.key]), [product.badges]);
 
   const handleWishlistToggle = useCallback(async () => {
-    if (!token) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Please log in to add items to wishlist',
-      });
+    if (!token || isTogglingWishlist) {
+      if (!token) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Please log in to add items to wishlist',
+        });
+      }
       return;
     }
 
     const previousWishlistState = wishlisted;
+    const newWishlistedState = !wishlisted;
 
+    // Optimistic update - update immediately before anything else
+    lastClickTimeRef.current = Date.now();
+    setWishlisted(newWishlistedState);
+    setIsTogglingWishlist(true);
+
+    // Call callback after state update
+    onWishlistToggle?.(product.id, newWishlistedState, product);
+
+    // API call happens in background without blocking UI
     try {
-      // Optimistic update - immediately update UI
-      setWishlisted(!wishlisted);
-      onWishlistToggle?.(product.id, !wishlisted);
-
-      // Make API call in background
       if (previousWishlistState) {
-        // Remove from wishlist - DELETE request using product_id
         await axios.delete(`${API_CONFIG.BASE_URL}/wishlist/${product.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        // Add to wishlist - POST request
         await axios.post(
           `${API_CONFIG.BASE_URL}/wishlist`,
           { product_id: product.id },
@@ -142,7 +151,7 @@ function ItemCard({
       }
 
       // Track wishlist behavior
-      const behaviorType = !wishlisted ? 'wishlist_add' : 'wishlist_remove';
+      const behaviorType = newWishlistedState ? 'wishlist_add' : 'wishlist_remove';
       console.log('📊 Tracking behavior:', {
         behaviorType,
         productId: product.id,
@@ -154,15 +163,17 @@ function ItemCard({
       });
     } catch (error: any) {
       console.error('Error toggling wishlist:', error);
+      // Revert optimistic update on error
+      setWishlisted(previousWishlistState);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: wishlisted ? 'Failed to remove from wishlist' : 'Failed to add to wishlist',
+        text2: previousWishlistState ? 'Failed to remove from wishlist' : 'Failed to add to wishlist',
       });
     } finally {
       setIsTogglingWishlist(false);
     }
-  }, [token, product.id, wishlisted, onWishlistToggle]);
+  }, [token, product.id, wishlisted, onWishlistToggle, isTogglingWishlist]);
 
   const handlePress = () => {
     console.log(`👆 ItemCard pressed: ${product.name} (ID: ${product.id})`);
