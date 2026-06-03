@@ -323,7 +323,24 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
   const homeInitialFetchRef = useRef(false);
 
   // Wishlist data using React Query
-  const { data: wishlistItems = [], isLoading: wishlistLoading, isFetching: wishlistRefreshing, invalidateWishlist } = useWishlist({ token });
+  const { data: wishlistData = [], isLoading: wishlistLoading, isFetching: wishlistRefreshing, invalidateWishlist } = useWishlist({ token });
+
+  // Optimistic wishlist updates
+  const [optimisticWishlistUpdates, setOptimisticWishlistUpdates] = useState<Record<number, any>>({});
+  const wishlistItems = useMemo(() => {
+    const itemsMap = new Map(wishlistData.map(item => [item.product_id, item]));
+
+    // Apply optimistic updates
+    Object.entries(optimisticWishlistUpdates).forEach(([productId, update]) => {
+      if (update.isAdded) {
+        itemsMap.set(Number(productId), update.item);
+      } else {
+        itemsMap.delete(Number(productId));
+      }
+    });
+
+    return Array.from(itemsMap.values());
+  }, [wishlistData, optimisticWishlistUpdates]);
 
   // Navigation ref for notification handling
   const navigationRef = useRef<any>(null);
@@ -799,6 +816,41 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
     }
   };
 
+  // Optimistic wishlist toggle handler
+  const handleOptimisticWishlistToggle = useCallback((productId: number, isWishlisted: boolean, productData?: any) => {
+    if (isWishlisted) {
+      // Adding to wishlist - construct proper WishlistItem structure
+      const newItem = {
+        wishlist_id: Date.now(), // Temporary ID
+        product_id: productId,
+        date_added: new Date().toISOString(),
+        product: {
+          id: productData?.id || productId,
+          name: productData?.name || '',
+          brand: productData?.brandName || productData?.brand || '',
+          image: productData?.image || '',
+          priceSrp: productData?.originalPrice || productData?.priceSrp || 0,
+          priceMember: productData?.memberPrice || productData?.priceMember || 0,
+          avgRating: productData?.avgRating || 0,
+          qty: productData?.qty || 1,
+          prodpv: productData?.pv || productData?.prodpv || 0,
+        },
+      };
+      setOptimisticWishlistUpdates(prev => ({
+        ...prev,
+        [productId]: { isAdded: true, item: newItem },
+      }));
+    } else {
+      // Removing from wishlist
+      setOptimisticWishlistUpdates(prev => ({
+        ...prev,
+        [productId]: { isAdded: false },
+      }));
+    }
+    // Refetch in background to sync with server
+    invalidateWishlist();
+  }, [invalidateWishlist]);
+
   useEffect(() => {
     if (!searchVisible) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -1011,6 +1063,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 wishlistRefreshing,
                 invalidateWishlist,
                 onWishlistChange: () => invalidateWishlist(),
+                handleOptimisticWishlistToggle,
                 homeCategories,
                 setHomeCategories,
                 homeBrands,
