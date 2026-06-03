@@ -51,7 +51,7 @@ export default function SearchScreen({ onBack, token, onProductPress, onSearchSu
   const insets = useSafeAreaInsets();
 
   const colors = {
-    bg: isDarkMode ? '#0f172a' : '#f0f9ff',
+    bg: isDarkMode ? '#0f172a' : '#f5f5f5',
     headerBg: isDarkMode ? '#1f2937' : Colors.white,
     text: isDarkMode ? '#f8fafc' : Colors.text,
     textSecondary: isDarkMode ? '#9ca3af' : Colors.textSecondary,
@@ -223,37 +223,44 @@ export default function SearchScreen({ onBack, token, onProductPress, onSearchSu
 
   return (
     <Animated.View style={[styles.root, isDarkMode && styles.rootDark, { transform: [{ translateX: slideAnim }] }]}>
-      <View style={[styles.header, isDarkMode && styles.headerDark, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
-        </TouchableOpacity>
+      <View style={styles.headerBackground}>
+        <Image
+          source={require('../../assets/header_bg.png')}
+          style={styles.headerBackgroundImage}
+          resizeMode="cover"
+        />
+        <View style={[styles.header, { paddingTop: insets.top + 10, paddingHorizontal: 12 }]}>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
 
-        <View style={[styles.searchWrapper, isDarkMode && styles.searchWrapperDark]}>
-          <Ionicons name="search-outline" size={16} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            ref={inputRef}
-            style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => submitSearch(query)}
-            placeholder="Search products..."
-            placeholderTextColor={colors.textSecondary}
-            returnKeyType="search"
-          />
-          {hasQuery ? (
-            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
-              <Ionicons name="camera-outline" size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
+          <View style={[styles.searchWrapper, isDarkMode && styles.searchWrapperDark]}>
+            <Ionicons name="search-outline" size={16} color={colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              ref={inputRef}
+              style={[styles.searchInput, isDarkMode && styles.searchInputDark]}
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => submitSearch(query)}
+              placeholder="Search products..."
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="search"
+            />
+            {hasQuery ? (
+              <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+                <Ionicons name="camera-outline" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity onPress={handleBack} style={styles.cancelBtn} activeOpacity={0.7}>
+            <Text style={[styles.cancelText, { color: Colors.white }]}>Cancel</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity onPress={handleBack} style={styles.cancelBtn} activeOpacity={0.7}>
-          <Text style={[styles.cancelText, isDarkMode && styles.cancelTextDark]}>Cancel</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -407,19 +414,37 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     zIndex: 100,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingBottom: 10,
-    gap: 8,
+  headerBackground: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 90,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    backgroundColor: Colors.white,
+  },
+  headerBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 10,
+    gap: 8,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -430,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    borderRadius: 20,
+    borderRadius: 8,
     paddingHorizontal: 12,
     height: 40,
   },
@@ -598,7 +623,7 @@ const styles = StyleSheet.create({
   recsSection: {
     paddingHorizontal: 8,
     paddingVertical: 16,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#f5f5f5',
   },
   recsTitleRow: {
     flexDirection: 'row',
