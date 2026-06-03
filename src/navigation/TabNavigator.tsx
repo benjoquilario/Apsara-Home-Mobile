@@ -168,7 +168,7 @@ function WishlistTabScreen() {
 
 // Shop Tab Screen Wrapper
 function ShopTabScreen() {
-  const { token, enrichedUser, isDarkMode, cartCount, homeCategories, homeBrands, wishlistItems, onWishlistChange, selectedBrandId, selectedBrand, setSelectedBrandId, setSelectedBrand, selectedRoomId, selectedCategoryId, setSelectedRoomId, setSelectedCategoryId, shopSourceIsCart, setShopSourceIsCart, shopSourceIsCheckout, setShopSourceIsCheckout, shopSourceProductId, setShopSourceProductId, previousTab, setActiveTab, onProductPress, onCartPress, onSearchPress } = useAppContext();
+  const { token, enrichedUser, isDarkMode, cartCount, homeCategories, homeBrands, wishlistItems, onWishlistChange, handleOptimisticWishlistToggle, selectedBrandId, selectedBrand, setSelectedBrandId, setSelectedBrand, selectedRoomId, selectedCategoryId, setSelectedRoomId, setSelectedCategoryId, shopSourceIsCart, setShopSourceIsCart, shopSourceIsCheckout, setShopSourceIsCheckout, shopSourceProductId, setShopSourceProductId, previousTab, setActiveTab, onProductPress, onCartPress, onSearchPress } = useAppContext();
 
   return (
     <View style={{ flex: 1 }}>
@@ -220,6 +220,7 @@ function ShopTabScreen() {
           wishlistItems={wishlistItems}
           isDarkMode={isDarkMode}
           onWishlistChange={onWishlistChange}
+          onWishlistToggle={handleOptimisticWishlistToggle}
         />
       )}
     </View>
