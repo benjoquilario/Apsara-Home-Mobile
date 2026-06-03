@@ -286,10 +286,57 @@ export const productService = {
     };
 
     try {
-      const response = await api.get('/shop/rooms', { headers });
-      return response.data?.rooms || [];
+      const response = await api.get('/home/shop/rooms', { headers });
+      return (response.data?.rooms || []).map((room: any) => ({
+        room_id: room.id,
+        room_name: room.name,
+        image: room.image,
+        count: 0,
+      }));
     } catch (error) {
       console.error('Error fetching shop by rooms:', error);
+      return [];
+    }
+  },
+
+  async getShopByCategories(token?: string): Promise<any[]> {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+
+    try {
+      const response = await api.get('/home/shop/categories', { headers });
+      return (response.data?.categories || []).map((category: any) => ({
+        id: category.id,
+        name: category.name,
+        image: category.image,
+        url: category.url,
+      }));
+    } catch (error) {
+      console.error('Error fetching shop by categories:', error);
+      return [];
+    }
+  },
+
+  async getShopByBrands(token?: string): Promise<any[]> {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+
+    try {
+      const response = await api.get('/home/shop/brands', { headers });
+      return (response.data?.brands || [])
+        .filter((brand: any) => brand.total_products > 0)
+        .map((brand: any) => ({
+          id: brand.id,
+          name: brand.name,
+          image: brand.image,
+          total_products: brand.total_products,
+        }));
+    } catch (error) {
+      console.error('Error fetching shop by brands:', error);
       return [];
     }
   },
