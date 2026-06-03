@@ -66,6 +66,8 @@ interface ProfileScreenProps {
   onShowAFWalletRewards?: () => void;
   onShowAFWalletNetwork?: () => void;
   onShowPVEarner?: (show: boolean) => void;
+  wishlistItems?: any[];
+  onWishlistChange?: () => void;
 }
 
 const REFERRAL_STATS = [
@@ -100,7 +102,7 @@ const MENU_ITEMS = [
   { icon: 'log-out-outline' as const, label: 'Log Out', chevron: false, danger: true, key: 'logout' },
 ];
 
-export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token, onShowProfileDetails, onShowReferralNetwork, closeReferralNetwork, isDarkMode = false, onPurchaseItemClick, linkedAccountsRefreshTrigger, onSecuritySettingsPress, onShowAFWalletOverview, onShowAFWalletVoucher, onShowAFWalletRewards, onShowAFWalletNetwork, onShowPVEarner }: ProfileScreenProps) {
+export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token, onShowProfileDetails, onShowReferralNetwork, closeReferralNetwork, isDarkMode = false, onPurchaseItemClick, linkedAccountsRefreshTrigger, onSecuritySettingsPress, onShowAFWalletOverview, onShowAFWalletVoucher, onShowAFWalletRewards, onShowAFWalletNetwork, onShowPVEarner, wishlistItems = [], onWishlistChange = () => {} }: ProfileScreenProps) {
   console.log('[ProfileScreen] Component mounted/updated', {
     userEmail: user?.email,
     hasToken: !!token,
@@ -1012,9 +1014,16 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
         <View style={styles.profileDetailsOverlay}>
           <PVEarnerScreen
             isDarkMode={isDarkMode}
+            token={token}
+            wishlistItems={wishlistItems}
+            onWishlistChange={onWishlistChange}
             onBack={() => setShowPVEarner(false)}
             onDailyCheckin={() => {
               setShowPVEarner(false);
+            }}
+            onProductPress={(id) => {
+              setShowPVEarner(false);
+              console.log('Product pressed:', id);
             }}
           />
         </View>
