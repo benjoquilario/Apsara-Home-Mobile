@@ -232,6 +232,12 @@ export default function AppHeader({
         style={styles.headerBackgroundImage}
         resizeMode="cover"
       />
+      <LinearGradient
+        colors={['rgba(2, 132, 199, 0.85)', 'rgba(0, 100, 150, 0.9)']}
+        style={styles.headerOverlay}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       <View style={[styles.headerContent, { paddingTop: insets.top }]}>
         {/* <MarqueeBanner isDarkMode={isDarkMode} /> */}
 
@@ -411,6 +417,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: '100%',
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
   },
   headerContent: {
     position: 'absolute',
