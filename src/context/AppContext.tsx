@@ -67,6 +67,7 @@ export interface AppContextType {
   setHomeLoadingFeatured: (loading: boolean) => void;
   isInitialHomeDataReady: boolean;
   homeInitialFetchRef: React.MutableRefObject<boolean>;
+  refreshHomeData: () => Promise<void>;
 
   // Navigation State
   activeTab: 'home' | 'wishlist' | 'shop' | 'notification' | 'profile' | 'settings';
