@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking, Share, Clipboard, Modal, ActivityIndicator,
+  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Platform, Linking, Share, Clipboard, Modal, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -141,6 +141,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   const [walletData, setWalletData] = useState<any>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [dailyCheckinClaimed, setDailyCheckinClaimed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const photoUrl = user?.avatar_url ?? null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : '?';
   const firstName = user?.name?.split(' ')[0] ?? 'User';
@@ -329,6 +330,20 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
     }
   };
 
+  const handleRefresh = async () => {
+    if (!token || refreshing) return;
+
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchOrderCounts(),
+        fetchReferralTree(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleViewNetwork = async () => {
     if (!token) {
       Toast.show({
@@ -435,6 +450,14 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[Colors.sky]}
+            tintColor={Colors.sky}
+          />
+        }
       >
         {/* Security Settings Banner */}
         {showSecurityBanner && (!biometricEnabled || !googleLinked) && (
