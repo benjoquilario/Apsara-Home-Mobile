@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ImageBackground,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -47,7 +48,8 @@ export default function LeaderboardScreen({
   onClose?: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'team' | 'local' | 'global'>('local');
+  const [activeScope, setActiveScope] = useState<'team' | 'local' | 'global'>('team');
+  const [activeMetric, setActiveMetric] = useState<'earnings' | 'referrals'>('earnings');
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f5f5f5',
@@ -58,8 +60,26 @@ export default function LeaderboardScreen({
     accentGreen: '#4ade80',
   };
 
-  const topThree = TOP_EARNERS.slice(0, 3);
-  const restRankings = TOP_EARNERS.slice(3);
+  // Sample data - earnings based
+  const earningsData = TOP_EARNERS;
+
+  // Sample data - referrals based (different order)
+  const referralsData = [
+    { rank: 1, name: 'Alana Bator', handle: '@alanabator', earnings: 45, avatar: '👩‍🦰' },
+    { rank: 2, name: 'Jordyn Kenter', handle: '@jordynkenter', earnings: 38, avatar: '👨‍💼' },
+    { rank: 3, name: 'Carl Oliver', handle: '@carloliver', earnings: 35, avatar: '👨‍🦱' },
+    { rank: 4, name: 'Makenna George', handle: '@makeanna', earnings: 28, avatar: '👩‍💼' },
+    { rank: 5, name: 'Davis Curtis', handle: '@daviscurtis', earnings: 25, avatar: '👨‍💻' },
+    { rank: 6, name: 'Isona Othid', handle: '@isonaothid', earnings: 22, avatar: '👩‍🔬' },
+    { rank: 7, name: 'Kianna Batista', handle: '@kiannabatista', earnings: 20, avatar: '👩‍🎤' },
+    { rank: 8, name: 'Maxith Cullep', handle: '@maxith', earnings: 18, avatar: '👨‍🏫' },
+    { rank: 9, name: 'Zain Dias', handle: '@zaindias', earnings: 12, avatar: '👨‍🎨' },
+  ];
+
+  const displayData = activeMetric === 'earnings' ? earningsData : referralsData;
+  const topThree = displayData.slice(0, 3);
+  const restRankings = displayData.slice(3);
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -74,59 +94,97 @@ export default function LeaderboardScreen({
             <Ionicons name="chevron-back" size={24} color={Colors.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Leaderboard</Text>
-          <View style={styles.headerPlaceholder} />
+          <TouchableOpacity style={styles.menuBtn}>
+            <Ionicons name="menu" size={24} color={Colors.white} />
+          </TouchableOpacity>
         </View>
       </ImageBackground>
 
-      {/* Tab Buttons */}
-      <View style={[styles.tabContainer, { borderBottomColor: colors.border }]}>
-        {(['team', 'local', 'global'] as const).map((tab) => (
+      {/* Scope Tabs - Hidden For Now */}
+      {false && (
+        <View style={[styles.scopeTabContainer, { backgroundColor: colors.headerBg, borderColor: colors.border }]}>
           <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tabButton,
-              activeTab === tab && [styles.tabButtonActive, { backgroundColor: '#ef4444' }],
-            ]}
-            onPress={() => setActiveTab(tab)}
+            style={[styles.scopeTabButton, activeScope === 'team' && styles.scopeTabButtonActive]}
+            onPress={() => setActiveScope('team')}
+            activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.tabButtonText,
-                { color: activeTab === tab ? Colors.white : colors.textSec },
-              ]}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            <Text style={[styles.scopeTabButtonText, { color: activeScope === 'team' ? Colors.white : colors.text }]}>
+              Team
             </Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <TouchableOpacity
+            style={[styles.scopeTabButton, activeScope === 'local' && styles.scopeTabButtonActive]}
+            onPress={() => setActiveScope('local')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.scopeTabButtonText, { color: activeScope === 'local' ? Colors.white : colors.text }]}>
+              Local
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.scopeTabButton, activeScope === 'global' && styles.scopeTabButtonActive]}
+            onPress={() => setActiveScope('global')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.scopeTabButtonText, { color: activeScope === 'global' ? Colors.white : colors.text }]}>
+              Global
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Top 3 Rankings */}
         <View style={styles.topThreeContainer}>
-          {topThree.map((entry, index) => (
-            <View key={entry.rank} style={[styles.topCard, { backgroundColor: colors.headerBg }]}>
-              <View style={styles.medalBadge}>
-                <Text style={styles.medalEmoji}>{getMedalIcon(entry.rank)}</Text>
-              </View>
-              <View style={styles.topCardAvatar}>
-                <Text style={styles.avatarEmoji}>{entry.avatar}</Text>
-              </View>
-              <Text style={[styles.topCardName, { color: colors.text }]}>{entry.name.split(' ')[0]}</Text>
-              <Text style={[styles.topCardEarnings, { color: colors.accentGreen }]}>
-                ₱{entry.earnings.toLocaleString()}
-              </Text>
-              <View style={[styles.rankBadge, { backgroundColor: MEDAL_COLORS[entry.rank] }]}>
-                <Text style={styles.rankBadgeText}>#{entry.rank}</Text>
-              </View>
+          {/* 2nd Place - Left */}
+          <View style={styles.topCardWrapper}>
+            <View style={styles.topCardBorder}>
+              <LinearGradient colors={['rgba(232, 232, 232, 0)', 'rgba(192, 192, 192, 0.5)', '#808080']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.topCard, styles.topCardSecond]}>
+              </LinearGradient>
             </View>
-          ))}
+            <Text style={[styles.topCardName, styles.topCardNameLarge, { color: colors.text }]}>
+              {topThree[1].name.split(' ')[0]}
+            </Text>
+            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.accentGreen }]}>
+              ₱{topThree[1].earnings.toLocaleString()}
+            </Text>
+          </View>
+
+          {/* 1st Place - Center */}
+          <View style={styles.topCardWrapper}>
+            <View style={styles.topCardBorder}>
+              <LinearGradient colors={['rgba(255, 244, 176, 0)', 'rgba(255, 215, 0, 0.5)', '#B8860B']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.topCard, styles.topCardFirst]}>
+              </LinearGradient>
+            </View>
+            <Text style={[styles.topCardName, styles.topCardNameLarge, { color: colors.text }]}>
+              {topThree[0].name.split(' ')[0]}
+            </Text>
+            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.accentGreen }]}>
+              ₱{topThree[0].earnings.toLocaleString()}
+            </Text>
+          </View>
+
+          {/* 3rd Place - Right */}
+          <View style={styles.topCardWrapper}>
+            <View style={styles.topCardBorder}>
+              <LinearGradient colors={['rgba(230, 161, 92, 0)', 'rgba(205, 127, 50, 0.5)', '#6B4423']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.topCard, styles.topCardThird]}>
+              </LinearGradient>
+            </View>
+            <Text style={[styles.topCardName, styles.topCardNameLarge, { color: colors.text }]}>
+              {topThree[2].name.split(' ')[0]}
+            </Text>
+            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.accentGreen }]}>
+              ₱{topThree[2].earnings.toLocaleString()}
+            </Text>
+          </View>
         </View>
 
         {/* Rest of Rankings */}
-        <View style={[styles.rankingsSection, { backgroundColor: colors.headerBg }]}>
+        <View style={[styles.rankingsSection, { backgroundColor: colors.headerBg, borderColor: colors.border }]}>
           <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.accentGreen }]}>★ Top Ranking ★</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              ✨ Top Ranking ✨
+            </Text>
           </View>
 
           {restRankings.map((entry) => (
@@ -138,12 +196,16 @@ export default function LeaderboardScreen({
                 <View style={styles.rankingInfo}>
                   <Text style={[styles.rankingName, { color: colors.text }]}>{entry.name}</Text>
                   <Text style={[styles.rankingEarnings, { color: colors.accentGreen }]}>
-                    ▲ ₱{entry.earnings.toLocaleString()}
+                    ▲ {activeMetric === 'earnings' ? `₱${entry.earnings.toLocaleString()}` : `${entry.earnings} Referrals`}
                   </Text>
                 </View>
               </View>
-              <View style={[styles.rankingBadge, { backgroundColor: colors.border }]}>
-                <Text style={[styles.rankingBadgeText, { color: colors.textSec }]}>#{entry.rank}</Text>
+              <View style={[styles.rankingBadgeContainer]}>
+                <View style={[styles.rankingBadge, { backgroundColor: MEDAL_COLORS[entry.rank] || colors.border }]}>
+                  <Text style={[styles.rankingMedalEmoji]}>
+                    {getMedalIcon(entry.rank) || `#${entry.rank}`}
+                  </Text>
+                </View>
               </View>
             </View>
           ))}
@@ -182,6 +244,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  menuBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -193,98 +261,218 @@ const styles = StyleSheet.create({
     width: 44,
   },
 
-  // ── Tabs ──
-  tabContainer: {
+  // ── Scope Tabs ──
+  scopeTabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  scopeTabButton: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scopeTabButtonActive: {
+    backgroundColor: '#ef4444',
+  },
+  scopeTabButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // ── Metric Tabs ──
+  metricTabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 8,
-    borderBottomWidth: 1,
-  },
-  tabButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    gap: 12,
+    marginHorizontal: 8,
+    borderRadius: 8,
     borderWidth: 1,
   },
-  tabButtonActive: {
-    borderColor: '#ef4444',
+  metricTabButton: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabButtonText: {
-    fontSize: 12,
+  metricTabButtonActive: {
+    borderColor: Colors.sky,
+  },
+  metricTabButtonText: {
+    fontSize: 11,
     fontWeight: '600',
   },
 
   // ── Content ──
   scrollContent: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
+    padding: 8,
+    paddingBottom: 16,
   },
 
   // ── Top 3 ──
   topThreeContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 24,
+    justifyContent: 'center',
     alignItems: 'flex-end',
+    gap: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  topCardWrapper: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  topCardBorder: {
+    borderRadius: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    overflow: 'hidden',
+    borderColor: '#e5e7eb',
   },
   topCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 12,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  topCardFirst: {
+    flex: 0,
+    width: 120,
+    height: 240,
+    zIndex: 10,
+    justifyContent: 'center',
+  },
+  topCardSecond: {
+    flex: 0,
+    width: 110,
+    height: 200,
+    justifyContent: 'center',
+  },
+  topCardThird: {
+    flex: 0,
+    width: 110,
+    height: 200,
+    justifyContent: 'center',
   },
   medalBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 12,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  medalBadgeFirst: {
+    top: 12,
+  },
+  medalBadgeSecond: {
+    top: 12,
+  },
+  medalBadgeThird: {
+    top: 12,
   },
   medalEmoji: {
-    fontSize: 24,
+    fontSize: 32,
+  },
+  medalEmojiLarge: {
+    fontSize: 40,
   },
   topCardAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#2d3a5c',
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginVertical: 8,
+  },
+  topCardAvatarSmall: {
+    width: 60,
+    height: 60,
+  },
+  topCardAvatarLarge: {
+    width: 80,
+    height: 80,
+  },
+  topCardAvatarExtraLarge: {
+    width: 100,
+    height: 100,
   },
   avatarEmoji: {
+    fontSize: 32,
+  },
+  avatarEmojiSmall: {
     fontSize: 28,
   },
+  avatarEmojiLarge: {
+    fontSize: 40,
+  },
+  avatarEmojiExtraLarge: {
+    fontSize: 50,
+  },
   topCardName: {
-    fontSize: 12,
     fontWeight: '600',
   },
-  topCardEarnings: {
-    fontSize: 13,
+  topCardNameSmall: {
+    fontSize: 12,
+  },
+  topCardNameLarge: {
+    fontSize: 15,
     fontWeight: '700',
+  },
+  topCardEarnings: {
+    fontWeight: '700',
+  },
+  topCardEarningsSmall: {
+    fontSize: 12,
+  },
+  topCardEarningsLarge: {
+    fontSize: 15,
+    fontWeight: '800',
   },
   rankBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  rankBadgeLarge: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   rankBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#000000',
+  },
+  rankBadgeTextLarge: {
+    fontSize: 12,
   },
 
   // ── Rankings Section ──
   rankingsSection: {
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+    width: '100%',
+    alignSelf: 'center',
   },
   sectionHeader: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
   },
@@ -299,7 +487,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
   },
@@ -332,9 +520,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   rankingBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankingBadgeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankingMedalEmoji: {
+    fontSize: 20,
+    fontWeight: '700',
   },
   rankingBadgeText: {
     fontSize: 11,
