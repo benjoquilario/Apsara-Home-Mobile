@@ -405,6 +405,7 @@ export default function CheckoutScreen({
         payment_method: selectedPaymentMethod,
         platform: platformName,
         app_version: appVersion,
+        payment_source: 'app', // Always 'app' for mobile app payments
       };
 
       // OPTIONAL FIELDS
