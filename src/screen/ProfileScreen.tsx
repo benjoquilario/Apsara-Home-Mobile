@@ -21,6 +21,7 @@ import PVEarnerScreen from './PVEarnerScreen';
 import ProfileDetailsScreen from './ProfileDetailsScreen';
 import LevelProgressDetailsScreen from './LevelProgressDetailsScreen';
 import { ChatBotIcon } from '../components/ChatBot';
+import LeaderboardScreen from './LeaderboardScreen';
 
 interface User {
   id: string;
@@ -139,6 +140,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [dailyCheckinClaimed, setDailyCheckinClaimed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const photoUrl = user?.avatar_url ?? null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : '?';
   const firstName = user?.name?.split(' ')[0] ?? 'User';
@@ -518,13 +520,17 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
                 <Text style={[styles.pvStatValue, { color: Colors.sky }]}>₱{loyaltyData.earnings || 0}</Text>
               </View>
               <View style={[styles.pvStatDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.pvStatItem}>
+              <TouchableOpacity
+                style={styles.pvStatItem}
+                onPress={() => setShowLeaderboard(true)}
+                activeOpacity={0.7}
+              >
                 <Text style={[styles.pvStatLabel, { color: colors.textSec }]}>Leaderboard</Text>
                 <View style={styles.leaderboardRankDisplay}>
                   <Ionicons name="trophy" size={16} color="#FFD700" />
                   <Text style={[styles.pvStatValue, { color: Colors.sky }]}>#1</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Daily Check-In Button */}
@@ -1040,6 +1046,15 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
             activeLeaders={loyaltyData.active_leaders_count}
             isDarkMode={isDarkMode}
             onBack={() => setShowLevelProgressDetails(false)}
+          />
+        </View>
+      )}
+
+      {showLeaderboard && (
+        <View style={styles.profileDetailsOverlay}>
+          <LeaderboardScreen
+            isDarkMode={isDarkMode}
+            onClose={() => setShowLeaderboard(false)}
           />
         </View>
       )}
