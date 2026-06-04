@@ -28,9 +28,14 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [expandedStats, setExpandedStats] = useState<Set<number>>(new Set());
 
-  const handleBack = React.useCallback(() => {
-    console.log('[ReferralNetworkScreen] Back pressed');
-    onBack?.();
+  const handleBackPress = React.useCallback(() => {
+    console.log('[ReferralNetworkScreen] handleBackPress called');
+    if (onBack) {
+      console.log('[ReferralNetworkScreen] calling onBack callback');
+      onBack();
+    } else {
+      console.warn('[ReferralNetworkScreen] onBack callback is not defined!');
+    }
   }, [onBack]);
 
   const colors = {
@@ -62,12 +67,13 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleBack();
+      console.log('[ReferralNetworkScreen] Hardware back button pressed');
+      handleBackPress();
       return true;
     });
 
     return () => sub.remove();
-  }, [handleBack]);
+  }, [handleBackPress]);
 
   const toggleNode = (userId: number) => {
     const newExpanded = new Set(expandedNodes);
@@ -224,7 +230,7 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
           <Ionicons name="people-outline" size={40} color={Colors.textSecondary} />
           <Text style={styles.emptyTitle}>Loading your network...</Text>
           <Text style={styles.emptyText}>Please wait while we fetch your referral data.</Text>
-          <TouchableOpacity style={styles.emptyBackBtn} onPress={handleBack} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.emptyBackBtn} onPress={handleBackPress} activeOpacity={0.7}>
             <Text style={styles.emptyBackBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -249,7 +255,7 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
           resizeMode="cover"
         />
         <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-          <TouchableOpacity onPress={handleBack} style={styles.headerIcon} activeOpacity={0.7}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.headerIcon} activeOpacity={0.7}>
             <Ionicons name="chevron-back-outline" size={20} color={Colors.white} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.white }]}>Referral Network</Text>
