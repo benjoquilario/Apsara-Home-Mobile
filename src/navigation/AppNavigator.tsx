@@ -1128,12 +1128,12 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 setProfileDetailsFromTab: () => {},
                 currentProfile: null,
                 setCurrentProfile: () => {},
-                referralNetworkFromTab: false,
-                setReferralNetworkFromTab: () => {},
+                referralNetworkFromTab,
+                setReferralNetworkFromTab,
                 closeReferralNetwork,
                 setCloseReferralNetwork: () => {},
-                referralTree: null,
-                setReferralTree: () => {},
+                referralTree,
+                setReferralTree,
                 purchasesStatus: purchasesStatus,
                 setPurchasesStatus,
                 purchasesInitialOrderId: purchasesInitialOrderId,
@@ -1181,10 +1181,9 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                   setActiveTab('shop');
                 },
                 onShowProfileDetails: (show: boolean) => setShowProfileDetails(show),
-                onShowReferralNetwork: (show: boolean, tree?: ReferralTree | null) => {
-                  setReferralNetworkFromTab(show);
+                onShowReferralNetwork: (tree: ReferralTree | null) => {
+                  setReferralNetworkFromTab(true);
                   if (tree) setReferralTree(tree);
-                  if (!show) setCloseReferralNetwork(true);
                 },
                 onPurchaseItemClick: () => setShowPurchases(true),
                 onSecuritySettingsPress: () => setShowSecurity(true),
@@ -1916,9 +1915,8 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
             token={token}
             tree={referralTree}
             onBack={() => {
+              console.log('[AppNavigator] ReferralNetworkScreen.onBack called - closing modal');
               setReferralNetworkFromTab(false);
-              setReferralTree(null);
-              setCloseReferralNetwork(true);
             }}
           />
         </View>
