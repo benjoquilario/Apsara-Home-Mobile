@@ -18,7 +18,6 @@ import { orderService } from '../services/orderService';
 import LevelProgress from '../components/LevelProgress/LevelProgress';
 import DailyCheckin from '../components/DailyCheckin/DailyCheckin';
 import PVEarnerScreen from './PVEarnerScreen';
-import ReferralNetworkScreen from './ReferralNetworkScreen';
 import ProfileDetailsScreen from './ProfileDetailsScreen';
 import LevelProgressDetailsScreen from './LevelProgressDetailsScreen';
 import { ChatBotIcon } from '../components/ChatBot';
@@ -1014,17 +1013,6 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
         </View>
       </Modal>
 
-      {/* Referral Network Screen */}
-      {showReferralNetwork && (
-        <View style={styles.referralNetworkOverlay}>
-          <ReferralNetworkScreen
-            token={token}
-            tree={referralTree}
-            onBack={() => setShowReferralNetwork(false)}
-          />
-        </View>
-      )}
-
       {/* Profile Details Screen */}
       {showProfileDetails && (
         <View style={styles.profileDetailsOverlay}>
@@ -1623,17 +1611,6 @@ const styles = StyleSheet.create({
 
   // ── Profile Details Overlay ──
   profileDetailsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-    backgroundColor: Colors.white,
-  },
-
-  // ── Referral Network Overlay ──
-  referralNetworkOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,

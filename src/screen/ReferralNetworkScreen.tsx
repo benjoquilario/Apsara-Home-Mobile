@@ -8,9 +8,9 @@ import {
   StyleSheet,
   BackHandler,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../constants/colors';
@@ -28,8 +28,18 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [expandedStats, setExpandedStats] = useState<Set<number>>(new Set());
 
+  const handleBack = React.useCallback(() => {
+    console.log('[ReferralNetworkScreen] Back pressed');
+    onBack?.();
+  }, [onBack]);
+
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f5f5f5',
+    containerBg: isDarkMode ? '#1f2937' : Colors.white,
+    text: isDarkMode ? '#f8fafc' : Colors.text,
+    textSec: isDarkMode ? '#94a3b8' : Colors.textSecondary,
+    border: isDarkMode ? '#374151' : '#e5e7eb',
+    borderLight: isDarkMode ? '#475569' : '#f1f5f9',
   };
 
   useEffect(() => {
@@ -52,12 +62,12 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack?.();
+      handleBack();
       return true;
     });
 
     return () => sub.remove();
-  }, [onBack]);
+  }, [handleBack]);
 
   const toggleNode = (userId: number) => {
     const newExpanded = new Set(expandedNodes);
@@ -193,18 +203,20 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
 
   if (!tree) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
-        <View style={[styles.headerGradient, { paddingTop: insets.top }]}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.headerIcon}
-              onPress={onBack}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back-outline" size={20} color={Colors.text} />
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['left', 'right', 'bottom']}>
+          <View style={[styles.headerBackground, { borderBottomColor: colors.border }]}>
+          <Image
+            source={require('../../assets/header_bg.png')}
+            style={styles.headerBackgroundImage}
+            resizeMode="cover"
+          />
+          <View style={[styles.headerContent, { paddingTop: insets.top }]}>
+            <TouchableOpacity onPress={onBack} style={styles.headerIcon} activeOpacity={0.7}>
+              <Ionicons name="chevron-back-outline" size={20} color={Colors.white} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Referral Network</Text>
-            <View style={{ width: 40 }} />
+            <Text style={[styles.headerTitle, { color: Colors.white }]}>Referral Network</Text>
+            <View style={{ width: 36 }} />
           </View>
         </View>
         <View style={styles.emptyContainer}>
@@ -212,10 +224,11 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
           <Ionicons name="people-outline" size={40} color={Colors.textSecondary} />
           <Text style={styles.emptyTitle}>Loading your network...</Text>
           <Text style={styles.emptyText}>Please wait while we fetch your referral data.</Text>
-          <TouchableOpacity style={styles.emptyBackBtn} onPress={onBack} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.emptyBackBtn} onPress={handleBack} activeOpacity={0.7}>
             <Text style={styles.emptyBackBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -226,57 +239,54 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
     : { ...tree.root, children: tree.children || [] };
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.bg }]}>
-      {/* Header with Gradient extending to top */}
-      <LinearGradient
-        colors={['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.headerGradient, { paddingTop: insets.top }]}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={onBack}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back-outline" size={20} color={Colors.text} />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['left', 'right', 'bottom']}>
+        {/* Header with Background Image */}
+        <View style={[styles.headerBackground, { borderBottomColor: colors.border }]}>
+        <Image
+          source={require('../../assets/header_bg.png')}
+          style={styles.headerBackgroundImage}
+          resizeMode="cover"
+        />
+        <View style={[styles.headerContent, { paddingTop: insets.top }]}>
+          <TouchableOpacity onPress={handleBack} style={styles.headerIcon} activeOpacity={0.7}>
+            <Ionicons name="chevron-back-outline" size={20} color={Colors.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Referral Network</Text>
-          <View style={{ width: 40 }} />
+          <Text style={[styles.headerTitle, { color: Colors.white }]}>Referral Network</Text>
+          <View style={{ width: 36 }} />
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: colors.bg }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Summary Stats Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Network Overview</Text>
+        <View style={[styles.section, { backgroundColor: colors.containerBg, borderColor: colors.border }]}>
+          <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textSec }]}>Network Overview</Text>
           </View>
           <View style={styles.summaryContainer}>
-            <View style={styles.summaryCard}>
+            <View style={[styles.summaryCard, { backgroundColor: colors.containerBg === Colors.white ? '#f8fafc' : '#334155', borderColor: colors.border }]}>
               <Text style={styles.summaryValue}>{tree.summary?.total_network || 0}</Text>
-              <Text style={styles.summaryLabel}>Total Referrals</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSec }]}>Total Referrals</Text>
             </View>
-            <View style={styles.summaryCard}>
+            <View style={[styles.summaryCard, { backgroundColor: colors.containerBg === Colors.white ? '#f8fafc' : '#334155', borderColor: colors.border }]}>
               <Text style={styles.summaryValue}>{tree.summary?.direct_count || 0}</Text>
-              <Text style={styles.summaryLabel}>Direct</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSec }]}>Direct</Text>
             </View>
-            <View style={styles.summaryCard}>
+            <View style={[styles.summaryCard, { backgroundColor: colors.containerBg === Colors.white ? '#f8fafc' : '#334155', borderColor: colors.border }]}>
               <Text style={styles.summaryValue}>₱{tree.root?.total_earnings || 0}</Text>
-              <Text style={styles.summaryLabel}>Earned</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSec }]}>Earned</Text>
             </View>
           </View>
         </View>
 
         {/* Referral Tree Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Network</Text>
+        <View style={[styles.section, { backgroundColor: colors.containerBg, borderColor: colors.border }]}>
+          <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textSec }]}>Your Network</Text>
           </View>
           <ScrollView
             horizontal
@@ -290,51 +300,80 @@ export default function ReferralNetworkScreen({ token, onBack, tree, isDarkMode 
           </ScrollView>
         </View>
       </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+
   root: {
     flex: 1,
-    backgroundColor: '#f0f9ff',
   },
 
-  headerGradient: {
-    paddingBottom: 12,
+  headerBackground: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 90,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0f2fe',
   },
 
-  header: {
+  headerBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+
+  headerContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
 
   headerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    position: 'relative',
   },
 
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.white,
+    flex: 1,
+    textAlign: 'center',
+  },
+
+  scrollView: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    padding: 8,
+    gap: 8,
+    paddingBottom: 16,
   },
 
   section: {
-    backgroundColor: Colors.white,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     overflow: 'hidden',
   },
 
