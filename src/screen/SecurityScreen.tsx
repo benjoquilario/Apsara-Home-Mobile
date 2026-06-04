@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, TextInput, Alert, ActivityIndicator, Animated, Linking, Platform, Image,
+  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, TextInput, Alert, ActivityIndicator, Linking, Platform, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +22,6 @@ interface SecurityScreenProps {
 
 export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLinked, onOpenHistory }: SecurityScreenProps) {
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(100)).current;
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,14 +52,6 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
     borderLight: isDarkMode ? '#475569' : '#f1f5f9',
   };
 
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  }, [slideAnim]);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -638,19 +629,11 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
 
 
   return (
-    <Animated.View
+    <View
       style={[
         styles.container,
         {
           backgroundColor: colors.bg,
-          transform: [
-            {
-              translateX: slideAnim.interpolate({
-                inputRange: [0, 100],
-                outputRange: [0, 100],
-              }),
-            },
-          ],
         },
       ]}
     >
@@ -1040,7 +1023,7 @@ export default function SecurityScreen({ onBack, isDarkMode, token, onGoogleLink
         </View>
       </ScrollView>
       </SafeAreaView>
-    </Animated.View>
+    </View>
   );
 }
 

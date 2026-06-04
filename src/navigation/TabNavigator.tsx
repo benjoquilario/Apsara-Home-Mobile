@@ -271,7 +271,7 @@ function ProfileTabScreen() {
       token={ctx.token}
       onLogout={ctx.onLogout}
       onNavigateSettings={() => {
-        ctx.setActiveTab('settings');
+        ctx.setShowSettings(true);
       }}
       onCartPress={ctx.onCartPress}
       cartCount={ctx.cartCount}

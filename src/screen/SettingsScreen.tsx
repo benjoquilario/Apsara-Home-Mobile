@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, Animated, Modal, Pressable,
+  View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, BackHandler, Modal, Pressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,7 +38,6 @@ interface SettingsScreenProps {
 export default function SettingsScreen({ user, onBack, isDarkMode, setIsDarkMode, onNavigateSecurity, onEditProfile, onNavigateAboutUs, onNavigatePrivacyPolicy, onNavigateTermsAndConditions, onNavigateIncomeDisclaimer, onNavigateCookiePolicy, onNavigateRewardsAndCommissions, onNavigateContactUs, onNavigateOurBranches, onNavigateFAQs, onNavigateShippingInfo, onNavigateReturns, onLogout }: SettingsScreenProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(100)).current;
 
   const colors = {
     bg: isDarkMode ? '#0f172a' : '#f5f5f5',
@@ -50,14 +49,6 @@ export default function SettingsScreen({ user, onBack, isDarkMode, setIsDarkMode
     borderLight: isDarkMode ? '#475569' : '#f1f5f9',
   };
 
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  }, [slideAnim]);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -68,19 +59,11 @@ export default function SettingsScreen({ user, onBack, isDarkMode, setIsDarkMode
   }, [onBack]);
 
   return (
-    <Animated.View
+    <View
       style={[
         styles.container,
         {
           backgroundColor: colors.bg,
-          transform: [
-            {
-              translateX: slideAnim.interpolate({
-                inputRange: [0, 100],
-                outputRange: [0, 100],
-              }),
-            },
-          ],
         },
       ]}
     >
@@ -310,7 +293,7 @@ export default function SettingsScreen({ user, onBack, isDarkMode, setIsDarkMode
         </Pressable>
       </Modal>
       </SafeAreaView>
-    </Animated.View>
+    </View>
   );
 }
 
