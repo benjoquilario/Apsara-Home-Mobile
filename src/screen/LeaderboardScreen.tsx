@@ -145,7 +145,7 @@ export default function LeaderboardScreen({
             <Text style={[styles.topCardName, styles.topCardNameLarge, { color: colors.text }]}>
               {topThree[1].name.split(' ')[0]}
             </Text>
-            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.accentGreen }]}>
+            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.text }]}>
               ₱{topThree[1].earnings.toLocaleString()}
             </Text>
           </View>
@@ -159,7 +159,7 @@ export default function LeaderboardScreen({
             <Text style={[styles.topCardName, styles.topCardNameLarge, { color: colors.text }]}>
               {topThree[0].name.split(' ')[0]}
             </Text>
-            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.accentGreen }]}>
+            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.text }]}>
               ₱{topThree[0].earnings.toLocaleString()}
             </Text>
           </View>
@@ -173,7 +173,7 @@ export default function LeaderboardScreen({
             <Text style={[styles.topCardName, styles.topCardNameLarge, { color: colors.text }]}>
               {topThree[2].name.split(' ')[0]}
             </Text>
-            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.accentGreen }]}>
+            <Text style={[styles.topCardEarnings, styles.topCardEarningsLarge, { color: colors.text }]}>
               ₱{topThree[2].earnings.toLocaleString()}
             </Text>
           </View>
