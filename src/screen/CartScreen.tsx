@@ -137,6 +137,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [updatingVariant, setUpdatingVariant] = useState<number | null>(null);
   const [variantImageCache, setVariantImageCache] = useState<{ [key: number]: { [key: number]: string } }>({});
+  const cartOrderRef = useRef<Record<number, number>>({});
   const variantModalTranslateY = useRef(new Animated.Value(VARIANT_MODAL_HEIGHT)).current;
   const variantPanResponder = useRef(
     PanResponder.create({
@@ -177,6 +178,56 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
     borderLight: isDarkMode ? '#374151' : '#f1f5f9',
     cardBg: isDarkMode ? '#1f2937' : '#f8fafc',
     hint: isDarkMode ? '#1e293b' : '#f9fafb',
+  };
+
+  const openProductDetails = (productId: number) => {
+    onProductPress?.(productId);
+  };
+
+  const updateCartItemInState = (crtId: number, updater: (item: CartItem) => CartItem) => {
+    setCartItems(prevItems => prevItems.map(item => (item.crt_id === crtId ? updater(item) : item)));
+  };
+
+  const getOrderedCartItems = (items: CartItem[]) => {
+    const existingOrder = cartOrderRef.current;
+    const nextOrder = { ...existingOrder };
+    const knownIds = new Set(Object.keys(existingOrder).map(Number));
+    const newItems = items.filter(item => !knownIds.has(item.crt_id));
+    const existingItems = items.filter(item => knownIds.has(item.crt_id));
+
+    newItems.sort((a, b) => {
+      const dateA = new Date(a.crt_created_at).getTime();
+      const dateB = new Date(b.crt_created_at).getTime();
+      return dateB - dateA;
+    });
+
+    if (Object.keys(existingOrder).length === 0) {
+      const sortedInitialItems = [...items].sort((a, b) => {
+        const dateA = new Date(a.crt_created_at).getTime();
+        const dateB = new Date(b.crt_created_at).getTime();
+        return dateB - dateA;
+      });
+
+      sortedInitialItems.forEach((item, index) => {
+        nextOrder[item.crt_id] = index;
+      });
+
+      cartOrderRef.current = nextOrder;
+      return sortedInitialItems;
+    }
+
+    const preservedExisting = existingItems
+      .slice()
+      .sort((a, b) => (existingOrder[a.crt_id] ?? Number.MAX_SAFE_INTEGER) - (existingOrder[b.crt_id] ?? Number.MAX_SAFE_INTEGER));
+
+    let topOrder = Math.min(...Object.values(existingOrder), 0) - 1;
+    newItems.forEach(item => {
+      nextOrder[item.crt_id] = topOrder;
+      topOrder -= 1;
+    });
+
+    cartOrderRef.current = nextOrder;
+    return [...newItems, ...preservedExisting];
   };
 
   useEffect(() => {
@@ -264,7 +315,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
       const response = await axios.get(`${API_CONFIG.BASE_URL}/cart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const cartItems = response.data.cart_items || [];
+      const cartItems = getOrderedCartItems(response.data.cart_items || []);
       setCartItems(cartItems);
 
       // Fetch variant images for items that have variant_id but missing variant_image
@@ -309,11 +360,19 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
   const handleUpdateQuantity = async (crtId: number, newQuantity: number) => {
     if (newQuantity < 1) return;
 
+    let snapshot: CartItem | null = null;
     try {
       setUpdatingQuantity(crtId);
       const cartItem = cartItems.find(item => item.crt_id === crtId);
 
       if (!cartItem) return;
+
+      snapshot = { ...cartItem };
+      updateCartItemInState(crtId, item => ({
+        ...item,
+        crt_quantity: newQuantity,
+        crt_total_price: (parseFloat(item.crt_unit_price) * newQuantity).toString(),
+      }));
 
       // Use the new variant update endpoint
       await axios.put(
@@ -321,18 +380,11 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
         { quantity: newQuantity },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      setCartItems(cartItems.map(item =>
-        item.crt_id === crtId
-          ? {
-              ...item,
-              crt_quantity: newQuantity,
-              crt_total_price: (parseFloat(item.crt_unit_price) * newQuantity).toString(),
-            }
-          : item
-      ));
     } catch (error: any) {
       console.error('Error updating quantity:', error);
+      if (snapshot) {
+        updateCartItemInState(crtId, () => snapshot as CartItem);
+      }
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -405,42 +457,40 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
   const handleVariantSelect = async (crtId: number, variantId: number) => {
     if (!token) return;
 
+    let snapshot: CartItem | null = null;
     try {
       setUpdatingVariant(crtId);
       const cartItem = cartItems.find(item => item.crt_id === crtId);
 
       if (!cartItem) return;
 
+      snapshot = { ...cartItem };
+
       // Use the new variant update endpoint
       const updatePayload: any = {
         variant_id: variantId,
       };
+
+      const selectedVariant = variantsList.find(v => v.id === variantId);
+      if (selectedVariant) {
+        updateCartItemInState(crtId, item => ({
+          ...item,
+          crt_variant_id: variantId,
+          crt_unit_price: selectedVariant.price_member || selectedVariant.price_dp || selectedVariant.price,
+          crt_total_price: (parseFloat(selectedVariant.price_member || selectedVariant.price_dp || selectedVariant.price) * item.crt_quantity).toString(),
+          variant_id: variantId,
+          variant_name: selectedVariant.name,
+          variant_color: selectedVariant.color,
+          variant_size: selectedVariant.size,
+          variant_image: selectedVariant.image,
+        }));
+      }
 
       await axios.put(
         `${API_CONFIG.BASE_URL}/cart/${crtId}/variant`,
         updatePayload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Update local cart item with new variant
-      const selectedVariant = variantsList.find(v => v.id === variantId);
-      if (selectedVariant) {
-        setCartItems(cartItems.map(item =>
-          item.crt_id === crtId
-            ? {
-                ...item,
-                crt_variant_id: variantId,
-                crt_unit_price: selectedVariant.price_member || selectedVariant.price_dp || selectedVariant.price,
-                crt_total_price: (parseFloat(selectedVariant.price_member || selectedVariant.price_dp || selectedVariant.price) * item.crt_quantity).toString(),
-                variant_id: variantId,
-                variant_name: selectedVariant.name,
-                variant_color: selectedVariant.color,
-                variant_size: selectedVariant.size,
-                variant_image: selectedVariant.image,
-              }
-            : item
-        ));
-      }
 
       setVariantModalOpen(null);
 
@@ -451,6 +501,9 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
       });
     } catch (error: any) {
       console.error('Error updating variant:', error);
+      if (snapshot) {
+        updateCartItemInState(crtId, () => snapshot as CartItem);
+      }
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -475,6 +528,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
       });
 
       setCartItems(cartItems.filter(item => item.crt_id !== crtId));
+      delete cartOrderRef.current[crtId];
       setSelectedItems(prev => {
         const newSet = new Set(prev);
         newSet.delete(crtId);
@@ -696,20 +750,21 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
           style={styles.contentWrapper}
         >
           {/* Image Container */}
-          <View style={styles.imageContainer}>
+          <TouchableOpacity
+            style={styles.imageContainer}
+            onPress={() => openProductDetails(item.crt_product_id)}
+            activeOpacity={0.8}
+          >
             <Image
               source={{
                 uri: (() => {
-                  // If variant_image is available and not empty, use it
                   if (item.variant_image && item.variant_image.trim()) {
                     return item.variant_image;
                   }
-                  // Check variant image cache for crt_variant_id or variant_id
                   const variantId = item.crt_variant_id || item.variant_id;
                   if (variantId && variantImageCache[item.crt_product_id]?.[variantId]) {
                     return variantImageCache[item.crt_product_id][variantId];
                   }
-                  // Fallback to product image
                   return item.product_image;
                 })()
               }}
@@ -721,7 +776,7 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
                 <Text style={styles.discountText}>-{discount}%</Text>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
 
           {/* Details Container */}
           <View style={styles.detailsContainer}>
@@ -732,7 +787,9 @@ export default function CartScreen({ token, user, onCheckout, onBack, onProductP
                 <Text style={[styles.itemPrice, { color: Colors.sky }]}>₱{parseFloat(item.crt_total_price).toLocaleString()}</Text>
               )}
             </View>
-            <Text style={[styles.productName, { color: colors.text }]} numberOfLines={2}>{item.product_name}</Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => openProductDetails(item.crt_product_id)}>
+              <Text style={[styles.productName, { color: colors.text }]} numberOfLines={2}>{item.product_name}</Text>
+            </TouchableOpacity>
 
             {/* Variants Display with Quantity */}
             {hasVariants && (
