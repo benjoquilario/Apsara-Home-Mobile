@@ -44,6 +44,7 @@ function HomeTabScreen() {
     onShopByRoomPress,
     onShopByCategoryPress,
     onShopByBrandPress,
+    refreshHomeData,
     onLogout,
     onSearchPress,
     handleOpenAffiliateReferralModal,
@@ -126,6 +127,7 @@ function HomeTabScreen() {
         onShopByBrandPress={handleShopByBrand}
         onCartPress={onCartPress}
         onReferralPress={handleOpenAffiliateReferralModal}
+        onRefresh={refreshHomeData}
       />
     </>
   );
