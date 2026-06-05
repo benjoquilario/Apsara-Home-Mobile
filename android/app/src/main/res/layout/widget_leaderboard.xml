@@ -3,124 +3,162 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp"
-    android:background="@drawable/widget_background"
-    android:gravity="top">
+    android:background="#ffffff"
+    android:padding="12dp">
 
     <!-- Header -->
     <TextView
-        android:id="@+id/widget_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="🎯 Top Referrers"
+        android:text="🏆 Top Referrers"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="#13a1d4"
-        android:layout_marginBottom="12dp" />
+        android:textColor="#0066FF"
+        android:layout_marginBottom="10dp" />
 
-    <!-- Leaderboard Items Container -->
+    <!-- Top 3 Row -->
     <LinearLayout
-        android:id="@+id/leaderboard_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:layout_marginBottom="10dp"
+        android:spacing="8dp">
+
+        <!-- 2nd Place -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:id="@+id/avatar_2"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="M"
+                android:textSize="18sp"
+                android:textColor="#ffffff"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/avatar_circle_2" />
+
+            <TextView
+                android:id="@+id/top_name_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Maria"
+                android:textSize="9sp"
+                android:textColor="#333333"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/top_count_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="85"
+                android:textSize="8sp"
+                android:textColor="#13a1d4"
+                android:textStyle="bold"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <!-- 1st Place -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginHorizontal="4dp">
+
+            <TextView
+                android:id="@+id/avatar_1"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:text="J"
+                android:textSize="22sp"
+                android:textColor="#ffffff"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/avatar_circle_1" />
+
+            <TextView
+                android:id="@+id/top_name_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Juan"
+                android:textSize="10sp"
+                android:textColor="#333333"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/top_count_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="96"
+                android:textSize="9sp"
+                android:textColor="#0066FF"
+                android:textStyle="bold"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <!-- 3rd Place -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:id="@+id/avatar_3"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="A"
+                android:textSize="18sp"
+                android:textColor="#ffffff"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/avatar_circle_3" />
+
+            <TextView
+                android:id="@+id/top_name_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ana"
+                android:textSize="9sp"
+                android:textColor="#333333"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/top_count_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="72"
+                android:textSize="8sp"
+                android:textColor="#13a1d4"
+                android:textStyle="bold"
+                android:gravity="center" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Rest Rankings 4-5 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
-
-        <!-- Item 1 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="6dp">
-            <TextView
-                android:layout_width="24dp"
-                android:layout_height="wrap_content"
-                android:text="1"
-                android:textStyle="bold"
-                android:textColor="#13a1d4"
-                android:textSize="14sp" />
-            <TextView
-                android:id="@+id/user_1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Loading..."
-                android:textSize="12sp"
-                android:textColor="#333333" />
-            <TextView
-                android:id="@+id/points_1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-- referrals"
-                android:textSize="12sp"
-                android:textColor="#666666" />
-        </LinearLayout>
-
-        <!-- Item 2 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="6dp">
-            <TextView
-                android:layout_width="24dp"
-                android:layout_height="wrap_content"
-                android:text="2"
-                android:textStyle="bold"
-                android:textColor="#13a1d4"
-                android:textSize="14sp" />
-            <TextView
-                android:id="@+id/user_2"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Loading..."
-                android:textSize="12sp"
-                android:textColor="#333333" />
-            <TextView
-                android:id="@+id/points_2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-- referrals"
-                android:textSize="12sp"
-                android:textColor="#666666" />
-        </LinearLayout>
-
-        <!-- Item 3 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="6dp">
-            <TextView
-                android:layout_width="24dp"
-                android:layout_height="wrap_content"
-                android:text="3"
-                android:textStyle="bold"
-                android:textColor="#13a1d4"
-                android:textSize="14sp" />
-            <TextView
-                android:id="@+id/user_3"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Loading..."
-                android:textSize="12sp"
-                android:textColor="#333333" />
-            <TextView
-                android:id="@+id/points_3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-- referrals"
-                android:textSize="12sp"
-                android:textColor="#666666" />
-        </LinearLayout>
 
         <!-- Item 4 -->
         <LinearLayout
@@ -128,29 +166,32 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="6dp">
+            android:paddingVertical="6dp">
+
             <TextView
                 android:layout_width="24dp"
                 android:layout_height="wrap_content"
                 android:text="4"
-                android:textStyle="bold"
+                android:textSize="10sp"
                 android:textColor="#13a1d4"
-                android:textSize="14sp" />
+                android:textStyle="bold" />
+
             <TextView
                 android:id="@+id/user_4"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="Loading..."
-                android:textSize="12sp"
+                android:text="..."
+                android:textSize="10sp"
                 android:textColor="#333333" />
+
             <TextView
                 android:id="@+id/points_4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="-- referrals"
-                android:textSize="12sp"
+                android:text="--"
+                android:textSize="9sp"
                 android:textColor="#666666" />
         </LinearLayout>
 
@@ -160,31 +201,87 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="6dp">
+            android:paddingVertical="6dp">
+
             <TextView
                 android:layout_width="24dp"
                 android:layout_height="wrap_content"
                 android:text="5"
-                android:textStyle="bold"
+                android:textSize="10sp"
                 android:textColor="#13a1d4"
-                android:textSize="14sp" />
+                android:textStyle="bold" />
+
             <TextView
                 android:id="@+id/user_5"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="Loading..."
-                android:textSize="12sp"
+                android:text="..."
+                android:textSize="10sp"
                 android:textColor="#333333" />
+
             <TextView
                 android:id="@+id/points_5"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="-- referrals"
-                android:textSize="12sp"
+                android:text="--"
+                android:textSize="9sp"
                 android:textColor="#666666" />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Decorative petals -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:text="●"
+            android:textColor="#0066FF"
+            android:textSize="8sp"
+            android:gravity="center"
+            android:layout_margin="2dp" />
+
+        <TextView
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:text="●"
+            android:textColor="#13a1d4"
+            android:textSize="8sp"
+            android:gravity="center"
+            android:layout_margin="2dp" />
+
+        <TextView
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:text="●"
+            android:textColor="#0066FF"
+            android:textSize="10sp"
+            android:gravity="center"
+            android:layout_margin="2dp" />
+
+        <TextView
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:text="●"
+            android:textColor="#13a1d4"
+            android:textSize="8sp"
+            android:gravity="center"
+            android:layout_margin="2dp" />
+
+        <TextView
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:text="●"
+            android:textColor="#0066FF"
+            android:textSize="8sp"
+            android:gravity="center"
+            android:layout_margin="2dp" />
+    </LinearLayout>
 </LinearLayout>
