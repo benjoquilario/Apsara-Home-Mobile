@@ -19,7 +19,6 @@ class MainActivity : ReactActivity() {
   }
 
   private var lastProcessedDeeplink: String? = null
-  private var isInitialLaunch = true
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // Set the theme to AppTheme BEFORE onCreate to support
@@ -27,12 +26,9 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
 
-    // Handle deeplink from notification BEFORE React initializes
+    // Handle deeplink from notification/shortcut BEFORE React initializes
     // This ensures React's Linking.getInitialURL() picks up the deeplink
-    if (isInitialLaunch) {
-      handleNotificationIntent(intent)
-      isInitialLaunch = false
-    }
+    handleNotificationIntent(intent)
 
     super.onCreate(null)
   }
