@@ -89,10 +89,5 @@
         android:name="android.appwidget.provider"
         android:resource="@xml/widget_my_orders_info" />
     </receiver>
-
-    <!-- My Orders Widget Background Update Worker -->
-    <service
-      android:name=".MyOrdersWidgetUpdateWorker"
-      android:exported="false" />
   </application>
 </manifest>
