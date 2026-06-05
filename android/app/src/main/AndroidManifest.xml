@@ -30,6 +30,9 @@
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
+      <meta-data
+        android:name="android.app.shortcuts"
+        android:resource="@xml/shortcuts" />
       <intent-filter>
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
@@ -40,6 +43,7 @@
         <data android:scheme="wallet"/>
         <data android:scheme="profile"/>
         <data android:scheme="referral"/>
+        <data android:scheme="apsarahome" android:host="leaderboard"/>
       </intent-filter>
     </activity>
     <service
@@ -49,5 +53,26 @@
         <action android:name="com.google.firebase.MESSAGING_EVENT" />
       </intent-filter>
     </service>
+
+    <!-- Leaderboard Widget Provider -->
+    <receiver
+      android:name=".LeaderboardWidgetProvider"
+      android:exported="true"
+      android:permission="android.permission.BIND_APPWIDGET">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        <action android:name="com.afhome.mobile.UPDATE_LEADERBOARD_WIDGET" />
+        <action android:name="com.afhome.mobile.REFRESH_LEADERBOARD_WIDGET" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_leaderboard_info" />
+    </receiver>
+
+    <!-- Leaderboard Widget Remote Service -->
+    <service
+      android:name=".LeaderboardWidgetService"
+      android:exported="false"
+      android:permission="android.permission.BIND_REMOTEVIEWS" />
   </application>
 </manifest>
