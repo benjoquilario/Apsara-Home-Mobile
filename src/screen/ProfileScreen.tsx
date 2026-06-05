@@ -60,6 +60,8 @@ interface ProfileScreenProps {
   onPurchaseItemClick?: (status: 'pending' | 'paid' | 'processing' | 'shipped' | 'to_receive' | 'delivered' | 'cancelled' | 'return') => void;
   linkedAccountsRefreshTrigger?: number;
   onSecuritySettingsPress?: () => void;
+  setShowLeaderboard?: (show: boolean) => void;
+  showLeaderboard?: boolean;
   onShowAFWalletOverview?: () => void;
   onShowAFWalletVoucher?: () => void;
   onShowAFWalletRewards?: () => void;
@@ -104,7 +106,7 @@ const MENU_ITEMS = [
   { icon: 'log-out-outline' as const, label: 'Log Out', chevron: false, danger: true, key: 'logout' },
 ];
 
-export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token, onShowProfileDetails, onShowReferralNetwork, isDarkMode = false, onPurchaseItemClick, linkedAccountsRefreshTrigger, onSecuritySettingsPress, onShowAFWalletOverview, onShowAFWalletVoucher, onShowAFWalletRewards, onShowAFWalletNetwork, onShowPVEarner, showPVEarnerFromTab = false, wishlistItems = [], onWishlistChange = () => {}, onProductPress = () => {}, onShopNavigate = () => {} }: ProfileScreenProps) {
+export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCartPress, cartCount = 0, token, onShowProfileDetails, onShowReferralNetwork, isDarkMode = false, onPurchaseItemClick, linkedAccountsRefreshTrigger, onSecuritySettingsPress, setShowLeaderboard, showLeaderboard = false, onShowAFWalletOverview, onShowAFWalletVoucher, onShowAFWalletRewards, onShowAFWalletNetwork, onShowPVEarner, showPVEarnerFromTab = false, wishlistItems = [], onWishlistChange = () => {}, onProductPress = () => {}, onShopNavigate = () => {} }: ProfileScreenProps) {
   console.log('[ProfileScreen] Component mounted/updated', {
     userEmail: user?.email,
     hasToken: !!token,
@@ -140,7 +142,6 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [dailyCheckinClaimed, setDailyCheckinClaimed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const photoUrl = user?.avatar_url ?? null;
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : '?';
   const firstName = user?.name?.split(' ')[0] ?? 'User';
@@ -522,13 +523,25 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
               <View style={[styles.pvStatDivider, { backgroundColor: colors.border }]} />
               <TouchableOpacity
                 style={styles.pvStatItem}
-                onPress={() => setShowLeaderboard(true)}
+                onPress={() => setShowLeaderboard?.(true)}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.pvStatLabel, { color: colors.textSec }]}>Leaderboard</Text>
                 <View style={styles.leaderboardRankDisplay}>
                   <Ionicons name="trophy" size={16} color="#FFD700" />
                   <Text style={[styles.pvStatValue, { color: Colors.sky }]}>#1</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={[styles.pvStatDivider, { backgroundColor: colors.border }]} />
+              <TouchableOpacity
+                style={styles.pvStatItem}
+                onPress={() => onShowReferralNetwork?.(referralTree)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.pvStatLabel, { color: colors.textSec }]}>Referrals</Text>
+                <View style={styles.referralsDisplay}>
+                  <Ionicons name="people" size={16} color={Colors.sky} />
+                  <Text style={[styles.pvStatValue, { color: Colors.sky }]}>{loyaltyData?.referral_count || 0}</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -1836,6 +1849,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   leaderboardRankDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  referralsDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
