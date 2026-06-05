@@ -333,4 +333,10 @@ class LeaderboardWidgetService : RemoteViewsService() {
         val points: Int,
         val avatar: String
     )
+
+    data class TopReferrer(
+        val name: String,
+        val count: Int,
+        val avatar: String
+    )
 }
