@@ -1201,7 +1201,7 @@ export default function AppNavigator({ user, token, onLogout, productSlugFromDee
                 setChatbotHidden,
               }}
             >
-              <TabNavigator hideTabBar={!isInitialHomeDataReady || selectedProductId !== null || searchQuery !== null || showPVEarnerFromTab || showSettings || showSecurity || showProfileDetails || referralNetworkFromTab || showShippingInfo || showReturns || showLeaderboard} />
+              <TabNavigator hideTabBar={!isInitialHomeDataReady || selectedProductId !== null || searchQuery !== null || showPVEarnerFromTab || showSettings || showSecurity || showProfileDetails || referralNetworkFromTab || showShippingInfo || showReturns || showLeaderboard || selectedBrandId !== null} />
             </AppContextProvider>
           )}
         </View>
