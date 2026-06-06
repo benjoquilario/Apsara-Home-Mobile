@@ -432,7 +432,6 @@ export default function SearchScreen({ onBack, token, onProductPress, onSearchSu
                   style={[styles.liveRow, isDarkMode && styles.liveRowDark, index < liveResults.length - 1 && styles.liveRowBorder, isDarkMode && index < liveResults.length - 1 && styles.liveRowBorderDark]}
                   activeOpacity={0.8}
                   onPress={() => {
-                    submitSearch(item.name);
                     onProductPress?.(item.id);
                   }}
                 >
