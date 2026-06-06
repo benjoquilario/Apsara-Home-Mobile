@@ -41,7 +41,7 @@ class PusherService {
         cluster: process.env.EXPO_PUBLIC_PUSHER_APP_CLUSTER || 'ap3',
         authorizer: (channel: any) => ({
           authorize: (socketId: string, callback: (error: any, authData: any) => void) => {
-            fetch('https://backend.afhome.ph/api/realtime/pusher/auth', {
+            fetch(`${API_CONFIG.BASE_URL}/realtime/pusher/auth`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

@@ -74,7 +74,7 @@ export const useNotifications = (userId: string | number, token: string, onNavig
       setAuthError(null);
     });
 
-    channel.bind('pusher:subscription_error', (error: any) => {
+    channel.bind('pusher:subscription_error', async (error: any) => {
       console.error('[useNotifications] ❌ pusher subscription error:', {
         channel: channelNameRef.current,
         status: error?.status,
@@ -83,9 +83,10 @@ export const useNotifications = (userId: string | number, token: string, onNavig
       });
 
       if (error?.status === 403) {
-        setAuthError('Token expired or invalid. Please login again.');
+        console.warn('[useNotifications] 403 error - Pusher auth failed, continuing without real-time notifications');
+        // Don't block app - notifications are optional, app can continue working
       } else {
-        setAuthError(error?.error || 'Failed to subscribe to notifications');
+        console.error('[useNotifications] subscription error:', error);
       }
     });
 
@@ -159,17 +160,7 @@ export const useNotifications = (userId: string | number, token: string, onNavig
     let isMounted = true;
 
     const initializeNotifications = async () => {
-      console.log('[useNotifications] validating token before initializing Pusher...');
-      const isTokenValid = await validateToken(token);
-
-      if (!isMounted) return;
-
-      if (!isTokenValid) {
-        const msg = 'Token invalid or expired. Please login again.';
-        console.error('[useNotifications]', msg);
-        setAuthError(msg);
-        return;
-      }
+      console.log('[useNotifications] initializing Pusher with token...');
 
       const channelName = `private-customer-${userId}`;
       channelNameRef.current = channelName;
