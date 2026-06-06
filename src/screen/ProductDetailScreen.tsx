@@ -38,6 +38,7 @@ interface ProductDetailScreenProps {
   onProductPress?: (id: number) => void;
   onSearch?: () => void;
   onCartUpdate?: () => void;
+  onNavigateToCart?: () => void;
   onWishlistToggle?: (productId: number, isWishlisted: boolean) => void;
   onShopNavigate?: (brandType: number, shopName: string) => void;
   onCheckout?: (product: any, quantity: number, variant?: any) => void;
@@ -103,6 +104,7 @@ export default function ProductDetailScreen({
   onProductPress,
   onSearch,
   onCartUpdate,
+  onNavigateToCart,
   onWishlistToggle,
   onShopNavigate,
   onCheckout,
@@ -134,12 +136,19 @@ export default function ProductDetailScreen({
   const [showHeaderOnScroll, setShowHeaderOnScroll] = useState(false);
   const headerTranslateY = useRef(new Animated.Value(-100)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  const imageAnimX = useRef(new Animated.Value(0)).current;
+  const imageAnimY = useRef(new Animated.Value(0)).current;
+  const imageAnimScale = useRef(new Animated.Value(1)).current;
+  const imageAnimOpacity = useRef(new Animated.Value(0)).current;
+  const [showAnimatedImage, setShowAnimatedImage] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [youMayAlsoLike, setYouMayAlsoLike] = useState<ProductCard[]>([]);
   const [visibleYouMayAlsoLikeCount, setVisibleYouMayAlsoLikeCount] = useState(8);
+  const [wishlistCount, setWishlistCount] = useState<number | null>(null);
+  const [optimisticCartCount, setOptimisticCartCount] = useState(0);
 
   useEffect(() => {
     console.log(`🎯 ProductDetailScreen mounted for product ID: ${productId}`);
@@ -169,6 +178,31 @@ export default function ProductDetailScreen({
       setIsWishlisted(isProductWishlisted);
     }
   }, [wishlistItems, product?.id]);
+
+  // Fetch wishlist count for the product
+  useEffect(() => {
+    if (!token || !productId) return;
+
+    const fetchWishlistCount = async () => {
+      try {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/wishlist/count/${productId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.data?.wishlist_count !== undefined) {
+          setWishlistCount(response.data.wishlist_count);
+        }
+      } catch (error) {
+        console.error('Failed to fetch wishlist count:', error);
+      }
+    };
+
+    fetchWishlistCount();
+  }, [token, productId]);
+
+  // Reset optimistic cart count when actual cart count updates from API
+  useEffect(() => {
+    setOptimisticCartCount(0);
+  }, [cartCount]);
 
   useEffect(() => {
     setLoading(true);
@@ -485,6 +519,59 @@ export default function ProductDetailScreen({
     }
   };
 
+  const animateAddToCart = () => {
+    // Optimistic update - increment cart count immediately
+    setOptimisticCartCount(prev => prev + 1);
+
+    // Show animated image overlay
+    setShowAnimatedImage(true);
+
+    // Calculate position of cart icon in header (top right, left of share icon)
+    const cartIconX = SCREEN_WIDTH - 120;
+    const cartIconY = insets.top + 20;
+
+    // Image starts at center, needs to move to cart icon position
+    const imageStartY = SCREEN_WIDTH / 2;
+
+    // Animate image flying to cart icon
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(imageAnimOpacity, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(imageAnimX, {
+          toValue: cartIconX - SCREEN_WIDTH / 2,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(imageAnimY, {
+          toValue: cartIconY - imageStartY,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(imageAnimScale, {
+          toValue: 0.15,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(imageAnimOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Reset animation values and hide overlay
+      imageAnimX.setValue(0);
+      imageAnimY.setValue(0);
+      imageAnimScale.setValue(1);
+      imageAnimOpacity.setValue(0);
+      setShowAnimatedImage(false);
+    });
+  };
+
   const toggleWishlist = async () => {
     console.log('[ProductDetail] toggleWishlist - token:', token ? 'exists' : 'missing', 'user:', user ? 'exists' : 'missing');
 
@@ -503,10 +590,19 @@ export default function ProductDetailScreen({
       return;
     }
 
-    try {
-      setWishlistLoading(true);
+    // Optimistic update - immediately update UI without showing toast
+    const previousWishlistState = isWishlisted;
+    const newWishlistState = !isWishlisted;
+    const previousWishlistCount = wishlistCount ?? 0;
 
-      if (isWishlisted) {
+    setIsWishlisted(newWishlistState);
+    // Update wishlist count optimistically
+    setWishlistCount(newWishlistState ? previousWishlistCount + 1 : Math.max(0, previousWishlistCount - 1));
+    setWishlistLoading(true);
+
+    // Process API call in background without blocking UI
+    try {
+      if (previousWishlistState) {
         // Remove from wishlist - DELETE request
         await axios.delete(`${API_CONFIG.BASE_URL}/wishlist/${product.id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -520,27 +616,26 @@ export default function ProductDetailScreen({
         );
       }
 
-      const newWishlistState = !isWishlisted;
-      setIsWishlisted(newWishlistState);
+      // API succeeded - notify parent
       onWishlistToggle?.(product.id, newWishlistState);
 
-      // Track wishlist behavior
+      // Track wishlist behavior in background
       const behaviorType = newWishlistState ? 'wishlist_add' : 'wishlist_remove';
       if (product?.id && product?.catid && product?.brandType) {
         userBehaviorService.trackBehavior(token, behaviorType, product.id, product.catid, product.brandType).catch(() => {});
       }
-
-      Toast.show({
-        type: 'success',
-        text1: isWishlisted ? 'Removed from wishlist' : 'Added to wishlist',
-        text2: isWishlisted ? 'Item removed from your wishlist' : 'Item added to your wishlist',
-      });
     } catch (error: any) {
       console.error('Failed to update wishlist:', error);
+
+      // Revert optimistic updates on error
+      setIsWishlisted(previousWishlistState);
+      setWishlistCount(previousWishlistCount);
+
+      // Only show error toast
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: isWishlisted ? 'Failed to remove from wishlist' : 'Failed to add to wishlist',
+        text2: previousWishlistState ? 'Failed to remove from wishlist' : 'Failed to add to wishlist',
       });
     } finally {
       setWishlistLoading(false);
@@ -610,14 +705,29 @@ export default function ProductDetailScreen({
               </Text>
               <View style={styles.scrollHeaderActions}>
                 <TouchableOpacity
-                  onPress={toggleWishlist}
-                  disabled={wishlistLoading}
+                  onPress={onNavigateToCart}
+                  style={{ position: 'relative' }}
                 >
-                  <Ionicons
-                    name={isWishlisted ? 'heart' : 'heart-outline'}
-                    size={20}
-                    color={isWishlisted ? '#ef4444' : colors.text}
-                  />
+                  <Ionicons name="cart" size={20} color={colors.text} />
+                  {(cartCount + optimisticCartCount) > 0 && (
+                    <View style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      backgroundColor: '#ef4444',
+                      borderRadius: 8,
+                      minWidth: 16,
+                      height: 16,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 1,
+                      borderColor: colors.bg,
+                    }}>
+                      <Text style={{ color: Colors.white, fontSize: 9, fontWeight: '700' }}>
+                        {cartCount + optimisticCartCount}
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleShareProduct}>
                   <Ionicons name="share-social-outline" size={20} color={colors.text} />
@@ -673,7 +783,11 @@ export default function ProductDetailScreen({
                   }}
                   style={[styles.galleryImageContainer, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f5f5' }]}
                 >
-                  <Image source={{ uri: img }} style={styles.galleryImage} resizeMode="contain" />
+                  <Image
+                    source={{ uri: img }}
+                    style={styles.galleryImage}
+                    resizeMode="contain"
+                  />
                 </TouchableOpacity>
               )) : (
                 <View style={[styles.galleryImageContainer, styles.galleryFallback, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f5f5' }]}>
@@ -710,22 +824,32 @@ export default function ProductDetailScreen({
 
             {/* Top Right Icons */}
             <View style={[styles.galleryTopRightIcons, { paddingTop: insets.top + 10 }]}>
-              {/* Heart/Wishlist Icon */}
+              {/* Add to Cart Icon */}
               <TouchableOpacity
-                onPress={toggleWishlist}
+                onPress={onNavigateToCart}
                 style={styles.galleryIconBtn}
                 activeOpacity={0.7}
-                disabled={wishlistLoading}
               >
-                <View style={styles.galleryIconBtnInner}>
-                  {wishlistLoading ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Ionicons
-                      name={isWishlisted ? 'heart' : 'heart-outline'}
-                      size={22}
-                      color={isWishlisted ? '#ef4444' : Colors.white}
-                    />
+                <View style={[styles.galleryIconBtnInner, { position: 'relative' }]}>
+                  <Ionicons name="cart" size={22} color={Colors.white} />
+                  {(cartCount + optimisticCartCount) > 0 && (
+                    <View style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      backgroundColor: '#ef4444',
+                      borderRadius: 10,
+                      minWidth: 20,
+                      height: 20,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 1.5,
+                      borderColor: Colors.white,
+                    }}>
+                      <Text style={{ color: Colors.white, fontSize: 10, fontWeight: '700' }}>
+                        {cartCount + optimisticCartCount}
+                      </Text>
+                    </View>
                   )}
                 </View>
               </TouchableOpacity>
@@ -853,9 +977,28 @@ export default function ProductDetailScreen({
               return (
                 <>
                   {variantDiscount > 0 && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Ionicons name="checkmark-circle" size={14} color={Colors.sky} />
-                      <Text style={[styles.priceLabel, { color: colors.textSec }]}>Member Price Applied</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Ionicons name="checkmark-circle" size={14} color={Colors.sky} />
+                        <Text style={[styles.priceLabel, { color: colors.textSec }]}>Member Price Applied</Text>
+                      </View>
+                      {wishlistCount !== null && (
+                        <TouchableOpacity
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                          onPress={toggleWishlist}
+                          disabled={wishlistLoading}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={isWishlisted ? 'heart' : 'heart-outline'}
+                            size={14}
+                            color={isWishlisted ? '#ef4444' : colors.textSec}
+                          />
+                          <Text style={[styles.priceLabel, { color: isWishlisted ? '#ef4444' : colors.textSec }]}>
+                            {wishlistCount} {wishlistCount === 1 ? 'Saved' : 'Saved'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                   {/* Big Price Row */}
@@ -1736,6 +1879,7 @@ export default function ProductDetailScreen({
         onSelectVariant={setSelectedVariant}
         onQuantityChange={setQuantity}
         onAddToCart={addToCart}
+        onAnimateAddToCart={animateAddToCart}
         onCheckout={() => {
           setShowAddToCartModal(false);
           const variant = product?.variants?.find(v => v.id === selectedVariant);
@@ -1743,6 +1887,30 @@ export default function ProductDetailScreen({
         }}
         loading={addingToCart}
       />
+
+      {/* Animated Image Overlay for Add to Cart Animation */}
+      {showAnimatedImage && images.length > 0 && (
+        <Animated.Image
+          source={{ uri: images[activeImage] }}
+          style={[
+            {
+              position: 'absolute',
+              width: SCREEN_WIDTH * 0.6,
+              height: SCREEN_WIDTH * 0.6,
+              top: SCREEN_WIDTH / 2 - (SCREEN_WIDTH * 0.6) / 2,
+              left: SCREEN_WIDTH / 2 - (SCREEN_WIDTH * 0.6) / 2,
+              zIndex: 999,
+              transform: [
+                { translateX: imageAnimX },
+                { translateY: imageAnimY },
+                { scale: imageAnimScale },
+              ],
+              opacity: imageAnimOpacity,
+            },
+          ]}
+          resizeMode="contain"
+        />
+      )}
     </View>
   );
 }
