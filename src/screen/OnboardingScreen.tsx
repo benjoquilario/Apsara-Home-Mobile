@@ -3,7 +3,7 @@ import {
   View, Text, Image, TouchableOpacity, FlatList, ScrollView,
   StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 
@@ -106,6 +106,7 @@ interface OnboardingScreenProps {
 export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
@@ -329,7 +330,7 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
       </SafeAreaView>
 
       {/* Bottom: dots and next button */}
-      <View style={styles.bottom}>
+      <View style={[styles.bottom, { paddingBottom: Math.max(32, insets.bottom) }]}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
             <View
@@ -566,7 +567,6 @@ const styles = StyleSheet.create({
   },
   bottom: {
     paddingHorizontal: 28,
-    paddingBottom: 32,
     paddingTop: 16,
     gap: 20,
     alignItems: 'center',
