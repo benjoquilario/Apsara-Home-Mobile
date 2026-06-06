@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { createBottomTabNavigator, useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
@@ -333,6 +334,7 @@ function ProfileTabScreen() {
 // Custom Tab Bar - Matches original design exactly
 function CustomTabBar({ state, descriptors, navigation, insets, hideTabBar }: any) {
   const { isDarkMode, wishlistItems, unreadCount, enrichedUser } = useAppContext() as any;
+  const safeAreaInsets = useSafeAreaInsets();
 
   if (hideTabBar) {
     return null;
@@ -340,7 +342,7 @@ function CustomTabBar({ state, descriptors, navigation, insets, hideTabBar }: an
 
   return (
     <View style={[styles.navBarContainer, isDarkMode && styles.navBarContainerDark]}>
-      <View style={[styles.navBar, isDarkMode && styles.navBarDark]}>
+      <View style={[styles.navBar, isDarkMode && styles.navBarDark, { paddingBottom: Math.max(8, safeAreaInsets.bottom) }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -457,8 +459,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     overflow: 'visible',
-    paddingBottom: 12,
-    minHeight: 72,
+    paddingBottom: 8,
   },
   navBarDark: {
     backgroundColor: '#1f2937',
