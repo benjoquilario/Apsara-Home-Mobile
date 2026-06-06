@@ -54,6 +54,7 @@ interface AddToCartModalProps {
   onCheckout?: () => void;
   onProductPress?: (productId: number) => void;
   onCartNavigate?: () => void;
+  onAnimateAddToCart?: () => void;
   loading?: boolean;
   isDarkMode?: boolean;
 }
@@ -71,6 +72,7 @@ export default function AddToCartModal({
   onCheckout,
   onProductPress,
   onCartNavigate,
+  onAnimateAddToCart,
   loading = false,
   isDarkMode = false,
 }: AddToCartModalProps) {
@@ -164,45 +166,33 @@ export default function AddToCartModal({
       return;
     }
 
-    try {
-      // Extract variant details if a variant is selected
-      const selectedVariantData = selectedVariant
-        ? product.variants?.find(v => v.id === selectedVariant)
-        : null;
+    // Trigger animation immediately for optimistic feedback
+    onAnimateAddToCart?.();
 
-      await onAddToCart({
-        product_id: product.id,
-        variant_id: selectedVariant || undefined,
-        quantity,
-        selected_color: selectedVariantData?.color || null,
-        selected_size: selectedVariantData?.name || null,
-        selected_type: selectedVariantData?.name || null, // Using name as type for now
-      });
+    // Extract variant details if a variant is selected
+    const selectedVariantData = selectedVariant
+      ? product.variants?.find(v => v.id === selectedVariant)
+      : null;
 
-      // Show success message
-      Toast.show({
-        type: 'success',
-        text1: 'Added to Cart',
-        text2: `${product.name} added successfully`,
-        duration: 2000,
-      });
+    // Close modal immediately - optimistic update
+    handleClose();
 
-      // Close modal and navigate to cart after brief delay
-      setTimeout(() => {
-        handleClose();
-        // Navigate to cart screen after a short delay
-        setTimeout(() => {
-          onCartNavigate?.();
-        }, 300);
-      }, 500);
-    } catch (error: any) {
+    // Process API call in background without blocking
+    onAddToCart({
+      product_id: product.id,
+      variant_id: selectedVariant || undefined,
+      quantity,
+      selected_color: selectedVariantData?.color || null,
+      selected_size: selectedVariantData?.name || null,
+      selected_type: selectedVariantData?.name || null,
+    }).catch((error: any) => {
       console.error('Add to cart error:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
         text2: error?.response?.data?.message || 'Failed to add item to cart',
       });
-    }
+    });
   };
 
   if (!visible || !product) return null;
