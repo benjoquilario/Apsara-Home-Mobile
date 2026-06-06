@@ -38,6 +38,7 @@ interface ProductDetailScreenProps {
   onProductPress?: (id: number) => void;
   onSearch?: () => void;
   onCartUpdate?: () => void;
+  onNavigateToCart?: () => void;
   onWishlistToggle?: (productId: number, isWishlisted: boolean) => void;
   onShopNavigate?: (brandType: number, shopName: string) => void;
   onCheckout?: (product: any, quantity: number, variant?: any) => void;
@@ -103,6 +104,7 @@ export default function ProductDetailScreen({
   onProductPress,
   onSearch,
   onCartUpdate,
+  onNavigateToCart,
   onWishlistToggle,
   onShopNavigate,
   onCheckout,
@@ -134,6 +136,11 @@ export default function ProductDetailScreen({
   const [showHeaderOnScroll, setShowHeaderOnScroll] = useState(false);
   const headerTranslateY = useRef(new Animated.Value(-100)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  const imageAnimX = useRef(new Animated.Value(0)).current;
+  const imageAnimY = useRef(new Animated.Value(0)).current;
+  const imageAnimScale = useRef(new Animated.Value(1)).current;
+  const imageAnimOpacity = useRef(new Animated.Value(0)).current;
+  const [showAnimatedImage, setShowAnimatedImage] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -141,6 +148,7 @@ export default function ProductDetailScreen({
   const [youMayAlsoLike, setYouMayAlsoLike] = useState<ProductCard[]>([]);
   const [visibleYouMayAlsoLikeCount, setVisibleYouMayAlsoLikeCount] = useState(8);
   const [wishlistCount, setWishlistCount] = useState<number | null>(null);
+  const [optimisticCartCount, setOptimisticCartCount] = useState(0);
 
   useEffect(() => {
     console.log(`🎯 ProductDetailScreen mounted for product ID: ${productId}`);
@@ -190,6 +198,11 @@ export default function ProductDetailScreen({
 
     fetchWishlistCount();
   }, [token, productId]);
+
+  // Reset optimistic cart count when actual cart count updates from API
+  useEffect(() => {
+    setOptimisticCartCount(0);
+  }, [cartCount]);
 
   useEffect(() => {
     setLoading(true);
@@ -506,6 +519,59 @@ export default function ProductDetailScreen({
     }
   };
 
+  const animateAddToCart = () => {
+    // Optimistic update - increment cart count immediately
+    setOptimisticCartCount(prev => prev + 1);
+
+    // Show animated image overlay
+    setShowAnimatedImage(true);
+
+    // Calculate position of cart icon in header (top right, left of share icon)
+    const cartIconX = SCREEN_WIDTH - 120;
+    const cartIconY = insets.top + 20;
+
+    // Image starts at center, needs to move to cart icon position
+    const imageStartY = SCREEN_WIDTH / 2;
+
+    // Animate image flying to cart icon
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(imageAnimOpacity, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(imageAnimX, {
+          toValue: cartIconX - SCREEN_WIDTH / 2,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(imageAnimY, {
+          toValue: cartIconY - imageStartY,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(imageAnimScale, {
+          toValue: 0.15,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(imageAnimOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Reset animation values and hide overlay
+      imageAnimX.setValue(0);
+      imageAnimY.setValue(0);
+      imageAnimScale.setValue(1);
+      imageAnimOpacity.setValue(0);
+      setShowAnimatedImage(false);
+    });
+  };
+
   const toggleWishlist = async () => {
     console.log('[ProductDetail] toggleWishlist - token:', token ? 'exists' : 'missing', 'user:', user ? 'exists' : 'missing');
 
@@ -638,6 +704,31 @@ export default function ProductDetailScreen({
                 {product?.name || ''}
               </Text>
               <View style={styles.scrollHeaderActions}>
+                <TouchableOpacity
+                  onPress={onNavigateToCart}
+                  style={{ position: 'relative' }}
+                >
+                  <Ionicons name="cart" size={20} color={colors.text} />
+                  {(cartCount + optimisticCartCount) > 0 && (
+                    <View style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      backgroundColor: '#ef4444',
+                      borderRadius: 8,
+                      minWidth: 16,
+                      height: 16,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 1,
+                      borderColor: colors.bg,
+                    }}>
+                      <Text style={{ color: Colors.white, fontSize: 9, fontWeight: '700' }}>
+                        {cartCount + optimisticCartCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
                 <TouchableOpacity onPress={handleShareProduct}>
                   <Ionicons name="share-social-outline" size={20} color={colors.text} />
                 </TouchableOpacity>
@@ -692,7 +783,11 @@ export default function ProductDetailScreen({
                   }}
                   style={[styles.galleryImageContainer, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f5f5' }]}
                 >
-                  <Image source={{ uri: img }} style={styles.galleryImage} resizeMode="contain" />
+                  <Image
+                    source={{ uri: img }}
+                    style={styles.galleryImage}
+                    resizeMode="contain"
+                  />
                 </TouchableOpacity>
               )) : (
                 <View style={[styles.galleryImageContainer, styles.galleryFallback, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f5f5' }]}>
@@ -731,28 +826,28 @@ export default function ProductDetailScreen({
             <View style={[styles.galleryTopRightIcons, { paddingTop: insets.top + 10 }]}>
               {/* Add to Cart Icon */}
               <TouchableOpacity
-                onPress={() => setShowAddToCartModal(true)}
+                onPress={onNavigateToCart}
                 style={styles.galleryIconBtn}
                 activeOpacity={0.7}
               >
                 <View style={[styles.galleryIconBtnInner, { position: 'relative' }]}>
                   <Ionicons name="cart" size={22} color={Colors.white} />
-                  {cartCount > 0 && (
+                  {(cartCount + optimisticCartCount) > 0 && (
                     <View style={{
                       position: 'absolute',
-                      top: -8,
-                      right: -8,
+                      top: -6,
+                      right: -6,
                       backgroundColor: '#ef4444',
-                      borderRadius: 12,
-                      minWidth: 24,
-                      height: 24,
+                      borderRadius: 10,
+                      minWidth: 20,
+                      height: 20,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderWidth: 2,
+                      borderWidth: 1.5,
                       borderColor: Colors.white,
                     }}>
-                      <Text style={{ color: Colors.white, fontSize: 11, fontWeight: '700' }}>
-                        {cartCount}
+                      <Text style={{ color: Colors.white, fontSize: 10, fontWeight: '700' }}>
+                        {cartCount + optimisticCartCount}
                       </Text>
                     </View>
                   )}
@@ -1784,6 +1879,7 @@ export default function ProductDetailScreen({
         onSelectVariant={setSelectedVariant}
         onQuantityChange={setQuantity}
         onAddToCart={addToCart}
+        onAnimateAddToCart={animateAddToCart}
         onCheckout={() => {
           setShowAddToCartModal(false);
           const variant = product?.variants?.find(v => v.id === selectedVariant);
@@ -1791,6 +1887,30 @@ export default function ProductDetailScreen({
         }}
         loading={addingToCart}
       />
+
+      {/* Animated Image Overlay for Add to Cart Animation */}
+      {showAnimatedImage && images.length > 0 && (
+        <Animated.Image
+          source={{ uri: images[activeImage] }}
+          style={[
+            {
+              position: 'absolute',
+              width: SCREEN_WIDTH * 0.6,
+              height: SCREEN_WIDTH * 0.6,
+              top: SCREEN_WIDTH / 2 - (SCREEN_WIDTH * 0.6) / 2,
+              left: SCREEN_WIDTH / 2 - (SCREEN_WIDTH * 0.6) / 2,
+              zIndex: 999,
+              transform: [
+                { translateX: imageAnimX },
+                { translateY: imageAnimY },
+                { scale: imageAnimScale },
+              ],
+              opacity: imageAnimOpacity,
+            },
+          ]}
+          resizeMode="contain"
+        />
+      )}
     </View>
   );
 }
