@@ -575,7 +575,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
               <View style={styles.dailyCheckinBtnLeft}>
                 <View style={styles.dailyCheckinIconContainer}>
                   <Image
-                    source={require('../../assets/coin_1.png')}
+                    source={{ uri: 'https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_1_kpacst.png' }}
                     style={styles.dailyCheckinIcon}
                     resizeMode="contain"
                   />
@@ -932,7 +932,7 @@ export default function ProfileScreen({ user, onLogout, onNavigateSettings, onCa
               >
                 <View style={styles.walletCardTitle}>
                   <Image
-                    source={require('../../assets/coin_1.png')}
+                    source={{ uri: 'https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_1_kpacst.png' }}
                     style={styles.walletCardIcon}
                     resizeMode="contain"
                   />

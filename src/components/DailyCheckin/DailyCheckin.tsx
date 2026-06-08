@@ -197,7 +197,7 @@ export default function DailyCheckin({ isDarkMode = false, onCheckin }: DailyChe
                   ]}>
                     <View style={styles.coinContainer}>
                       <Image
-                        source={day <= 6 ? require('../../../assets/coin_1.png') : require('../../../assets/coin_2.png')}
+                        source={{ uri: day <= 6 ? 'https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_1_kpacst.png' : 'https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_2_h2taqv.png' }}
                         style={styles.coinImage}
                         resizeMode="contain"
                       />
