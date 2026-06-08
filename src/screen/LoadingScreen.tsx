@@ -1,32 +1,36 @@
-import React from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet } from 'react-native';
-import { Colors } from '../constants/colors';
+import React from "react"
+import { View, Text, Image, ActivityIndicator, StyleSheet } from "react-native"
+import { Colors } from "../constants/colors"
 
 export default function LoadingScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
         <Image
-          source={require('../../assets/home_logo.png')}
+          source={require("../../assets/home_logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />
         <Text style={styles.title}>AF Home</Text>
       </View>
-      <ActivityIndicator size="large" color={Colors.sky} style={styles.loader} />
+      <ActivityIndicator
+        size="large"
+        color={Colors.sky}
+        style={styles.loader}
+      />
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   content: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   logo: {
@@ -36,11 +40,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontWeight: '900',
+    fontWeight: "900",
     color: Colors.text,
   },
   loader: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 80,
-  }
-});
+  },
+})

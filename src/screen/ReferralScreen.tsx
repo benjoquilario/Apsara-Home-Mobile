@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react"
 import {
   View,
   Text,
@@ -7,19 +7,19 @@ import {
   StyleSheet,
   BackHandler,
   Image,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+} from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { LinearGradient } from "expo-linear-gradient"
+import { Ionicons } from "@expo/vector-icons"
+import { Colors } from "../constants/colors"
 
 interface ReferralScreenProps {
-  referrerUsername: string;
-  referrerName?: string;
-  referrerAvatarUrl?: string;
-  isDarkMode?: boolean;
-  onClose: () => void;
-  onRegister: () => void;
+  referrerUsername: string
+  referrerName?: string
+  referrerAvatarUrl?: string
+  isDarkMode?: boolean
+  onClose: () => void
+  onRegister: () => void
 }
 
 export default function ReferralScreen({
@@ -30,34 +30,58 @@ export default function ReferralScreen({
   onClose,
   onRegister,
 }: ReferralScreenProps) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets()
 
   useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onClose();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onClose]);
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onClose()
+      return true
+    })
+    return () => sub.remove()
+  }, [onClose])
 
   return (
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
       {/* Header */}
       <LinearGradient
-        colors={isDarkMode ? ['rgba(59,130,246,0.15)', 'rgba(31,41,55,0)'] : ['rgba(14,165,233,0.18)', 'rgba(255,255,255,0)']}
+        colors={
+          isDarkMode
+            ? ["rgba(59,130,246,0.15)", "rgba(31,41,55,0)"]
+            : ["rgba(14,165,233,0.18)", "rgba(255,255,255,0)"]
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top, backgroundColor: isDarkMode ? '#1f2937' : Colors.white }]}
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top,
+            backgroundColor: isDarkMode ? "#1f2937" : Colors.white,
+          },
+        ]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={isDarkMode ? '#e5e7eb' : Colors.text} />
+            <Ionicons
+              name="close"
+              size={24}
+              color={isDarkMode ? "#e5e7eb" : Colors.text}
+            />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={[styles.headerGreeting, { color: isDarkMode ? '#f8fafc' : Colors.text }]}>
+            <Text
+              style={[
+                styles.headerGreeting,
+                { color: isDarkMode ? "#f8fafc" : Colors.text },
+              ]}
+            >
               AF Home
             </Text>
-            <Text style={[styles.headerSubtitle, { color: isDarkMode ? '#9ca3af' : Colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.headerSubtitle,
+                { color: isDarkMode ? "#9ca3af" : Colors.textSecondary },
+              ]}
+            >
               Through referral
             </Text>
           </View>
@@ -65,7 +89,11 @@ export default function ReferralScreen({
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
         {/* Welcome Banner */}
         <LinearGradient
           colors={[Colors.sky, Colors.skyDark]}
@@ -96,15 +124,26 @@ export default function ReferralScreen({
             ) : (
               <View style={styles.referrerAvatar}>
                 <Text style={styles.avatarText}>
-                  {referrerName?.charAt(0).toUpperCase() || referrerUsername.charAt(0).toUpperCase()}
+                  {referrerName?.charAt(0).toUpperCase() ||
+                    referrerUsername.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
             <View style={styles.referrerDetails}>
-              <Text style={[styles.referrerName, isDarkMode && styles.referrerNameDark]}>
+              <Text
+                style={[
+                  styles.referrerName,
+                  isDarkMode && styles.referrerNameDark,
+                ]}
+              >
                 {referrerName || referrerUsername}
               </Text>
-              <Text style={[styles.referrerUsername, isDarkMode && styles.referrerUsernameDark]}>
+              <Text
+                style={[
+                  styles.referrerUsername,
+                  isDarkMode && styles.referrerUsernameDark,
+                ]}
+              >
                 @{referrerUsername}
               </Text>
             </View>
@@ -113,7 +152,9 @@ export default function ReferralScreen({
 
         {/* Benefits Section */}
         <View style={[styles.card, isDarkMode && styles.cardDark]}>
-          <Text style={[styles.sectionTitle, isDarkMode && styles.sectionTitleDark]}>
+          <Text
+            style={[styles.sectionTitle, isDarkMode && styles.sectionTitleDark]}
+          >
             Benefits
           </Text>
 
@@ -122,10 +163,20 @@ export default function ReferralScreen({
               <Ionicons name="star" size={20} color={Colors.sky} />
             </View>
             <View style={styles.benefitText}>
-              <Text style={[styles.benefitTitle, isDarkMode && styles.benefitTitleDark]}>
+              <Text
+                style={[
+                  styles.benefitTitle,
+                  isDarkMode && styles.benefitTitleDark,
+                ]}
+              >
                 Exclusive Rewards
               </Text>
-              <Text style={[styles.benefitDesc, isDarkMode && styles.benefitDescDark]}>
+              <Text
+                style={[
+                  styles.benefitDesc,
+                  isDarkMode && styles.benefitDescDark,
+                ]}
+              >
                 Earn rewards and commissions from your purchases
               </Text>
             </View>
@@ -136,10 +187,20 @@ export default function ReferralScreen({
               <Ionicons name="people" size={20} color={Colors.sky} />
             </View>
             <View style={styles.benefitText}>
-              <Text style={[styles.benefitTitle, isDarkMode && styles.benefitTitleDark]}>
+              <Text
+                style={[
+                  styles.benefitTitle,
+                  isDarkMode && styles.benefitTitleDark,
+                ]}
+              >
                 Build Your Network
               </Text>
-              <Text style={[styles.benefitDesc, isDarkMode && styles.benefitDescDark]}>
+              <Text
+                style={[
+                  styles.benefitDesc,
+                  isDarkMode && styles.benefitDescDark,
+                ]}
+              >
                 Grow your affiliate network and earn commission
               </Text>
             </View>
@@ -150,10 +211,20 @@ export default function ReferralScreen({
               <Ionicons name="pricetag" size={20} color={Colors.sky} />
             </View>
             <View style={styles.benefitText}>
-              <Text style={[styles.benefitTitle, isDarkMode && styles.benefitTitleDark]}>
+              <Text
+                style={[
+                  styles.benefitTitle,
+                  isDarkMode && styles.benefitTitleDark,
+                ]}
+              >
                 Special Offers
               </Text>
-              <Text style={[styles.benefitDesc, isDarkMode && styles.benefitDescDark]}>
+              <Text
+                style={[
+                  styles.benefitDesc,
+                  isDarkMode && styles.benefitDescDark,
+                ]}
+              >
                 Access exclusive deals and promotions
               </Text>
             </View>
@@ -162,19 +233,36 @@ export default function ReferralScreen({
 
         {/* AF Home & Referral Info Section */}
         <View style={[styles.card, isDarkMode && styles.cardDark]}>
-          <Text style={[styles.sectionTitle, isDarkMode && styles.sectionTitleDark]}>
+          <Text
+            style={[styles.sectionTitle, isDarkMode && styles.sectionTitleDark]}
+          >
             AF Home & Referral
           </Text>
 
           {/* Referrer Info */}
           <View style={styles.statusContainer}>
             <View style={styles.statusItem}>
-              <Ionicons name="person" size={20} color={Colors.sky} style={styles.statusIcon} />
+              <Ionicons
+                name="person"
+                size={20}
+                color={Colors.sky}
+                style={styles.statusIcon}
+              />
               <View style={styles.statusContent}>
-                <Text style={[styles.statusLabel, isDarkMode && styles.statusLabelDark]}>
+                <Text
+                  style={[
+                    styles.statusLabel,
+                    isDarkMode && styles.statusLabelDark,
+                  ]}
+                >
                   Referred by
                 </Text>
-                <Text style={[styles.statusValue, isDarkMode && styles.statusValueDark]}>
+                <Text
+                  style={[
+                    styles.statusValue,
+                    isDarkMode && styles.statusValueDark,
+                  ]}
+                >
                   {referrerName || referrerUsername}
                 </Text>
               </View>
@@ -184,7 +272,8 @@ export default function ReferralScreen({
           <View style={[styles.divider, isDarkMode && styles.dividerDark]} />
 
           <Text style={[styles.infoText, isDarkMode && styles.infoTextDark]}>
-            AF Home is your trusted marketplace for quality products with exclusive rewards and affiliate opportunities.
+            AF Home is your trusted marketplace for quality products with
+            exclusive rewards and affiliate opportunities.
           </Text>
         </View>
 
@@ -194,73 +283,76 @@ export default function ReferralScreen({
       {/* Action Buttons */}
       <View style={[styles.footer, isDarkMode && styles.footerDark]}>
         <View style={styles.footerContent}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={onRegister}
-          >
-            <Text style={styles.primaryButtonText}>
-              Register
-            </Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={onRegister}>
+            <Text style={styles.primaryButtonText}>Register</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.secondaryButton, isDarkMode && styles.secondaryButtonDark]}
+            style={[
+              styles.secondaryButton,
+              isDarkMode && styles.secondaryButtonDark,
+            ]}
             onPress={onClose}
           >
-            <Text style={[styles.secondaryButtonText, isDarkMode && styles.secondaryButtonTextDark]}>
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                isDarkMode && styles.secondaryButtonTextDark,
+              ]}
+            >
               Already Referred by Other User
             </Text>
           </TouchableOpacity>
         </View>
       </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fbff',
+    backgroundColor: "#f8fbff",
   },
   containerDark: {
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
   },
   header: {
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: "#e5e7eb",
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   closeButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerInfo: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 12,
   },
   headerGreeting: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 0,
     paddingBottom: 20,
   },
@@ -271,25 +363,25 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     padding: 32,
     paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 180,
-    width: '100%',
+    width: "100%",
   },
   bannerContent: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 12,
   },
   bannerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
     color: Colors.white,
-    textAlign: 'center',
+    textAlign: "center",
   },
   bannerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
   },
   card: {
     marginHorizontal: 0,
@@ -300,26 +392,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 0,
     borderWidth: 0,
-    borderColor: '#e5e7eb',
-    width: '100%',
+    borderColor: "#e5e7eb",
+    width: "100%",
   },
   cardDark: {
-    backgroundColor: '#1f2937',
-    borderColor: '#374151',
+    backgroundColor: "#1f2937",
+    borderColor: "#374151",
   },
   cardLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textSecondary,
     marginBottom: 12,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   cardLabelDark: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   referrerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   referrerAvatar: {
@@ -327,12 +419,12 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: Colors.sky,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarText: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.white,
   },
   referrerDetails: {
@@ -340,7 +432,7 @@ const styles = StyleSheet.create({
   },
   referrerName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.text,
     marginBottom: 4,
   },
@@ -352,11 +444,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   referrerUsernameDark: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.text,
     marginBottom: 16,
   },
@@ -364,7 +456,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   benefitItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
@@ -372,17 +464,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 8,
-    backgroundColor: 'rgba(2, 132, 199, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(2, 132, 199, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   benefitText: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   benefitTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
     marginBottom: 4,
   },
@@ -395,7 +487,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   benefitDescDark: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   infoText: {
     fontSize: 13,
@@ -403,15 +495,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   infoTextDark: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   statusContainer: {
     gap: 12,
     marginBottom: 16,
   },
   statusItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 12,
   },
   statusIcon: {
@@ -422,17 +514,17 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textSecondary,
     marginBottom: 4,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   statusLabelDark: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   statusValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
     lineHeight: 20,
   },
@@ -441,62 +533,62 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     marginVertical: 12,
   },
   dividerDark: {
-    backgroundColor: '#374151',
+    backgroundColor: "#374151",
   },
   spacer: {
     height: 40,
   },
   footer: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: "#e5e7eb",
   },
   footerDark: {
-    backgroundColor: '#1f2937',
-    borderTopColor: '#374151',
+    backgroundColor: "#1f2937",
+    borderTopColor: "#374151",
   },
   footerContent: {
-    width: '100%',
+    width: "100%",
     gap: 10,
   },
   primaryButton: {
     height: 48,
     borderRadius: 8,
     backgroundColor: Colors.sky,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.white,
   },
   secondaryButton: {
     height: 48,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   secondaryButtonDark: {
-    backgroundColor: '#374151',
-    borderColor: '#4b5563',
+    backgroundColor: "#374151",
+    borderColor: "#4b5563",
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
   },
   secondaryButtonTextDark: {
     color: Colors.white,
   },
-});
+})
