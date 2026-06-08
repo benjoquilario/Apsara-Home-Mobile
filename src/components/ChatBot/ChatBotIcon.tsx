@@ -343,7 +343,9 @@ export default function ChatBotIcon({
     >
       {item.type === "bot" && (
         <Image
-          source={require("../../../assets/sir.png")}
+          source={{
+            uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
+          }}
           style={styles.botAvatarImage}
           resizeMode="contain"
         />
@@ -444,7 +446,9 @@ export default function ChatBotIcon({
           onLongPress={hideIcon}
         >
           <Image
-            source={require("../../../assets/sir.png")}
+            source={{
+              uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
+            }}
             style={styles.chatButtonImage}
             resizeMode="contain"
           />
@@ -496,7 +500,9 @@ export default function ChatBotIcon({
           activeOpacity={0.7}
         >
           <Image
-            source={require("../../../assets/sir.png")}
+            source={{
+              uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
+            }}
             style={styles.collapsedTabIcon}
             resizeMode="contain"
           />
@@ -538,7 +544,9 @@ export default function ChatBotIcon({
             >
               <View style={styles.headerContent}>
                 <Image
-                  source={require("../../../assets/sir.png")}
+                  source={{
+                    uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
+                  }}
                   style={styles.headerImage}
                   resizeMode="contain"
                 />
