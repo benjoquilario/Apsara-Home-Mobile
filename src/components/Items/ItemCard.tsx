@@ -240,9 +240,9 @@ function ItemCard({
       <View style={styles.imageContainer}>
         {imageError || !product.image ? (
           <Image
-            source={{{
+            source={{
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
-            }}}
+            }}
             style={[
               styles.productImage,
               styles.imagePlaceholder,
@@ -253,10 +253,9 @@ function ItemCard({
         ) : (
           <Image
             source={
-              getValidImageUrl(product.image) ||
-              {{
+              getValidImageUrl(product.image) || {
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
-            }}
+            }
             }
             style={styles.productImage}
             resizeMode="cover"
