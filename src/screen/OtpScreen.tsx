@@ -14,10 +14,35 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
 import { useVideoPlayer, VideoView } from "expo-video"
 import { Ionicons } from "@expo/vector-icons"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Colors } from "../constants/colors"
 import Button from "../components/Button/PrimaryButton"
+import { registerOtpSchema } from "../schemas/authSchemas"
 import { authService } from "../services/authService"
 import styles from "../styles/OtpScreen.styles"
+
+const OTP_VIDEO_URL =
+  "https://res.cloudinary.com/dc05ncs6l/video/upload/v1780969092/home-login_dja56x.mp4"
+
+const OtpBackground = React.memo(function OtpBackground() {
+  const player = useVideoPlayer(OTP_VIDEO_URL, (p) => {
+    p.loop = true
+    p.muted = true
+    p.play()
+  })
+  return (
+    <>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={styles.overlay} />
+    </>
+  )
+})
 
 export default function OtpScreen({
   email,
@@ -35,14 +60,13 @@ export default function OtpScreen({
   const [message, setMessage] = useState("")
   const [resendSeconds, setResendSeconds] = useState(50)
   const inputRefs = useRef<Array<TextInput | null>>([])
-  const player = useVideoPlayer(
-    "https://res.cloudinary.com/dc05ncs6l/video/upload/v1780969092/home-login_dja56x.mp4",
-    (p) => {
-      p.loop = true
-      p.muted = true
-      p.play()
-    }
-  )
+
+  const { handleSubmit, setValue, setError, formState } = useForm({
+    resolver: zodResolver(registerOtpSchema),
+    defaultValues: { otp: "" },
+    mode: "onSubmit",
+  })
+
   const maskedEmail = useMemo(() => {
     if (!email) return "jd***@gmail.com"
     const [name, domain] = email.split("@")
@@ -54,9 +78,12 @@ export default function OtpScreen({
     const timer = setInterval(() => {
       setResendSeconds((seconds) => (seconds > 0 ? seconds - 1 : 0))
     }, 1000)
-
     return () => clearInterval(timer)
   }, [])
+
+  function syncOtp(next: string[]) {
+    setValue("otp", next.join(""), { shouldValidate: false })
+  }
 
   function updateCode(index: number, value: string) {
     const digits = value.replace(/\D/g, "")
@@ -64,10 +91,9 @@ export default function OtpScreen({
 
     if (digits.length > 1) {
       const chars = digits.slice(0, 4).split("")
-      for (let i = 0; i < 4; i += 1) {
-        next[i] = chars[i] || ""
-      }
+      for (let i = 0; i < 4; i += 1) next[i] = chars[i] || ""
       setCode(next)
+      syncOtp(next)
       const focusIndex = Math.min(chars.length, 3)
       inputRefs.current[focusIndex]?.focus()
       return
@@ -75,10 +101,9 @@ export default function OtpScreen({
 
     next[index] = digits.slice(-1)
     setCode(next)
-
-    if (digits && index < 3) {
-      inputRefs.current[index + 1]?.focus()
-    }
+    syncOtp(next)
+    if (message) setMessage("")
+    if (digits && index < 3) inputRefs.current[index + 1]?.focus()
   }
 
   function handleKeyPress(index: number, key: string) {
@@ -92,35 +117,27 @@ export default function OtpScreen({
     setMessage("A new verification code has been sent.")
   }
 
-  async function handleVerify() {
-    const otp = code.join("")
-    if (otp.length !== 4) {
-      setMessage("Please enter the 4-digit code.")
-      return
-    }
-
+  const onVerify = handleSubmit(async ({ otp }) => {
     setLoading(true)
     setMessage("")
     try {
       await authService.verifyRegisterOtp(verificationToken, otp)
       onSuccess?.()
     } catch (error: any) {
-      setMessage(error.message || "OTP verification failed")
+      setError("otp", {
+        message: error.message || "OTP verification failed",
+      })
     } finally {
       setLoading(false)
     }
-  }
+  })
+
+  const errorText = formState.errors.otp?.message || message
 
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-      />
-      <View style={styles.overlay} />
+      <OtpBackground />
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -178,17 +195,18 @@ export default function OtpScreen({
                     maxLength={1}
                     textAlign="center"
                     autoFocus={index === 0}
+                    accessibilityLabel={`Verification code digit ${index + 1}`}
                   />
                 ))}
               </View>
 
-              {message ? (
-                <Text style={styles.messageText}>{message}</Text>
+              {errorText ? (
+                <Text style={styles.messageText}>{errorText}</Text>
               ) : null}
 
               <Button
                 title="VERIFY CODE"
-                onPress={handleVerify}
+                onPress={onVerify}
                 loading={loading}
                 style={styles.verifyBtn}
               />

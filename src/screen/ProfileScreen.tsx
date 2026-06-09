@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react"
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native"
+import { Image } from "expo-image"
 import Toast from "react-native-toast-message"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
@@ -94,6 +94,7 @@ interface ProfileScreenProps {
   onWishlistChange?: () => void
   onProductPress?: (id: number) => void
   onShopNavigate?: () => void
+  onNavigateWishlist?: () => void
 }
 
 const REFERRAL_STATS = [
@@ -165,6 +166,12 @@ const SOCIAL_ITEMS = [
 
 const MENU_ITEMS = [
   {
+    icon: "heart-outline" as const,
+    label: "My Wishlist",
+    chevron: true,
+    key: "wishlist",
+  },
+  {
     icon: "settings-outline" as const,
     label: "Settings",
     chevron: true,
@@ -204,6 +211,7 @@ export default function ProfileScreen({
   onWishlistChange = () => {},
   onProductPress = () => {},
   onShopNavigate = () => {},
+  onNavigateWishlist = () => {},
 }: ProfileScreenProps) {
   console.log("[ProfileScreen] Component mounted/updated", {
     userEmail: user?.email,
@@ -583,7 +591,8 @@ export default function ProfileScreen({
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/profile_bg_pndcaa.png"
           }}
             style={styles.headerBackgroundImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
           />
           <View style={[styles.headerContent, { paddingTop: insets.top }]}>
             <TouchableOpacity
@@ -596,6 +605,7 @@ export default function ProfileScreen({
                   <Image
                     source={{ uri: photoUrl }}
                     style={styles.headerAvatarImg}
+                    transition={200}
                   />
                 ) : (
                   <Text style={styles.headerAvatarInitial}>{initial}</Text>
@@ -850,7 +860,8 @@ export default function ProfileScreen({
                         uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_1_kpacst.png",
                       }}
                       style={styles.dailyCheckinIcon}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                   </View>
                   <Text
@@ -1278,7 +1289,8 @@ export default function ProfileScreen({
                         uri: `https://quickchart.io/qr?text=${encodeURIComponent(signupUrl)}&size=200`,
                       }}
                       style={styles.qrImage}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                     <View style={styles.qrImageTag}>
                       <Text style={styles.qrImageTagText}>Signup</Text>
@@ -1379,7 +1391,8 @@ export default function ProfileScreen({
                         uri: `https://quickchart.io/qr?text=${encodeURIComponent(shoppingUrl)}&size=200`,
                       }}
                       style={styles.qrImage}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                     <View
                       style={[
@@ -1548,7 +1561,8 @@ export default function ProfileScreen({
                         uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_1_kpacst.png",
                       }}
                       style={styles.walletCardIcon}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                     <Text
                       style={[
@@ -1625,9 +1639,12 @@ export default function ProfileScreen({
                   ],
                 ]}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
                 onPress={() => {
                   if (item.key === "logout") onLogout?.()
                   if (item.key === "settings") onNavigateSettings?.()
+                  if (item.key === "wishlist") onNavigateWishlist?.()
                 }}
               >
                 <View
@@ -1660,6 +1677,13 @@ export default function ProfileScreen({
                 >
                   {item.label}
                 </Text>
+                {item.key === "wishlist" && wishlistItems.length > 0 ? (
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>
+                      {wishlistItems.length > 99 ? "99+" : wishlistItems.length}
+                    </Text>
+                  </View>
+                ) : null}
                 {item.chevron && (
                   <Ionicons
                     name="chevron-forward"
@@ -1745,7 +1769,8 @@ export default function ProfileScreen({
                       : `https://quickchart.io/qr?text=${encodeURIComponent(shoppingUrl)}&size=400`,
                 }}
                 style={styles.modalQrImage}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
 
               <Text style={[styles.modalQrUrl, { color: colors.textSec }]}>

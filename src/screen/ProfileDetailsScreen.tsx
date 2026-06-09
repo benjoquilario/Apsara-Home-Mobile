@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from "react"
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   BackHandler,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
@@ -48,6 +48,101 @@ type RowItem =
 
 const STATUS_GREEN = "#10b981"
 const STATUS_RED = "#ef4444"
+
+interface Palette {
+  bg: string
+  card: string
+  cardAlt: string
+  border: string
+  text: string
+  textSec: string
+  iconBg: string
+  chipNeutral: string
+  track: string
+}
+
+// Hoisted to module scope so their component identity is stable across
+// re-renders (otherwise the entire grouped list remounts on every state change).
+const RowView = ({
+  row,
+  isLast,
+  c,
+}: {
+  row: RowItem
+  isLast: boolean
+  c: Palette
+}) => {
+  if (row.kind === "node") {
+    return (
+      <View
+        style={
+          isLast
+            ? undefined
+            : { borderBottomWidth: 1, borderBottomColor: c.border }
+        }
+      >
+        {row.el}
+      </View>
+    )
+  }
+  return (
+    <View
+      style={[
+        styles.row,
+        isLast && styles.rowLast,
+        { borderBottomColor: c.border },
+      ]}
+    >
+      <View style={styles.rowLeft}>
+        {row.icon ? (
+          <View style={[styles.rowIcon, { backgroundColor: c.iconBg }]}>
+            <Ionicons name={row.icon} size={15} color={Colors.sky} />
+          </View>
+        ) : null}
+        <Text style={[styles.rowLabel, { color: c.textSec }]}>{row.label}</Text>
+      </View>
+      {row.kind === "status" ? (
+        <View style={[styles.statusBadge, { backgroundColor: row.color }]}>
+          <Text style={styles.statusBadgeText}>{row.text}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.rowValue, { color: c.text }]} numberOfLines={2}>
+          {row.value}
+        </Text>
+      )}
+    </View>
+  )
+}
+
+const Section = ({
+  label,
+  rows,
+  c,
+}: {
+  label: string
+  rows: (RowItem | null)[]
+  c: Palette
+}) => {
+  const visible = rows.filter((r): r is RowItem => r !== null)
+  if (visible.length === 0) return null
+  return (
+    <View>
+      <Text style={[styles.groupLabel, { color: c.textSec }]}>{label}</Text>
+      <View
+        style={[styles.group, { backgroundColor: c.card, borderColor: c.border }]}
+      >
+        {visible.map((row, i) => (
+          <RowView
+            key={row.key}
+            row={row}
+            isLast={i === visible.length - 1}
+            c={c}
+          />
+        ))}
+      </View>
+    </View>
+  )
+}
 
 export default function ProfileDetailsScreen({
   token,
@@ -117,7 +212,7 @@ export default function ProfileDetailsScreen({
         return
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -175,68 +270,6 @@ export default function ProfileDetailsScreen({
       ? null
       : { kind: "info", key, label, value: String(value), icon }
 
-  const RowView = ({ row, isLast }: { row: RowItem; isLast: boolean }) => {
-    if (row.kind === "node") {
-      return (
-        <View
-          style={
-            isLast
-              ? undefined
-              : { borderBottomWidth: 1, borderBottomColor: c.border }
-          }
-        >
-          {row.el}
-        </View>
-      )
-    }
-    return (
-      <View
-        style={[
-          styles.row,
-          isLast && styles.rowLast,
-          { borderBottomColor: c.border },
-        ]}
-      >
-        <View style={styles.rowLeft}>
-          {row.icon ? (
-            <View style={[styles.rowIcon, { backgroundColor: c.iconBg }]}>
-              <Ionicons name={row.icon} size={15} color={Colors.sky} />
-            </View>
-          ) : null}
-          <Text style={[styles.rowLabel, { color: c.textSec }]}>
-            {row.label}
-          </Text>
-        </View>
-        {row.kind === "status" ? (
-          <View style={[styles.statusBadge, { backgroundColor: row.color }]}>
-            <Text style={styles.statusBadgeText}>{row.text}</Text>
-          </View>
-        ) : (
-          <Text style={[styles.rowValue, { color: c.text }]} numberOfLines={2}>
-            {row.value}
-          </Text>
-        )}
-      </View>
-    )
-  }
-
-  const Section = ({ label, rows }: { label: string; rows: (RowItem | null)[] }) => {
-    const visible = rows.filter((r): r is RowItem => r !== null)
-    if (visible.length === 0) return null
-    return (
-      <View>
-        <Text style={[styles.groupLabel, { color: c.textSec }]}>{label}</Text>
-        <View
-          style={[styles.group, { backgroundColor: c.card, borderColor: c.border }]}
-        >
-          {visible.map((row, i) => (
-            <RowView key={row.key} row={row} isLast={i === visible.length - 1} />
-          ))}
-        </View>
-      </View>
-    )
-  }
-
   /* ---------- Derived ---------- */
   const completion = Number(userProfile?.profile_completion_percentage)
   const hasCompletion =
@@ -283,6 +316,8 @@ export default function ProfileDetailsScreen({
                 style={[styles.iconBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
                 onPress={onClose}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
               >
                 <Ionicons name="chevron-back" size={20} color={Colors.white} />
               </TouchableOpacity>
@@ -291,6 +326,8 @@ export default function ProfileDetailsScreen({
                 style={[styles.iconBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
                 onPress={onCartPress}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Cart${cartCount > 0 ? `, ${cartCount} items` : ""}`}
               >
                 <Ionicons name="cart-outline" size={20} color={Colors.white} />
                 {cartCount > 0 ? (
@@ -311,12 +348,15 @@ export default function ProfileDetailsScreen({
               onPress={handleAvatarUpload}
               disabled={uploadingAvatar}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile picture"
             >
               <View style={[styles.avatar, { backgroundColor: c.iconBg, borderColor: c.bg }]}>
                 {userProfile.avatar_url ? (
                   <Image
                     source={{ uri: userProfile.avatar_url }}
                     style={styles.avatarImage}
+                    transition={200}
                   />
                 ) : (
                   <Text style={styles.avatarInitial}>
@@ -349,6 +389,7 @@ export default function ProfileDetailsScreen({
                     <Image
                       source={{ uri: userProfile.badge_image }}
                       style={styles.chipImage}
+                      transition={200}
                     />
                   ) : (
                     <Ionicons name="shield-checkmark" size={13} color={Colors.white} />
@@ -431,6 +472,8 @@ export default function ProfileDetailsScreen({
               style={[styles.ctaButton, hasNoAddress && styles.ctaComplete]}
               onPress={() => onEditProfile?.(userProfile)}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={hasNoAddress ? "Complete profile" : "Edit profile"}
             >
               <Ionicons
                 name={hasNoAddress ? "checkmark-circle" : "pencil"}
@@ -444,6 +487,7 @@ export default function ProfileDetailsScreen({
 
             <Section
               label="Personal"
+              c={c}
               rows={[
                 info("fn", "First Name", userProfile.first_name, "person"),
                 info("ln", "Last Name", userProfile.last_name),
@@ -466,6 +510,7 @@ export default function ProfileDetailsScreen({
 
             <Section
               label="Address"
+              c={c}
               rows={[
                 info("ad", "Street Address", userProfile.address, "location"),
                 info("bg", "Barangay", userProfile.barangay),
@@ -479,6 +524,7 @@ export default function ProfileDetailsScreen({
 
             <Section
               label="Account Status"
+              c={c}
               rows={[
                 {
                   kind: "status",
@@ -521,6 +567,7 @@ export default function ProfileDetailsScreen({
             {ma ? (
               <Section
                 label="Monthly Activation"
+                c={c}
                 rows={[
                   {
                     kind: "status",
@@ -567,6 +614,7 @@ export default function ProfileDetailsScreen({
             {userProfile.referrer_name ? (
               <Section
                 label="Referral"
+                c={c}
                 rows={[
                   info("rn", "Referrer Name", userProfile.referrer_name, "person"),
                   info(
@@ -652,6 +700,8 @@ export default function ProfileDetailsScreen({
             style={styles.retryButton}
             onPress={fetchUserProfile}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading profile"
           >
             <Ionicons name="refresh" size={16} color={Colors.white} />
             <Text style={styles.retryText}>Try Again</Text>

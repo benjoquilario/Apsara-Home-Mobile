@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react"
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
   PanResponder,
   ActivityIndicator,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
@@ -252,7 +252,8 @@ export default function AffiliateReferralModal({
                       uri: `https://quickchart.io/qr?text=${encodeURIComponent(signupUrl)}&size=220`,
                     }}
                     style={styles.qrImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    transition={200}
                   />
                   <Text style={styles.qrTag}>Signup</Text>
                 </TouchableOpacity>
@@ -333,7 +334,8 @@ export default function AffiliateReferralModal({
                       uri: `https://quickchart.io/qr?text=${encodeURIComponent(shoppingUrl)}&size=220`,
                     }}
                     style={styles.qrImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    transition={200}
                   />
                   <Text style={[styles.qrTag, { backgroundColor: "#f97316" }]}>
                     Shopping

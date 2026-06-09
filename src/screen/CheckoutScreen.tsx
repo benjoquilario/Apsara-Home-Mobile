@@ -5,12 +5,12 @@ import {  View,
   TouchableOpacity,
   ActivityIndicator,
   BackHandler,
-  Image,
   Dimensions,
   Pressable,
   Platform,
   TextInput,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import * as Application from "expo-application"
@@ -720,7 +720,8 @@ export default function CheckoutScreen({
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/checkout_bg_zkqmal.png"
           }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View
           style={[
@@ -819,6 +820,7 @@ export default function CheckoutScreen({
                           borderWidth: 1.5,
                           borderColor: colors.border,
                         }}
+                        transition={200}
                       />
                     )
                   }
@@ -857,7 +859,8 @@ export default function CheckoutScreen({
                       checkoutItem.variant_image || checkoutItem.product_image,
                   }}
                   style={styles.itemImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
                 <View style={styles.itemDetails}>
                   <View>
@@ -1234,7 +1237,8 @@ export default function CheckoutScreen({
                       <Image
                         source={{ uri: method.logo }}
                         style={styles.paymentGridLogo}
-                        resizeMode="contain"
+                        contentFit="contain"
+                        transition={200}
                       />
                     ) : (
                       <Ionicons

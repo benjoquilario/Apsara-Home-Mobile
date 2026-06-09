@@ -13,7 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../constants/colors"
-import { Image } from "react-native"
+import { Image } from "expo-image"
 import styles from "../styles/SettingsScreen.styles"
 
 interface User {
@@ -111,7 +111,8 @@ export default function SettingsScreen({
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969378/settings_bg_pz2uw5.png"
           }}
             style={styles.headerBackgroundImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
           />
           <View style={[styles.headerContent, { paddingTop: insets.top }]}>
             <TouchableOpacity
@@ -153,6 +154,7 @@ export default function SettingsScreen({
                   <Image
                     source={{ uri: user.avatar_url }}
                     style={styles.profileAvatar}
+                    transition={200}
                   />
                 ) : (
                   <View

@@ -2,7 +2,6 @@ import React, { useState, useRef } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
   PanResponder,
   Animated,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 import {
@@ -290,7 +290,8 @@ export default function LevelProgress({
                   <Image
                     source={BADGE_IMAGES[rank]}
                     style={styles.badgeImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    transition={200}
                   />
                   {isCurrentRank && (
                     <View
@@ -442,7 +443,8 @@ export default function LevelProgress({
                 <Image
                   source={BADGE_IMAGES[enlargedBadge]}
                   style={styles.modalBadgeImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
 
                 {/* Navigation - Right Side */}
@@ -657,7 +659,7 @@ const styles = StyleSheet.create({
     height: 60,
   },
   lockedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",

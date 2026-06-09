@@ -13,8 +13,8 @@ import {
   ActivityIndicator,
   Linking,
   Platform,
-  Image,
 } from "react-native"
+import { Image } from "expo-image"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { CameraView, useCameraPermissions } from "expo-camera"
@@ -797,7 +797,8 @@ export default function SecurityScreen({
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969377/security_bg_r75w4x.png"
           }}
             style={styles.headerBackgroundImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
           />
           <View style={[styles.headerContent, { paddingTop: insets.top }]}>
             <TouchableOpacity
@@ -994,7 +995,7 @@ export default function SecurityScreen({
                 <View style={[styles.qrCamera, { borderColor: colors.border }]}>
                   {console.log("[QR Camera] Rendering camera view")}
                   <CameraView
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                     facing="back"
                     onBarcodeScanned={(result) => {
                       console.log(

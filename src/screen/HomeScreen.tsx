@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ScrollView,
-  Image,
   Animated,
   Dimensions,
   NativeSyntheticEvent,
@@ -14,6 +13,7 @@ import {
   Platform,
   TouchableOpacity,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { VideoView, useVideoPlayer } from "expo-video"
 import { LinearGradient } from "expo-linear-gradient"
@@ -212,7 +212,7 @@ function CategoryCircle({
             { backgroundColor: isDarkMode ? colors?.card : Colors.white },
           ]}
         >
-          <Image source={{ uri: image }} style={styles.circleImage} />
+          <Image source={{ uri: image }} style={styles.circleImage} transition={200} />
           {badgeType && (
             <Animated.View
               style={[
@@ -331,7 +331,8 @@ function RoomItemComponent({
               <Image
                 source={{ uri: item.image }}
                 style={styles.roomImage}
-                resizeMode="cover"
+                contentFit="cover"
+                transition={200}
               />
             ) : (
               <View
@@ -603,7 +604,7 @@ function HomeScreen({
           >
             <View style={styles.brandLogoContainer}>
               {logo ? (
-                <Image source={{ uri: logo }} style={styles.brandLogoImage} />
+                <Image source={{ uri: logo }} style={styles.brandLogoImage} transition={200} />
               ) : (
                 <View
                   style={[
@@ -705,7 +706,8 @@ function HomeScreen({
                     <Image
                       source={badgeSource}
                       style={styles.rankingBadgeImage}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                   ) : (
                     <Ionicons
@@ -724,7 +726,8 @@ function HomeScreen({
                     styles.rankingBadgeImage,
                     { tintColor: "#9ca3af", opacity: 0.7 },
                   ]}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               )}
             </View>
@@ -753,7 +756,8 @@ function HomeScreen({
                   uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
                 }}
                 style={styles.badgeLogo}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
             </View>
           </View>

@@ -4,7 +4,7 @@ import { Colors } from "../constants/colors"
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f8fbff" },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(248, 251, 255, 0.72)",
   },
   safe: { flex: 1 },

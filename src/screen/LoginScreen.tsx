@@ -10,21 +10,27 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
   Modal,
   BackHandler,
   Alert,
 } from "react-native"
+import { Image } from "expo-image"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
 import { useVideoPlayer, VideoView } from "expo-video"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
 import * as WebBrowser from "expo-web-browser"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import Toast from "react-native-toast-message"
 import { Colors } from "../constants/colors"
 import Button from "../components/Button/PrimaryButton"
+import ControlledAuthField from "../components/Auth/ControlledAuthField"
+import LegalWebViewScreen from "./LegalWebViewScreen"
+import { loginSchema } from "../schemas/authSchemas"
+import { LegalDoc } from "../constants/legal"
 import { authService } from "../services/authService"
 import BiometricUtils from "../utils/biometricUtils"
 import { getFCMToken } from "../utils/fcmUtils"
@@ -34,7 +40,33 @@ import styles from "../styles/LoginScreen.styles"
 
 WebBrowser.maybeCompleteAuthSession()
 
+const LOGIN_BACKGROUND_VIDEO_URL =
+  "https://res.cloudinary.com/dc05ncs6l/video/upload/v1780726529/afhome_go2re6.mp4"
+
 type AuthStep = "login" | "2fa" | "mfa"
+
+/**
+ * Background video isolated in a memoized component so form state changes
+ * never re-render the video.
+ */
+const LoginBackground = React.memo(function LoginBackground() {
+  const player = useVideoPlayer({ uri: LOGIN_BACKGROUND_VIDEO_URL }, (p) => {
+    p.loop = true
+    p.muted = true
+    p.play()
+  })
+  return (
+    <>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={styles.overlay} />
+    </>
+  )
+})
 
 export default function LoginScreen({
   onGoToSignup,
@@ -50,13 +82,14 @@ export default function LoginScreen({
   ) => void
   onResetOnboarding?: () => Promise<void>
 }) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const { control, handleSubmit, trigger, getValues, reset } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: "", password: "" },
+    mode: "onTouched",
+  })
+
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  )
   const [authStep, setAuthStep] = useState<AuthStep>("login")
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [otp, setOtp] = useState("")
@@ -73,6 +106,7 @@ export default function LoginScreen({
   const [showRememberedUserUI, setShowRememberedUserUI] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
+  const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null)
 
   useEffect(() => {
     loadSavedUser()
@@ -97,7 +131,6 @@ export default function LoginScreen({
         return false
       }
     )
-
     return () => backHandler.remove()
   }, [onGoToIndex])
 
@@ -142,38 +175,52 @@ export default function LoginScreen({
       await AsyncStorage.removeItem("rememberedUser")
       setSavedUser(null)
       setShowRememberedUserUI(false)
-      setPassword("")
-      setEmail("")
-      setErrors({})
+      reset({ identifier: "", password: "" })
     } catch (error) {
       console.error("Failed to clear saved user:", error)
     }
   }
 
-  const player = useVideoPlayer(
-    {
-      uri: "https://res.cloudinary.com/dc05ncs6l/video/upload/v1780726529/afhome_go2re6.mp4",
-    },
-    (p) => {
-      p.loop = true
-      p.muted = true
-      p.play()
-    }
-  )
-
-  function validate() {
-    const next: { email?: string; password?: string } = {}
-    if (!email.trim()) next.email = "Username or email is required."
-    if (!password) next.password = "Password is required."
-    setErrors(next)
-    return Object.keys(next).length === 0
+  // Shared post-login handling for 2FA / MFA / success.
+  function handleLoginSuccess(response: any) {
+    Toast.show({ type: "success", text1: "Login successful!" })
+    setTimeout(
+      () =>
+        onAuthenticated?.(response.user, response.token ?? response.accessToken),
+      700
+    )
   }
 
-  async function handleSignIn() {
-    if (!validate()) return
+  function handleLoginError(error: any) {
+    if (error.type === "2FA_REQUIRED") {
+      setAuthToken(error.token)
+      setAuthStep("2fa")
+      Toast.show({ type: "info", text1: "OTP required", text2: error.message })
+    } else if (error.type === "MFA_APPROVAL_REQUIRED") {
+      setAuthToken(error.token)
+      setAuthStep("mfa")
+      Toast.show({
+        type: "info",
+        text1: "MFA approval required",
+        text2: error.message,
+      })
+      startMfaPolling()
+    } else {
+      Toast.show({
+        type: "error",
+        text1: "Login failed",
+        text2: error.message || "Please try again.",
+      })
+    }
+  }
+
+  const onSignIn = handleSubmit(async (values) => {
     setLoading(true)
     try {
-      const response = await authService.login(email, password)
+      const response = await authService.login(
+        values.identifier,
+        values.password
+      )
       if (!response.user && !response.accessToken && !response.token) {
         Toast.show({
           type: "error",
@@ -185,54 +232,23 @@ export default function LoginScreen({
       if (rememberMe && response.user) {
         await saveUserCredentials(response.user)
       }
-      Toast.show({ type: "success", text1: "Login successful!" })
-      setTimeout(
-        () =>
-          onAuthenticated?.(
-            response.user,
-            response.token ?? response.accessToken
-          ),
-        700
-      )
+      handleLoginSuccess(response)
     } catch (error: any) {
-      if (error.type === "2FA_REQUIRED") {
-        setAuthToken(error.token)
-        setAuthStep("2fa")
-        Toast.show({
-          type: "info",
-          text1: "OTP required",
-          text2: error.message,
-        })
-      } else if (error.type === "MFA_APPROVAL_REQUIRED") {
-        setAuthToken(error.token)
-        setAuthStep("mfa")
-        Toast.show({
-          type: "info",
-          text1: "MFA approval required",
-          text2: error.message,
-        })
-        startMfaPolling()
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Login failed",
-          text2: error.message || "Please try again.",
-        })
-      }
+      handleLoginError(error)
     } finally {
       setLoading(false)
     }
-  }
+  })
 
-  async function handleRememberedUserLogin() {
-    if (!password.trim()) {
-      setErrors({ password: "Password is required." })
-      return
-    }
-    if (!savedUser?.email) return
+  async function onRememberedLogin() {
+    const valid = await trigger("password")
+    if (!valid || !savedUser?.email) return
     setLoading(true)
     try {
-      const response = await authService.login(savedUser.email, password)
+      const response = await authService.login(
+        savedUser.email,
+        getValues("password")
+      )
       if (!response.user && !response.accessToken && !response.token) {
         Toast.show({
           type: "error",
@@ -241,40 +257,9 @@ export default function LoginScreen({
         })
         return
       }
-      Toast.show({ type: "success", text1: "Login successful!" })
-      setTimeout(
-        () =>
-          onAuthenticated?.(
-            response.user,
-            response.token ?? response.accessToken
-          ),
-        700
-      )
+      handleLoginSuccess(response)
     } catch (error: any) {
-      if (error.type === "2FA_REQUIRED") {
-        setAuthToken(error.token)
-        setAuthStep("2fa")
-        Toast.show({
-          type: "info",
-          text1: "OTP required",
-          text2: error.message,
-        })
-      } else if (error.type === "MFA_APPROVAL_REQUIRED") {
-        setAuthToken(error.token)
-        setAuthStep("mfa")
-        Toast.show({
-          type: "info",
-          text1: "MFA approval required",
-          text2: error.message,
-        })
-        startMfaPolling()
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Login failed",
-          text2: error.message || "Please try again.",
-        })
-      }
+      handleLoginError(error)
     } finally {
       setLoading(false)
     }
@@ -327,7 +312,7 @@ export default function LoginScreen({
         type: "success",
         text1: "Login Successful",
         text2: `Welcome, ${user?.name || user?.email || "User"}!`,
-        duration: 2000,
+        visibilityTime: 2000,
       })
 
       setTimeout(() => {
@@ -440,13 +425,7 @@ export default function LoginScreen({
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-      />
-      <View style={styles.overlay} />
+      <LoginBackground />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -454,27 +433,29 @@ export default function LoginScreen({
       >
         <View style={styles.spacer} />
         <LinearGradient
-          colors={[
-            "rgba(0, 0, 0, 0)",
-            "rgba(0, 0, 0, 0.8)",
-            "rgba(0, 0, 0, 1)",
-          ]}
+          colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 1)"]}
           locations={[0, 0.4, 1]}
           style={styles.gradient}
           pointerEvents="none"
         />
         <SafeAreaView style={styles.contentSection} edges={[]}>
           <View style={styles.headerRow}>
-            <Pressable style={styles.backButton} onPress={onGoToIndex}>
+            <Pressable
+              style={styles.backButton}
+              onPress={onGoToIndex}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
               <Ionicons name="arrow-back" size={24} color={Colors.white} />
             </Pressable>
             <View style={styles.logoSection}>
               <Image
                 source={{
-                uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png"
-              }}
+                  uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png",
+                }}
                 style={styles.homeLogoImage}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
               <Text style={styles.homeLogoText}>Home</Text>
             </View>
@@ -499,6 +480,7 @@ export default function LoginScreen({
                     <Image
                       source={{ uri: savedUser.avatar_url }}
                       style={styles.profilePicture}
+                      transition={200}
                     />
                   ) : (
                     <View style={styles.profilePictureDefault}>
@@ -511,43 +493,20 @@ export default function LoginScreen({
                   <Text style={styles.profileEmail}>{savedUser.email}</Text>
                 </View>
 
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Password</Text>
-                  <View
-                    style={[
-                      styles.passwordRow,
-                      errors.password ? styles.inputError : null,
-                    ]}
-                  >
-                    <TextInput
-                      style={styles.passwordInput}
-                      value={password}
-                      onChangeText={(t) => {
-                        setPassword(t)
-                        setErrors((e) => ({ ...e, password: undefined }))
-                      }}
-                      placeholderTextColor={Colors.textSecondary}
-                      secureTextEntry={!showPassword}
-                      autoComplete="password"
-                      onSubmitEditing={handleRememberedUserLogin}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword((v) => !v)}
-                    >
-                      <Ionicons
-                        name={showPassword ? "eye-off-outline" : "eye-outline"}
-                        size={20}
-                        color={Colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  {errors.password ? (
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  ) : null}
-                </View>
+                <ControlledAuthField
+                  control={control}
+                  name="password"
+                  label="Password"
+                  leftIcon="lock-closed-outline"
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  onSubmitEditing={onRememberedLogin}
+                  rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                  onRightIconPress={() => setShowPassword((v) => !v)}
+                />
                 <Button
                   title="Sign in"
-                  onPress={handleRememberedUserLogin}
+                  onPress={onRememberedLogin}
                   loading={loading}
                   style={styles.signInBtn}
                 />
@@ -563,82 +522,36 @@ export default function LoginScreen({
               </>
             ) : (
               <>
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Username or Email</Text>
-                  <View
-                    style={[
-                      styles.emailRow,
-                      errors.email ? styles.inputError : null,
-                    ]}
-                  >
-                    <TextInput
-                      style={styles.emailInput}
-                      value={email}
-                      onChangeText={(t) => {
-                        setEmail(t)
-                        setErrors((e) => ({ ...e, email: undefined }))
-                      }}
-                      placeholderTextColor={Colors.textSecondary}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                    />
-                    <TouchableOpacity
-                      onPress={handleBiometricLogin}
-                      disabled={biometricLoading}
-                    >
-                      <Ionicons
-                        name="finger-print"
-                        size={20}
-                        color={
-                          biometricLoading ? Colors.textSecondary : Colors.sky
-                        }
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  {errors.email ? (
-                    <Text style={styles.errorText}>{errors.email}</Text>
-                  ) : null}
-                </View>
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Password</Text>
-                  <View
-                    style={[
-                      styles.passwordRow,
-                      errors.password ? styles.inputError : null,
-                    ]}
-                  >
-                    <TextInput
-                      style={styles.passwordInput}
-                      value={password}
-                      onChangeText={(t) => {
-                        setPassword(t)
-                        setErrors((e) => ({ ...e, password: undefined }))
-                      }}
-                      placeholderTextColor={Colors.textSecondary}
-                      secureTextEntry={!showPassword}
-                      autoComplete="password"
-                      onSubmitEditing={handleSignIn}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword((v) => !v)}
-                    >
-                      <Ionicons
-                        name={showPassword ? "eye-off-outline" : "eye-outline"}
-                        size={20}
-                        color={Colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  {errors.password ? (
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  ) : null}
-                </View>
+                <ControlledAuthField
+                  control={control}
+                  name="identifier"
+                  label="Username or Email"
+                  leftIcon="mail-outline"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  rightIcon="finger-print"
+                  rightIconActive={!biometricLoading}
+                  onRightIconPress={handleBiometricLogin}
+                />
+                <ControlledAuthField
+                  control={control}
+                  name="password"
+                  label="Password"
+                  leftIcon="lock-closed-outline"
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  onSubmitEditing={onSignIn}
+                  rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                  onRightIconPress={() => setShowPassword((v) => !v)}
+                />
                 <View style={styles.rememberMeRow}>
                   <TouchableOpacity
                     style={styles.checkboxRow}
                     onPress={() => setRememberMe((v) => !v)}
                     activeOpacity={0.7}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: rememberMe }}
                   >
                     <View
                       style={[
@@ -659,7 +572,7 @@ export default function LoginScreen({
                 </View>
                 <Button
                   title="Sign in"
-                  onPress={handleSignIn}
+                  onPress={onSignIn}
                   loading={loading}
                   style={styles.signInBtn}
                 />
@@ -674,6 +587,21 @@ export default function LoginScreen({
                 </View>
               </>
             )}
+
+            <Text style={styles.legalFooter}>
+              By continuing you agree to our{" "}
+              <Text style={styles.legalLink} onPress={() => setLegalDoc("terms")}>
+                Terms
+              </Text>{" "}
+              and{" "}
+              <Text
+                style={styles.legalLink}
+                onPress={() => setLegalDoc("privacy")}
+              >
+                Privacy Policy
+              </Text>
+              .
+            </Text>
           </ScrollView>
         </SafeAreaView>
       </KeyboardAvoidingView>
@@ -761,6 +689,12 @@ export default function LoginScreen({
           </View>
         </View>
       </Modal>
+
+      {legalDoc ? (
+        <View style={StyleSheet.absoluteFill}>
+          <LegalWebViewScreen doc={legalDoc} onClose={() => setLegalDoc(null)} />
+        </View>
+      ) : null}
     </View>
   )
 }

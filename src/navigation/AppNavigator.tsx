@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   Pressable,
   StyleSheet,
@@ -1428,6 +1427,10 @@ export default function AppNavigator({
                   onShopNavigate: () => {
                     setPreviousTab("profile")
                     setActiveTab("shop")
+                  },
+                  onNavigateWishlist: () => {
+                    setPreviousTab("profile")
+                    setActiveTab("wishlist")
                   },
                   onShowProfileDetails: (show: boolean) =>
                     setShowProfileDetails(show),

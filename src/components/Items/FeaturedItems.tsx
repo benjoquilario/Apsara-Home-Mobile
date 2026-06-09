@@ -3,11 +3,11 @@ import React, { useState, useCallback } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../../constants/colors"
@@ -176,13 +176,15 @@ export default function FeaturedItems({
               styles.productImage,
               { tintColor: isDarkMode ? "#cbd5e1" : "#4b5563" },
             ]}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         ) : (
           <Image
             source={{ uri: product.image }}
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
             onError={() => {
               setImageError(true)
             }}

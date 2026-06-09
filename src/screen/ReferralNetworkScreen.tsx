@@ -3,12 +3,12 @@ import React, { useState, useEffect } from "react"
 import {  View,
   Text,
   ScrollView,
-  Image,
   TouchableOpacity,
   BackHandler,
   ActivityIndicator,
   SafeAreaView,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
@@ -146,6 +146,7 @@ export default function ReferralNetworkScreen({
                       <Image
                         source={{ uri: user.avatar_url }}
                         style={styles.avatarImage}
+                        transition={200}
                       />
                     ) : (
                       <Text style={styles.avatarInitial}>
@@ -275,7 +276,8 @@ export default function ReferralNetworkScreen({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
             }}
               style={styles.headerBackgroundImage}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
             />
             <View style={[styles.headerContent, { paddingTop: insets.top }]}>
               <TouchableOpacity
@@ -346,7 +348,8 @@ export default function ReferralNetworkScreen({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
             }}
             style={styles.headerBackgroundImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
           />
           <View style={[styles.headerContent, { paddingTop: insets.top }]}>
             <TouchableOpacity

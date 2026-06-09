@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
   StyleSheet,
   Dimensions,
   ActivityIndicator,
@@ -14,6 +13,7 @@ import {
   Animated,
   PanResponder,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -297,7 +297,8 @@ export default function AddToCartModal({
                     <Image
                       source={{ uri: imageUrl }}
                       style={{ width: "100%", height: "100%" }}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                   )
                 })()}

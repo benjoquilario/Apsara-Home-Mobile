@@ -18,9 +18,17 @@ export const useAppUpdates = () => {
       return
     }
 
+    // checkForUpdateAsync / fetchUpdateAsync are only available in production
+    // builds (EAS Update). In Expo Go or `expo start` dev mode, isEnabled is false.
+    if (!Updates.isEnabled) {
+      console.log("[useAppUpdates] OTA updates not enabled in this environment")
+      updateCheckPerformed.current = true
+      return
+    }
+
     try {
       console.log("[useAppUpdates] Checking for updates...")
-      const update = await Updates.checkAsync()
+      const update = await Updates.checkForUpdateAsync()
 
       if (update.isAvailable) {
         console.log("[useAppUpdates] Update available, downloading...")
@@ -30,7 +38,7 @@ export const useAppUpdates = () => {
           type: "info",
           text1: "Update Available",
           text2: "Downloading new version...",
-          duration: 3000,
+          visibilityTime: 3000,
         })
 
         await Updates.fetchUpdateAsync()
@@ -40,7 +48,7 @@ export const useAppUpdates = () => {
           type: "success",
           text1: "Update Complete",
           text2: "Restarting app...",
-          duration: 2000,
+          visibilityTime: 2000,
         })
 
         await Updates.reloadAsync()

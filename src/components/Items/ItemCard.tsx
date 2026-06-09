@@ -3,13 +3,13 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   ImageSourcePropType,
   Animated,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../../constants/colors"
@@ -248,7 +248,8 @@ function ItemCard({
               styles.imagePlaceholder,
               { tintColor: isDarkMode ? "#cbd5e1" : "#4b5563" },
             ]}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         ) : (
           <Image
@@ -258,7 +259,8 @@ function ItemCard({
             }
             }
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
             onError={() => {
               setImageError(true)
               console.warn(

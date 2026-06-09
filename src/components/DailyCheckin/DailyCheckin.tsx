@@ -7,9 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Image,
   Modal,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 
@@ -210,7 +210,8 @@ export default function DailyCheckin({
                               : "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_2_h2taqv.png",
                         }}
                         style={styles.coinImage}
-                        resizeMode="contain"
+                        contentFit="contain"
+                        transition={200}
                       />
                     </View>
                   </View>

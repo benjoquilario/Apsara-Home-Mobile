@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
   BackHandler,
   Modal,
@@ -17,6 +16,7 @@ import {
   Dimensions,
   Pressable,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
@@ -679,7 +679,8 @@ export default function PurchasesScreen({
           uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969376/purchases_bg_l42llq.png"
         }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View
           style={[
@@ -908,7 +909,8 @@ export default function PurchasesScreen({
                           <Image
                             source={{ uri: item.image }}
                             style={styles.itemImage}
-                            resizeMode="contain"
+                            contentFit="contain"
+                            transition={200}
                           />
                         )}
                         <View style={[styles.itemInfo, { marginRight: 12 }]}>
@@ -1345,7 +1347,8 @@ export default function PurchasesScreen({
                           <Image
                             source={{ uri: item.image }}
                             style={styles.detailItemImage}
-                            resizeMode="contain"
+                            contentFit="contain"
+                            transition={200}
                           />
                         )}
                         <View style={{ flex: 1 }}>

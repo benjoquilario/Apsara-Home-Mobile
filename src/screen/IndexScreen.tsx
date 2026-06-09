@@ -8,11 +8,11 @@ import {
   Linking,
   SafeAreaView,
   Pressable,
-  Image,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useVideoPlayer, VideoView } from "expo-video"
 import { LinearGradient } from "expo-linear-gradient"
@@ -261,7 +261,7 @@ export default function IndexScreen({
     <View style={styles.root}>
       <VideoView
         player={player}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         contentFit="cover"
         nativeControls={false}
       />
@@ -297,7 +297,8 @@ export default function IndexScreen({
                 uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png"
               }}
                 style={styles.homeLogoImage}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
               <Text style={styles.homeLogoText}>Home</Text>
             </View>

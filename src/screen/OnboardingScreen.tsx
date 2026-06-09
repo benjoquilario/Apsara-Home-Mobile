@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react"
 import {  View,
   Text,
-  Image,
   TouchableOpacity,
   FlatList,
   ScrollView,
@@ -9,6 +8,7 @@ import {  View,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native"
+import { Image } from "expo-image"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../constants/colors"
@@ -148,7 +148,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968889/earn_from_home_jltluf.png"
             }}
             style={styles.slideImage}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         )}
         {item.key === "2" && (
@@ -157,7 +158,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968889/how_it_works_bbvlxy.png"
             }}
             style={styles.slideImage}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         )}
         {item.key === "3" && (
@@ -166,7 +168,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968889/one_eco_system_dbcwhw.png"
             }}
             style={styles.slideImage}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         )}
         {item.key === "4" && (
@@ -175,7 +178,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968889/this_is_for_you_if_gm6nyq.png"
             }}
             style={styles.slideImage}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         )}
 
@@ -268,7 +272,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968888/affordahome_llfmsz.png"
                   }}
                   style={styles.brandLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
               <View style={styles.brandItem}>
@@ -277,7 +282,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968888/airpro_j7xfsw.png"
                   }}
                   style={styles.brandLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
               <View style={styles.brandItem}>
@@ -286,7 +292,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968888/furnigo_skd7lq.png"
                   }}
                   style={styles.brandLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
               <View style={styles.brandItem}>
@@ -295,7 +302,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968888/sunnyware_dwpcnb.png"
                   }}
                   style={styles.brandLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
               <View style={styles.brandItem}>
@@ -304,7 +312,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968889/xiaomi_ujdytp.png"
                   }}
                   style={styles.brandLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
               <View style={styles.brandItem}>
@@ -313,7 +322,8 @@ export default function OnboardingScreen({ onDone }: OnboardingScreenProps) {
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780968890/zooey_un55b9.png"
                   }}
                   style={styles.brandLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
             </View>

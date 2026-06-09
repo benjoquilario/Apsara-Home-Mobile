@@ -61,7 +61,9 @@
       "expo-secure-store",
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
-      "expo-updates"
+      "expo-updates",
+      "expo-status-bar",
+      "expo-audio"
     ],
     "extra": {
       "eas": {

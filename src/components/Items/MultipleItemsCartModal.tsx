@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
   StyleSheet,
   Dimensions,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import {
   Modal,
   PanResponder,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -275,7 +275,8 @@ export default function MultipleItemsCartModal({
                     uri: displayedImages[item.product_id] || item.product.image,
                   }}
                   style={styles.itemImage}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  transition={200}
                 />
 
                 {/* Product Info */}

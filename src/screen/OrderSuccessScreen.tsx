@@ -6,8 +6,8 @@ import {  View,
   TouchableOpacity,
   ActivityIndicator,
   BackHandler,
-  Image,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
@@ -190,7 +190,8 @@ export default function OrderSuccessScreen({
           uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969376/purchases_bg_l42llq.png"
         }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View
           style={[

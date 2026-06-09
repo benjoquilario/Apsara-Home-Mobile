@@ -2,7 +2,6 @@
 import React, { useRef, useMemo, useEffect } from "react"
 import {
   View,
-  Image,
   Text,
   TouchableOpacity,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   Dimensions,
   RefreshControl,
 } from "react-native"
+import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
@@ -141,7 +141,8 @@ export default function ImageViewerModal({
                   "https://via.placeholder.com/32",
               }}
               style={styles.slideshowBrandImage}
-              resizeMode="contain"
+              contentFit="contain"
+              transition={200}
             />
           </View>
           <View style={styles.slideshowBrandTextContainer}>
@@ -231,7 +232,8 @@ export default function ImageViewerModal({
               <Image
                 source={{ uri: img }}
                 style={styles.slideshowImage}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
             </View>
           ))}
@@ -258,7 +260,8 @@ export default function ImageViewerModal({
           <Image
             source={{ uri: images[imageViewerIndex] }}
             style={styles.slideshowCardImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
           />
 
           {/* Product Details */}
@@ -389,7 +392,8 @@ export default function ImageViewerModal({
                         <Image
                           source={{ uri: variant.images[0] }}
                           style={styles.shopeeVariantImage}
-                          resizeMode="cover"
+                          contentFit="cover"
+                          transition={200}
                         />
                       ) : variant.colorHex ? (
                         <View

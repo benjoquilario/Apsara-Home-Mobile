@@ -4,7 +4,7 @@ import { Colors } from "../constants/colors"
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   formScrollContent: { paddingBottom: 12 },
-  fieldRow: { flexDirection: "row", gap: 12 },
+  fieldRow: { flexDirection: "row", gap: 12, marginBottom: 14 },
   fieldWrap: { width: "100%", marginBottom: 14 },
   halfField: { flex: 1, marginBottom: 0 },
   label: {

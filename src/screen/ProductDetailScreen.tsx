@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import {  View,
   Text,
   ScrollView,
-  Image,
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
@@ -14,6 +13,7 @@ import {  View,
   Animated,
   Share,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -927,7 +927,8 @@ export default function ProductDetailScreen({
                       <Image
                         source={{ uri: img }}
                         style={styles.galleryImage}
-                        resizeMode="contain"
+                        contentFit="contain"
+                        transition={200}
                       />
                     </TouchableOpacity>
                   ))
@@ -1037,19 +1038,23 @@ export default function ProductDetailScreen({
                   </View>
                 </TouchableOpacity>
 
-                {/* More Options (3-dot menu) */}
+                {/* Wishlist / Save */}
                 <TouchableOpacity
-                  onPress={() => {
-                    console.log("More options")
-                  }}
+                  onPress={toggleWishlist}
+                  disabled={wishlistLoading}
                   style={styles.galleryIconBtn}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+                  }
+                  accessibilityState={{ selected: isWishlisted }}
                 >
                   <View style={styles.galleryIconBtnInner}>
                     <Ionicons
-                      name="ellipsis-vertical"
+                      name={isWishlisted ? "heart" : "heart-outline"}
                       size={22}
-                      color={Colors.white}
+                      color={isWishlisted ? "#ef4444" : Colors.white}
                     />
                   </View>
                 </TouchableOpacity>
@@ -1113,7 +1118,8 @@ export default function ProductDetailScreen({
                             <Image
                               source={{ uri: variant.images[0] }}
                               style={styles.shopeeVariantImage}
-                              resizeMode="cover"
+                              contentFit="cover"
+                              transition={200}
                             />
                           ) : variant.colorHex ? (
                             <View
@@ -1969,7 +1975,8 @@ export default function ProductDetailScreen({
                                             "https://via.placeholder.com/40",
                                         }}
                                         style={styles.reviewAvatar}
-                                        resizeMode="cover"
+                                        contentFit="cover"
+                                        transition={200}
                                       />
                                     </View>
                                     <View style={styles.reviewerDetails}>
@@ -2140,7 +2147,8 @@ export default function ProductDetailScreen({
                         "https://via.placeholder.com/60",
                     }}
                     style={styles.brandLogo}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    transition={200}
                   />
                   <View style={styles.brandInfo}>
                     <View style={styles.brandHeader}>
@@ -2502,7 +2510,8 @@ export default function ProductDetailScreen({
                     "https://via.placeholder.com/32",
                 }}
                 style={styles.slideshowBrandImage}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
               <View style={styles.slideshowBrandText}>
                 <Text style={styles.slideshowBrandName} numberOfLines={1}>
@@ -2564,7 +2573,8 @@ export default function ProductDetailScreen({
                   <Image
                     source={{ uri: img }}
                     style={styles.slideshowImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    transition={200}
                   />
                 </View>
               ))}
@@ -2594,7 +2604,8 @@ export default function ProductDetailScreen({
               <Image
                 source={{ uri: images[imageViewerIndex] }}
                 style={styles.slideshowCardImage}
-                resizeMode="cover"
+                contentFit="cover"
+                transition={200}
               />
 
               {/* Product Details */}
@@ -2709,7 +2720,8 @@ export default function ProductDetailScreen({
                         <Image
                           source={{ uri: variant.images[0] }}
                           style={styles.slideshowVariantImage}
-                          resizeMode="cover"
+                          contentFit="cover"
+                          transition={200}
                         />
                       ) : variant.colorHex ? (
                         <View
