@@ -4,10 +4,10 @@ import {  View,
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Image,
   RefreshControl,
   Alert,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../constants/colors"
 import { orderService } from "../services/orderService"
@@ -501,7 +501,8 @@ export default function NotificationsScreen({
                               <Image
                                 source={{ uri: item.product_image }}
                                 style={styles.notificationImage}
-                                resizeMode="contain"
+                                contentFit="contain"
+                                transition={200}
                               />
                             </View>
                           ) : (

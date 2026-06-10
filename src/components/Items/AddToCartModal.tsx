@@ -5,22 +5,19 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
   TextInput,
   BackHandler,
   Animated,
   PanResponder,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../../constants/colors"
 import Toast from "react-native-toast-message"
-
-const SCREEN_WIDTH = Dimensions.get("window").width
 
 interface Product {
   id: number
@@ -33,7 +30,7 @@ interface Product {
   prodpv?: number
   soldCount: number
   qty: number
-  variants?: Array<{
+  variants?: {
     id: number
     color?: string
     name?: string
@@ -42,7 +39,7 @@ interface Product {
     priceMember?: number
     priceSrp?: number
     qty: number
-  }>
+  }[]
 }
 
 interface AddToCartModalProps {
@@ -88,9 +85,15 @@ export default function AddToCartModal({
   isDarkMode = false,
 }: AddToCartModalProps) {
   const insets = useSafeAreaInsets()
-  const slideAnim = useRef(new Animated.Value(300)).current
-  const [isClosing, setIsClosing] = useState(false)
+  const slideAnim = useState(() => new Animated.Value(300))[0]
+  const [, setIsClosing] = useState(false)
+  const [prevVisible, setPrevVisible] = useState(visible)
   const scrollY = useRef(0)
+
+  const handleClose = () => {
+    setIsClosing(true)
+    onClose()
+  }
 
   const colors = {
     bg: isDarkMode ? "#111827" : Colors.white,
@@ -103,7 +106,10 @@ export default function AddToCartModal({
     imageBg: isDarkMode ? "#1f2937" : "#f1f5f9",
   }
 
-  const panResponder = useRef(
+  // scrollY.current is only read inside the gesture callbacks (at gesture time),
+  // never during render — the lazy initializer just defines the handlers.
+  // eslint-disable-next-line react-hooks/refs
+  const [panResponder] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => scrollY.current === 0,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
@@ -131,11 +137,15 @@ export default function AddToCartModal({
         }
       },
     })
-  ).current
+  )
+
+  if (visible !== prevVisible) {
+    setPrevVisible(visible)
+    if (visible) setIsClosing(false)
+  }
 
   useEffect(() => {
     if (visible) {
-      setIsClosing(false)
       Animated.spring(slideAnim, {
         toValue: 0,
         friction: 8,
@@ -150,11 +160,6 @@ export default function AddToCartModal({
       }).start()
     }
   }, [visible, slideAnim])
-
-  const handleClose = () => {
-    setIsClosing(true)
-    onClose()
-  }
 
   useEffect(() => {
     if (!visible) return
@@ -297,7 +302,8 @@ export default function AddToCartModal({
                     <Image
                       source={{ uri: imageUrl }}
                       style={{ width: "100%", height: "100%" }}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={200}
                     />
                   )
                 })()}

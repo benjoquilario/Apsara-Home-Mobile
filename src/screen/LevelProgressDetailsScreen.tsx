@@ -3,8 +3,8 @@ import {  View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -129,7 +129,8 @@ export default function LevelProgressDetailsScreen({
                 <Image
                   source={BADGE_IMAGES[tier.rank]}
                   style={styles.badgeImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.tierName, { color: colors.text }]}>

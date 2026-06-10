@@ -7,9 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Image,
   Modal,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 
@@ -51,12 +51,18 @@ const ConfettiPiece = ({ delay }: { delay: number }) => {
         }),
       ]),
     ]).start()
+    // Run the confetti animation once per piece on mount; animated values and
+    // delay are stable for the lifetime of this instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const confettiEmojis = ["🎉", "🎊", "⭐", "✨", "🎈"]
-  const randomEmoji =
-    confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)]
-  const randomLeft = Math.random() * 300 - 150
+  // Random values are computed once per piece via lazy state initializers so
+  // they stay stable across re-renders (and don't run impurely during render).
+  const [randomEmoji] = useState(() => {
+    const confettiEmojis = ["🎉", "🎊", "⭐", "✨", "🎈"]
+    return confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)]
+  })
+  const [randomLeft] = useState(() => Math.random() * 300 - 150)
 
   return (
     <Animated.Text
@@ -210,7 +216,8 @@ export default function DailyCheckin({
                               : "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_2_h2taqv.png",
                         }}
                         style={styles.coinImage}
-                        resizeMode="contain"
+                        contentFit="contain"
+                        transition={200}
                       />
                     </View>
                   </View>

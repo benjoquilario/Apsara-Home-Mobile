@@ -4,12 +4,12 @@ import {
   View,
   ScrollView,
   Text,
-  Image,
   TouchableOpacity,
   Pressable,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 import FeaturedItems from "../../components/Items/FeaturedItems"
@@ -242,7 +242,8 @@ export default function ShopByBrandHomeScreen({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
             }}
               style={styles.dummyImage}
-              resizeMode="contain"
+              contentFit="contain"
+              transition={200}
               tintColor={isDarkMode ? "#cbd5e1" : "#4b5563"}
             />
           </View>
@@ -451,7 +452,8 @@ export default function ShopByBrandHomeScreen({
               key={index}
               source={{ uri: image }}
               style={styles.bannerImage}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
             />
           ))}
         </ScrollView>
@@ -519,7 +521,8 @@ export default function ShopByBrandHomeScreen({
           styles.bestProductsBanner,
           { marginBottom: 8, borderRadius: 8 },
         ]}
-        resizeMode="cover"
+        contentFit="cover"
+        transition={200}
       />
 
       <View

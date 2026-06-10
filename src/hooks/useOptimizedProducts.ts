@@ -50,7 +50,7 @@ export const useOptimizedProducts = ({
   enabled = true,
 }: ProductsParams) => {
   const queryClient = useQueryClient()
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const previousFilterKeyRef = useRef<string>("")
 

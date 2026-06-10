@@ -4,7 +4,7 @@ import { Colors } from "../constants/colors"
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   container: { flex: 1, justifyContent: "flex-end" },
@@ -190,6 +190,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.white,
     textDecorationLine: "underline",
+  },
+  legalFooter: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    marginTop: 18,
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: Colors.sky,
+    fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,

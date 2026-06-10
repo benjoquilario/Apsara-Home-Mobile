@@ -4,8 +4,8 @@ import {  View,
   ScrollView,
   TouchableOpacity,
   BackHandler,
-  Image,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
@@ -119,6 +119,7 @@ export default function ReferralScreen({
               <Image
                 source={{ uri: referrerAvatarUrl }}
                 style={styles.referrerAvatar}
+                transition={200}
               />
             ) : (
               <View style={styles.referrerAvatar}>

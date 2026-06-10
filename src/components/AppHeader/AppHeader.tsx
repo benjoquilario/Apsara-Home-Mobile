@@ -4,18 +4,16 @@ import {
   Linking,
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
 } from "react-native"
+import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 import { productService } from "../../services/productService"
-import { getBadgeImageSource } from "../../constants/tierConfig"
 import HeaderFilter from "./HeaderFilter"
-import Toast from "react-native-toast-message"
 
 interface AppHeaderProps {
   user?: {
@@ -82,10 +80,11 @@ function MarqueeItems() {
           <Text style={marqueeStyles.text}>{text}</Text>
           <Image
             source={{
-            uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
-          }}
+              uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png",
+            }}
             style={marqueeStyles.logo}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         </View>
       ))}
@@ -94,8 +93,8 @@ function MarqueeItems() {
 }
 
 function MarqueeBanner({ isDarkMode }: { isDarkMode?: boolean }) {
-  const tx1 = useRef(new Animated.Value(0)).current
-  const tx2 = useRef(new Animated.Value(0)).current
+  const tx1 = useState(() => new Animated.Value(0))[0]
+  const tx2 = useState(() => new Animated.Value(0))[0]
   const pos1 = useRef(0)
   const pos2 = useRef(0)
   const contentWidthRef = useRef(0)
@@ -129,6 +128,7 @@ function MarqueeBanner({ isDarkMode }: { isDarkMode?: boolean }) {
     if (contentWidthRef.current > 0) {
       startScrolling(contentWidthRef.current)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; startScrolling is recreated each render and is guarded by isScrollingRef
   }, [])
 
   const handleLayout = (e: any) => {
@@ -178,13 +178,10 @@ function MarqueeBanner({ isDarkMode }: { isDarkMode?: boolean }) {
 
 export default function AppHeader({
   user,
-  onNotificationPress,
   onCartPress,
-  onFilterPress,
   onSearchPress,
   onCameraPress,
   onProfilePress,
-  onLogout,
   searchPlaceholder = "Search...",
   cartCount = 0,
   showRoomFilter = false,
@@ -214,12 +211,14 @@ export default function AppHeader({
     useState(searchPlaceholder)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showFilter, setShowFilter] = useState(showRoomFilter)
+  const [prevShowRoomFilter, setPrevShowRoomFilter] = useState(showRoomFilter)
   const [showBalance, setShowBalance] = useState(true)
   const currentIndex = useRef(0)
 
-  useEffect(() => {
+  if (showRoomFilter !== prevShowRoomFilter) {
+    setPrevShowRoomFilter(showRoomFilter)
     setShowFilter(showRoomFilter)
-  }, [showRoomFilter])
+  }
 
   useEffect(() => {
     async function loadSuggestions() {
@@ -237,7 +236,7 @@ export default function AppHeader({
             setDynamicPlaceholder(names[0])
           }
         }
-      } catch (error) {
+      } catch {
         // Fallback to static suggestions if API fails
         setSuggestions([
           'Try "Sofa"',
@@ -264,10 +263,11 @@ export default function AppHeader({
       <View style={styles.headerBackground}>
         <Image
           source={{
-            uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
+            uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png",
           }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View style={[styles.headerContent, { paddingTop: insets.top }]}>
           {/* <MarqueeBanner isDarkMode={isDarkMode} /> */}
@@ -290,6 +290,7 @@ export default function AppHeader({
                       source={{ uri: photoUrl }}
                       style={styles.avatarImage}
                       onError={() => setImageLoadError(true)}
+                      transition={200}
                     />
                   ) : initial ? (
                     <Text style={styles.avatarInitial}>{initial}</Text>

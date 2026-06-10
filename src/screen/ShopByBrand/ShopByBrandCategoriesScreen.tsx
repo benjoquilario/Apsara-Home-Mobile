@@ -1,5 +1,6 @@
 import React from "react"
-import { View, Text, StyleSheet, Image, Pressable } from "react-native"
+import { View, Text, StyleSheet, Pressable } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 
@@ -62,7 +63,8 @@ export default function ShopByBrandCategoriesScreen({
                   <Image
                     source={{ uri: category.image }}
                     style={styles.categoryImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    transition={200}
                   />
                 )}
                 <Text

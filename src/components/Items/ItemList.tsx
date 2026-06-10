@@ -1,13 +1,13 @@
 // @ts-nocheck
-import React, { useState, useRef } from "react"
+import React, { useState } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Animated,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 
@@ -48,12 +48,12 @@ export interface ItemListProps {
     musthave?: boolean
     bestseller?: boolean
     salespromo?: boolean
-    variants?: Array<{
+    variants?: {
       id: number
       name: string
       color?: string
       size?: string
-    }>
+    }[]
   }
   isSelected?: boolean
   onProductPress?: (id: number) => void
@@ -74,8 +74,7 @@ export default function ItemList({
   onSelect,
   isDarkMode = false,
 }: ItemListProps) {
-  const [isWishlisted, setIsWishlisted] = useState(true)
-  const scaleAnim = useRef(new Animated.Value(1)).current
+  const scaleAnim = useState(() => new Animated.Value(1))[0]
 
   // Handle undefined product
   if (!product) {
@@ -117,11 +116,6 @@ export default function ItemList({
     onSelect?.(wishlist_id)
   }
 
-  const handleRemoveFromWishlist = () => {
-    setIsWishlisted(false)
-    onRemove?.(wishlist_id)
-  }
-
   return (
     <View
       style={[
@@ -160,7 +154,12 @@ export default function ItemList({
             { backgroundColor: isDarkMode ? "#0f172a" : "#f3f4f6" },
           ]}
         >
-          <Image source={{ uri: product.image }} style={styles.productImage} />
+          <Image
+            source={{ uri: product.image }}
+            style={styles.productImage}
+            contentFit="cover"
+            transition={200}
+          />
           {!inStock && (
             <View style={styles.outOfStockOverlay}>
               <Text style={styles.outOfStockText}>Out of Stock</Text>
