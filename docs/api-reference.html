@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apsara Home Mobile - API Reference</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0070f3;
+            --primary-dark: #0051cc;
+            --primary-light: #3291ff;
+            --accent: #50e3c2;
+            --bg: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-dark: #000000;
+            --bg-dark-secondary: #111111;
+            --surface: #ffffff;
+            --surface-dark: #1a1a1a;
+            --text: #000000;
+            --text-secondary: #666666;
+            --text-light: #999999;
+            --border: #e5e7eb;
+            --border-dark: #333333;
+            --border-subtle: #f0f0f0;
+        }
+
+        body.dark-mode {
+            --bg: var(--bg-dark);
+            --bg-secondary: var(--bg-dark-secondary);
+            --surface: var(--surface-dark);
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --text-light: #999999;
+            --border: var(--border-dark);
+            --border-subtle: #2a2a2a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            letter-spacing: -0.01em;
+        }
+
+        /* Header */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        body.dark-mode header {
+            background-color: rgba(26, 26, 26, 0.8);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .header-tools {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: 0.5rem;
+            width: 320px;
+            background: var(--bg-secondary);
+            color: var(--text);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-light);
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border-subtle);
+        }
+
+        button:hover {
+            background: var(--border-subtle);
+            border-color: var(--border);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Sidebar */
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 3rem;
+        }
+
+        aside {
+            position: sticky;
+            top: 120px;
+            height: fit-content;
+        }
+
+        .sidebar-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            border-left: 2px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            color: var(--primary);
+            background: var(--bg-secondary);
+        }
+
+        .sidebar-link.active {
+            color: var(--primary);
+            border-left-color: var(--primary);
+            background: var(--bg-secondary);
+            font-weight: 500;
+        }
+
+        /* Main content */
+        main {
+            background: transparent;
+        }
+
+        section {
+            padding: 2.5rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        section:first-child {
+            padding-top: 0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: -0.01em;
+        }
+
+        .section-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: 0.75rem;
+            background: var(--surface);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        thead {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        code {
+            background: var(--bg-secondary);
+            color: var(--primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+        }
+
+        .method.get {
+            background: rgba(0, 112, 243, 0.1);
+            color: var(--primary);
+        }
+
+        .method.post {
+            background: rgba(52, 211, 153, 0.1);
+            color: #059669;
+        }
+
+        .method.put {
+            background: rgba(234, 179, 8, 0.1);
+            color: #b45309;
+        }
+
+        .method.patch {
+            background: rgba(168, 85, 247, 0.1);
+            color: #9333ea;
+        }
+
+        .method.delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .auth-badge {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .auth-required {
+            background: rgba(0, 112, 243, 0.1);
+            color: var(--primary);
+        }
+
+        .auth-public {
+            background: rgba(52, 211, 153, 0.1);
+            color: #059669;
+        }
+
+        /* Info boxes */
+        .info-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--primary);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .info-box.warning {
+            border-left-color: #ea580c;
+        }
+
+        .info-box.danger {
+            border-left-color: #dc2626;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-top: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            aside {
+                position: relative;
+                top: 0;
+                margin-bottom: 2rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-tools {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            input[type="text"] {
+                width: 100%;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            .table-wrapper {
+                border-radius: 0.5rem;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            th, td {
+                padding: 0.75rem;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-light);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+            color: var(--text);
+        }
+
+        .endpoint-detail {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .detail-content {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-subtle);
+            font-size: 0.875rem;
+            line-height: 1.7;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .detail-content code {
+            background: var(--surface);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+        }
+
+        .field-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .field-item:last-child {
+            border-bottom: none;
+        }
+
+        .field-left {
+            flex: 1;
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: var(--primary);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .field-type {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .field-required {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border-radius: 0.25rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .field-optional {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: rgba(107, 114, 128, 0.1);
+            color: var(--text-light);
+            border-radius: 0.25rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .btn-download {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-download:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
+        }
+
+        .btn-copy {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border-subtle);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-copy:hover {
+            background: var(--border-subtle);
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .section-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn-export {
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border-subtle);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-export:hover {
+            background: var(--border-subtle);
+            border-color: var(--primary);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 2000;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div>
+                <h1>API Reference</h1>
+                <p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.25rem;">Apsara Home Mobile – 72+ Endpoints</p>
+            </div>
+            <div class="header-tools">
+                <input type="text" id="searchInput" placeholder="Search endpoints...">
+                <button id="toggleDarkMode" style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Endpoint Detail Modal -->
+    <div id="endpointModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <span id="modalMethod" class="method"></span>
+                        <code id="modalEndpoint" style="margin-left: 1rem; font-size: 0.95rem;"></code>
+                    </div>
+                    <div id="modalPurpose" style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;"></div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+
+            <div class="endpoint-detail">
+                <div class="detail-label">Required Fields</div>
+                <div class="detail-content" id="modalFields">
+                </div>
+            </div>
+
+            <div class="endpoint-detail">
+                <div class="detail-label">Response</div>
+                <div class="detail-content" id="modalResponse" style="max-height: 300px; overflow-y: auto;">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-download" onclick="downloadEndpointAsImage()">📥 Download as Image</button>
+                <button class="btn-copy" onclick="copyToClipboard()">📋 Copy cURL</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="layout">
+            <aside>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Categories</div>
+                    <a href="#authentication" class="sidebar-link active" onclick="scrollToSection('authentication')">Authentication</a>
+                    <a href="#products" class="sidebar-link" onclick="scrollToSection('products')">Products</a>
+                    <a href="#cart" class="sidebar-link" onclick="scrollToSection('cart')">Cart</a>
+                    <a href="#wishlist" class="sidebar-link" onclick="scrollToSection('wishlist')">Wishlist</a>
+                    <a href="#orders" class="sidebar-link" onclick="scrollToSection('orders')">Orders & Payments</a>
+                    <a href="#notifications" class="sidebar-link" onclick="scrollToSection('notifications')">Notifications</a>
+                    <a href="#search" class="sidebar-link" onclick="scrollToSection('search')">Search</a>
+                    <a href="#referral" class="sidebar-link" onclick="scrollToSection('referral')">Referral & Network</a>
+                    <a href="#account" class="sidebar-link" onclick="scrollToSection('account')">Account & Wallet</a>
+                    <a href="#behavior" class="sidebar-link" onclick="scrollToSection('behavior')">User Behavior</a>
+                    <a href="#security" class="sidebar-link" onclick="scrollToSection('security')">Security</a>
+                    <a href="#address" class="sidebar-link" onclick="scrollToSection('address')">Address Lookup</a>
+                    <a href="#social" class="sidebar-link" onclick="scrollToSection('social')">Social / Brand</a>
+                    <a href="#realtime" class="sidebar-link" onclick="scrollToSection('realtime')">Real-time</a>
+                    <a href="#meilisearch" class="sidebar-link" onclick="scrollToSection('meilisearch')">Meilisearch</a>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Quick Info</div>
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.5rem; padding: 1rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8;">
+                        <div style="margin-bottom: 1rem;">
+                            <div style="color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Base URL</div>
+                            <code style="display: block; word-break: break-all; font-size: 0.8rem;">backend.afhome.ph/api</code>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Auth</div>
+                            <div>Bearer token</div>
+                            <div style="color: var(--text-light); margin-top: 0.5rem;">Expires in 7 days</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main id="mainContent">
+                <!-- Stats Section -->
+                <section>
+                    <h2>Overview 📊</h2>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number">72+</div>
+                            <div class="stat-label">Total Endpoints</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">15</div>
+                            <div class="stat-label">Categories</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">2</div>
+                            <div class="stat-label">Auth Types</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">5</div>
+                            <div class="stat-label">HTTP Methods</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Authentication -->
+                <section id="authentication">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 0;">🔐 Authentication <span class="section-badge">24 endpoints</span></h2>
+                        <div class="section-controls">
+                            <button class="btn-export" onclick="exportSectionAsImage('authentication')">📸 Export Table</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="authentication">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/auth/mobile/register</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Register new user</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/register/verify-otp</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Verify email OTP</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/send-sms-otp</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Send SMS OTP</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/verify-sms-otp</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Verify SMS OTP</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/login</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Login with email/password</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/login-biometric</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Login with biometric</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/google-login</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Login with Google token</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/login/2fa/verify</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Verify 2FA code</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/login/2fa/resend</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Resend 2FA code</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/login/mfa/status</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Poll MFA approval status</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/login/mfa/resend</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Resend MFA request</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/me</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get current user profile</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/me</code></td>
+                                    <td><span class="method put">PUT</span></td>
+                                    <td>Update user profile</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/me/avatar</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Upload user avatar</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/change-password</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Change password</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/check-google-linked</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Check Google link status</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/link-account</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Link Google account</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/unlink-account</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Unlink Google account</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/enable-biometric</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Enable biometric login</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/mobile/disable-biometric</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Disable biometric login</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/addresses</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get saved addresses</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/csrf</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get CSRF token</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/auth/qr/verify</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Verify QR code</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Products -->
+                <section id="products">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 0;">🛍️ Products <span class="section-badge">9 endpoints</span></h2>
+                        <div class="section-controls">
+                            <button class="btn-export" onclick="exportSectionAsImage('products')">📸 Export Table</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="products">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/products</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Fetch all products</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/products/{id}</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get single product</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/products/category/{catid}</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get products by category</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/products/{id}/reviews</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get product reviews</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/home/shop/categories</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get shop categories</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/home/shop/brands</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get shop brands</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/home/shop/rooms</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get room types</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/product-brands</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get all brands</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/product-brands/{id}/profile</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get brand profile</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Cart -->
+                <section id="cart">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 0;">🛒 Cart <span class="section-badge">6 endpoints</span></h2>
+                        <div class="section-controls">
+                            <button class="btn-export" onclick="exportSectionAsImage('cart')">📸 Export Table</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="cart">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/cart</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Fetch user's cart</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/cart/add</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Add product to cart</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/cart/bulk-add</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Add multiple products</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/cart/{crtId}/variant</code></td>
+                                    <td><span class="method put">PUT</span></td>
+                                    <td>Update quantity/variant</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/cart/{crtId}</code></td>
+                                    <td><span class="method delete">DELETE</span></td>
+                                    <td>Remove item from cart</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/cart</code></td>
+                                    <td><span class="method delete">DELETE</span></td>
+                                    <td>Clear entire cart</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Wishlist -->
+                <section id="wishlist">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 0;">❤️ Wishlist <span class="section-badge">4 endpoints</span></h2>
+                        <div class="section-controls">
+                            <button class="btn-export" onclick="exportSectionAsImage('wishlist')">📸 Export Table</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="wishlist">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/wishlist</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Fetch wishlist</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/wishlist</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Add product to wishlist</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/wishlist/{product_id}</code></td>
+                                    <td><span class="method delete">DELETE</span></td>
+                                    <td>Remove from wishlist</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/wishlist/count/{productId}</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get wishlisted count</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Orders & Payments -->
+                <section id="orders">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 0;">💳 Orders & Payments <span class="section-badge">4 endpoints</span></h2>
+                        <div class="section-controls">
+                            <button class="btn-export" onclick="exportSectionAsImage('orders')">📸 Export Table</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="orders">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/orders/counts</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get order counts by status</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/orders/history</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Fetch order history</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/mobile/payments/create</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Create payment checkout</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/mobile/payments/{order_number}/proceed</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get payment URL</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Notifications -->
+                <section id="notifications">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin-bottom: 0;">🔔 Notifications <span class="section-badge">3 endpoints</span></h2>
+                        <div class="section-controls">
+                            <button class="btn-export" onclick="exportSectionAsImage('notifications')">📸 Export Table</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="notifications">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/mobile/notifications</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Fetch notifications</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/mobile/notifications/{id}/read</code></td>
+                                    <td><span class="method patch">PATCH</span></td>
+                                    <td>Mark as read</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/notifications/onesignal/register-token</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Register push device</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Search -->
+                <section id="search">
+                    <h2>🔍 Search <span class="section-badge">4 endpoints</span></h2>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="search">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/search/history</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get search history</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/search/history</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Save search to history</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/search/recommendations</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get recommendations</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/transcribe</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Transcribe voice to text</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Referral & Network -->
+                <section id="referral">
+                    <h2>🤝 Referral & Network <span class="section-badge">3 endpoints</span></h2>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="referral">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/referral-tree</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get referral tree</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/public/profile/{username}</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get public profile</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/public/top-members</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get leaderboard</td>
+                                    <td><span class="auth-badge auth-public">🔓 Public</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Account & Wallet -->
+                <section id="account">
+                    <h2>💰 Account & Wallet <span class="section-badge">2 endpoints</span></h2>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="account">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/account/snapshot</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get loyalty snapshot</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/encashment/wallet</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get wallet balances</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- User Behavior -->
+                <section id="behavior">
+                    <h2>📊 User Behavior <span class="section-badge">4 endpoints</span></h2>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="behavior">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/user-behavior/track</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Track user behavior</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/user-behavior/recommendations</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get recommendations</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/user-behavior/stats</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get behavior stats</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/user-behavior</code></td>
+                                    <td><span class="method delete">DELETE</span></td>
+                                    <td>Clear behavior history</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Sessions & Security -->
+                <section id="security">
+                    <h2>🔒 Sessions & Security <span class="section-badge">4 endpoints</span></h2>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="security">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/sessions</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get active sessions</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/sessions/{tokenId}</code></td>
+                                    <td><span class="method delete">DELETE</span></td>
+                                    <td>Revoke session</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/user/security-settings</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get security settings</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/login-history</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get login history</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Address Lookup -->
+                <section id="address">
+                    <h2>📍 Address Lookup <span class="section-badge">4 endpoints</span></h2>
+                    <div class="info-box">
+                        <strong>Philippine PSGC</strong>
+                        Falls back to public PSGC API when backend endpoints fail
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="address">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/address/regions</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get all regions</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/address/provinces</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get provinces by region</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/address/cities</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get cities by province</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/address/barangays</code></td>
+                                    <td><span class="method get">GET</span></td>
+                                    <td>Get barangays by city</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Social / Brand Following -->
+                <section id="social">
+                    <h2>👥 Social / Brand Following <span class="section-badge">3 endpoints</span></h2>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="social">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/followers/is-following</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Check if following</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/followers/follow</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Follow a brand</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>/followers/unfollow</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Unfollow a brand</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Real-time -->
+                <section id="realtime">
+                    <h2>⚡ Real-time (Pusher) <span class="section-badge">1 endpoint</span></h2>
+                    <div class="info-box">
+                        <strong>WebSocket Events</strong>
+                        <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                            <li><code>notification.created</code> — New notification</li>
+                            <li><code>order.notification.updated</code> — Order status changed</li>
+                            <li><code>notification.count.updated</code> — Unread count changed</li>
+                        </ul>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="realtime">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/realtime/pusher/auth</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Authorize Pusher channel</td>
+                                    <td><span class="auth-badge auth-required">✅ Required</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Meilisearch -->
+                <section id="meilisearch">
+                    <h2>🔎 Meilisearch <span class="section-badge">1 endpoint</span></h2>
+                    <div class="info-box">
+                        <strong>Host:</strong> <code>https://search.afhome.ph</code><br>
+                        <strong>Auth:</strong> API key in Authorization header
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="endpoint-table" data-category="meilisearch">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Purpose</th>
+                                    <th>Auth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/indexes/products/search</code></td>
+                                    <td><span class="method post">POST</span></td>
+                                    <td>Full-text product search</td>
+                                    <td><span class="auth-badge auth-required">✅ API Key</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Footer -->
+                <section style="padding: 3rem 0; text-align: center; border-bottom: none;">
+                    <div style="padding: 2rem; border-top: 1px solid var(--border-subtle); margin-top: 2rem;">
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">Apsara Home Mobile API Reference</p>
+                        <p style="font-size: 0.8rem; color: var(--text-light);">Last Updated: June 10, 2026 · API v1 · Laravel Backend</p>
+                        <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 1rem;">Built for developers by Apsara</p>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode toggle
+        const darkModeBtn = document.getElementById('toggleDarkMode');
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+        }
+
+        darkModeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const tables = document.querySelectorAll('.endpoint-table');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+
+            tables.forEach(table => {
+                let hasVisibleRows = false;
+                const rows = table.querySelectorAll('tbody tr');
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    const isVisible = text.includes(query) || query === '';
+                    row.style.display = isVisible ? '' : 'none';
+                    if (isVisible) hasVisibleRows = true;
+                });
+
+                // Hide table section if no rows match
+                const section = table.closest('section');
+                section.style.display = hasVisibleRows || query === '' ? '' : 'none';
+            });
+        });
+
+        // Sidebar navigation
+        function scrollToSection(id) {
+            const section = document.getElementById(id);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+                updateActiveLink(id);
+            }
+        }
+
+        function updateActiveLink(id) {
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            const link = document.querySelector(`a[href="#${id}"]`);
+            if (link) link.classList.add('active');
+        }
+
+        // Update active link on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section[id]');
+            let current = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            if (current) updateActiveLink(current);
+        });
+
+        // Endpoint data
+        const endpointData = {
+            '/auth/mobile/register': {
+                method: 'POST',
+                purpose: 'Register new user account',
+                fields: [
+                    { name: 'first_name', type: 'string', required: true },
+                    { name: 'last_name', type: 'string', required: true },
+                    { name: 'email', type: 'string', required: true },
+                    { name: 'password', type: 'string', required: true },
+                    { name: 'password_confirmation', type: 'string', required: true }
+                ],
+                response: '{ "message": "Registration successful", "requires_otp": true, "verification_token": "abc123" }'
+            },
+            '/auth/mobile/login': {
+                method: 'POST',
+                purpose: 'Log in with email and password',
+                fields: [
+                    { name: 'email', type: 'string', required: true },
+                    { name: 'password', type: 'string', required: true }
+                ],
+                response: '{ "user": { "id": "123", "name": "John" }, "token": "eyJ..." }'
+            },
+            '/cart': {
+                method: 'GET',
+                purpose: 'Fetch user\'s cart',
+                fields: [],
+                response: '{ "cart_items": [{ "crt_id": 1, "crt_quantity": 2, "product_name": "Sofa" }] }'
+            },
+            '/cart/add': {
+                method: 'POST',
+                purpose: 'Add product to cart',
+                fields: [
+                    { name: 'product_id', type: 'number', required: true },
+                    { name: 'variant_id', type: 'number', required: false },
+                    { name: 'quantity', type: 'number', required: true }
+                ],
+                response: '{ "message": "Added to cart", "cart_item": { ... } }'
+            },
+            '/cart/{crtId}/variant': {
+                method: 'PUT',
+                purpose: 'Update cart item quantity or variant',
+                fields: [
+                    { name: 'quantity', type: 'number', required: false },
+                    { name: 'variant_id', type: 'number', required: false }
+                ],
+                response: '{ "message": "Updated", "cart_item": { ... } }'
+            },
+            '/products': {
+                method: 'GET',
+                purpose: 'Fetch all products',
+                fields: [
+                    { name: 'brand_type', type: 'number', required: false },
+                    { name: 'room_type', type: 'number', required: false },
+                    { name: 'page', type: 'number', required: false }
+                ],
+                response: '{ "products": [{ "id": 1, "name": "Sofa", "priceMember": 10000 }] }'
+            },
+            '/orders/history': {
+                method: 'GET',
+                purpose: 'Fetch user\'s orders',
+                fields: [],
+                response: '{ "orders": [{ "id": 1, "order_number": "ORD-001", "status": "delivered" }] }'
+            },
+            '/wishlist': {
+                method: 'GET',
+                purpose: 'Fetch user\'s wishlist',
+                fields: [],
+                response: '{ "data": [{ "product_id": 1, "product": { ... } }] }'
+            }
+        };
+
+        // Open modal with endpoint details
+        function openEndpointModal(endpoint, method) {
+            const data = endpointData[endpoint] || endpointData[Object.keys(endpointData)[0]];
+
+            document.getElementById('modalEndpoint').textContent = endpoint;
+            document.getElementById('modalMethod').textContent = method;
+            document.getElementById('modalMethod').className = `method ${method.toLowerCase()}`;
+            document.getElementById('modalPurpose').textContent = data.purpose;
+
+            // Fields
+            let fieldsHTML = '';
+            if (data.fields.length > 0) {
+                data.fields.forEach(field => {
+                    fieldsHTML += `
+                        <div class="field-item">
+                            <div class="field-left">
+                                <div class="field-name">${field.name}</div>
+                                <div class="field-type">${field.type}</div>
+                            </div>
+                            <div>${field.required ? '<span class="field-required">REQUIRED</span>' : '<span class="field-optional">Optional</span>'}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                fieldsHTML = '<div style="color: var(--text-light);">No fields required</div>';
+            }
+            document.getElementById('modalFields').innerHTML = fieldsHTML;
+
+            // Response
+            document.getElementById('modalResponse').textContent = data.response;
+
+            document.getElementById('endpointModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('endpointModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('endpointModal').addEventListener('click', (e) => {
+            if (e.target.id === 'endpointModal') closeModal();
+        });
+
+        // Make table rows clickable
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.addEventListener('click', () => {
+                const cells = row.querySelectorAll('td');
+                const endpoint = cells[0].textContent.trim();
+                const method = cells[1].textContent.trim().toUpperCase();
+                openEndpointModal(endpoint, method);
+            });
+        });
+
+        // Download endpoint as image
+        function downloadEndpointAsImage() {
+            const modal = document.querySelector('.modal-content');
+            html2canvas(modal, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const endpoint = document.getElementById('modalEndpoint').textContent;
+                link.href = canvas.toDataURL('image/png');
+                link.download = `endpoint-${endpoint.replace(/\//g, '-')}.png`;
+                link.click();
+                showToast('✓ Downloaded as image');
+            });
+        }
+
+        // Export section as image
+        function exportSectionAsImage(sectionId) {
+            const section = document.getElementById(sectionId);
+            const table = section.querySelector('.table-wrapper');
+
+            if (!table) return;
+
+            html2canvas(table, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = `api-${sectionId}-table.png`;
+                link.click();
+                showToast('✓ Table exported as image');
+            });
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            const endpoint = document.getElementById('modalEndpoint').textContent;
+            const method = document.getElementById('modalMethod').textContent;
+            const curl = `curl -X ${method.toUpperCase()} "https://backend.afhome.ph/api${endpoint}" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`;
+
+            navigator.clipboard.writeText(curl).then(() => {
+                showToast('✓ cURL copied to clipboard');
+            });
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
