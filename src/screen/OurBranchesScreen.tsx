@@ -1,12 +1,12 @@
 import React, { useEffect } from "react"
-import {  View,
+import {
+  View,
   Text,
   ScrollView,
   TouchableOpacity,
   BackHandler,
   Animated,
   Linking,
-  Platform,
 } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"

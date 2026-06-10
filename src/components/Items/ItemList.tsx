@@ -3,11 +3,11 @@ import React, { useState, useRef } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Animated,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
 
@@ -160,7 +160,12 @@ export default function ItemList({
             { backgroundColor: isDarkMode ? "#0f172a" : "#f3f4f6" },
           ]}
         >
-          <Image source={{ uri: product.image }} style={styles.productImage} />
+          <Image
+            source={{ uri: product.image }}
+            style={styles.productImage}
+            contentFit="cover"
+            transition={200}
+          />
           {!inStock && (
             <View style={styles.outOfStockOverlay}>
               <Text style={styles.outOfStockText}>Out of Stock</Text>

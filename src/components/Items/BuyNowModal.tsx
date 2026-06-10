@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
   TextInput,
   StyleSheet,
   Dimensions,
@@ -13,6 +12,7 @@ import {
   ActivityIndicator,
   PanResponder,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -227,7 +227,8 @@ export default function BuyNowModal({
                       : images[0] || product.image,
                   }}
                   style={{ width: "100%", height: "100%" }}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
               </View>
 
@@ -423,7 +424,8 @@ export default function BuyNowModal({
                         <Image
                           source={{ uri: variant.images[0] }}
                           style={styles.shopeeVariantOptionImage}
-                          resizeMode="cover"
+                          contentFit="cover"
+                          transition={200}
                         />
                       ) : variant.colorHex ? (
                         <View

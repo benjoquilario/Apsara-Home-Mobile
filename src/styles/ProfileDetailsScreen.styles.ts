@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     color: Colors.sky,
   },
   avatarLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 46,
     backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",

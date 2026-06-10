@@ -3,7 +3,7 @@ import { Colors } from "../constants/colors"
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Colors.white,
     zIndex: 100,
   },

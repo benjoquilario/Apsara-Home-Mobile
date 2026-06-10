@@ -6,13 +6,12 @@ import {
   RefreshControl,
   Pressable,
   TouchableOpacity,
-  Image,
   BackHandler,
   TextInput,
-  ImageBackground,
   Modal,
   Share,
 } from "react-native"
+import { Image, ImageBackground } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../constants/colors"
@@ -386,7 +385,8 @@ export default function ShopByBrandScreen({
           uri: "https://mms.img.susercontent.com/ph-11134210-81ztm-mlh54hxutfya0b@resize_bs700x700",
         }}
         style={[styles.customHeader, { paddingTop: insets.top }]}
-        resizeMode="cover"
+        contentFit="cover"
+        transition={200}
       >
         <View style={styles.headerOverlay} />
 
@@ -479,6 +479,8 @@ export default function ShopByBrandScreen({
                 <Image
                   source={{ uri: brandLogo }}
                   style={styles.brandLogoImageHeader}
+                  contentFit="contain"
+                  transition={200}
                 />
               ) : (
                 <View style={styles.brandLogoFallbackHeader}>

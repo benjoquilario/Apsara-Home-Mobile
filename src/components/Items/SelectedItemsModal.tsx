@@ -7,9 +7,9 @@ import {
   Modal,
   Animated,
   SafeAreaView,
-  Image,
   ScrollView,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../../constants/colors"
@@ -132,7 +132,8 @@ export default function SelectedItemsModal({
                   <Image
                     source={{ uri: item.product.image }}
                     style={styles.itemImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    transition={200}
                   />
                 )}
 

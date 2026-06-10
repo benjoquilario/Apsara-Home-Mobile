@@ -3,12 +3,12 @@ import {  View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   BackHandler,
   Animated,
   RefreshControl,
 } from "react-native"
+import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
@@ -279,6 +279,7 @@ export default function LeaderboardScreen({
                   <Image
                     source={{ uri: entry.avatar }}
                     style={styles.topCardAvatarImage}
+                    transition={200}
                   />
                 </View>
               ) : (
@@ -388,6 +389,7 @@ export default function LeaderboardScreen({
                 <Image
                   source={{ uri: entry.avatar }}
                   style={styles.rankingAvatarImage}
+                  transition={200}
                 />
               </View>
             </View>
@@ -605,6 +607,7 @@ export default function LeaderboardScreen({
                           <Image
                             source={{ uri: entry.avatar }}
                             style={styles.rankingAvatarImage}
+                            transition={200}
                           />
                         </View>
                       </View>
@@ -684,6 +687,7 @@ export default function LeaderboardScreen({
                   <Image
                     source={{ uri: enrichedUser.avatar_url }}
                     style={{ width: "100%", height: "100%" }}
+                    transition={200}
                   />
                 ) : (
                   <Text style={styles.floatingUserInitial}>

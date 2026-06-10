@@ -8,14 +8,20 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
-  Image,
   PermissionsAndroid,
   Platform,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
-import { Audio } from "expo-av"
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  getRecordingPermissionsAsync,
+  requestRecordingPermissionsAsync,
+} from "expo-audio"
 import { Colors } from "../constants/colors"
 import { authService, SearchHistoryItem } from "../services/authService"
 import { userBehaviorService } from "../services/userBehaviorService"
@@ -94,7 +100,7 @@ export default function SearchScreen({
   const inputRef = useRef<TextInput>(null)
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const recordingRef = useRef<Audio.Recording | null>(null)
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -107,18 +113,16 @@ export default function SearchScreen({
   useEffect(() => {
     initializeAudio()
     return () => {
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {})
-      }
+      audioRecorder.stop().catch(() => {})
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const initializeAudio = async () => {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: false,
-        shouldDuckAndroid: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: false,
       })
     } catch (error) {
       console.error("Audio mode setup failed:", error)
@@ -128,7 +132,8 @@ export default function SearchScreen({
   const transcribeAudio = async (uri: string) => {
     try {
       const formData = new FormData()
-      const fileBlob = await fetch(`file://${uri}`).then((res) => res.blob())
+      const normalizedUri = uri.startsWith("file://") ? uri : `file://${uri}`
+      const fileBlob = await fetch(normalizedUri).then((res) => res.blob())
       formData.append("audio", fileBlob, "audio.m4a")
 
       const response = await axios.post(
@@ -156,13 +161,13 @@ export default function SearchScreen({
 
   const requestMicrophonePermission = async () => {
     try {
-      const permission = await Audio.getPermissionsAsync()
-      if (permission.status === "granted") {
+      const permission = await getRecordingPermissionsAsync()
+      if (permission.granted) {
         return true
       }
 
-      const newPermission = await Audio.requestPermissionsAsync()
-      return newPermission.status === "granted"
+      const newPermission = await requestRecordingPermissionsAsync()
+      return newPermission.granted
     } catch (error) {
       console.error("Permission error:", error)
       return false
@@ -202,12 +207,8 @@ export default function SearchScreen({
       setIsVoiceRecording(true)
       setVoiceText("")
 
-      const recording = new Audio.Recording()
-      await recording.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      )
-      await recording.startAsync()
-      recordingRef.current = recording
+      await audioRecorder.prepareToRecordAsync()
+      audioRecorder.record()
     } catch (error) {
       console.error("Failed to start recording:", error)
       setIsVoiceRecording(false)
@@ -219,11 +220,8 @@ export default function SearchScreen({
     try {
       setIsVoiceRecording(false)
 
-      if (!recordingRef.current) return
-
-      await recordingRef.current.stopAndUnloadAsync()
-      const uri = recordingRef.current.getURI()
-      recordingRef.current = null
+      await audioRecorder.stop()
+      const uri = audioRecorder.uri
 
       if (uri) {
         const transcript = await transcribeAudio(uri)
@@ -424,7 +422,8 @@ export default function SearchScreen({
           uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
         }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View
           style={[
@@ -555,7 +554,8 @@ export default function SearchScreen({
                   <Image
                     source={{ uri: item.image }}
                     style={styles.liveThumb}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    transition={200}
                   />
                   <View style={styles.liveInfo}>
                     <Text
@@ -772,7 +772,8 @@ export default function SearchScreen({
                         <Image
                           source={{ uri: item.image }}
                           style={styles.roomImage}
-                          resizeMode="contain"
+                          contentFit="contain"
+                          transition={200}
                         />
                       </View>
                     </View>

@@ -4,10 +4,10 @@ import {
   Linking,
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
 } from "react-native"
+import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
@@ -85,7 +85,8 @@ function MarqueeItems() {
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
           }}
             style={marqueeStyles.logo}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         </View>
       ))}
@@ -267,7 +268,8 @@ export default function AppHeader({
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
           }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View style={[styles.headerContent, { paddingTop: insets.top }]}>
           {/* <MarqueeBanner isDarkMode={isDarkMode} /> */}
@@ -290,6 +292,7 @@ export default function AppHeader({
                       source={{ uri: photoUrl }}
                       style={styles.avatarImage}
                       onError={() => setImageLoadError(true)}
+                      transition={200}
                     />
                   ) : initial ? (
                     <Text style={styles.avatarInitial}>{initial}</Text>

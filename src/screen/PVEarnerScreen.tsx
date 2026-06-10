@@ -3,12 +3,12 @@ import React, { useEffect, useState, useCallback, useMemo } from "react"
 import {  View,
   TouchableOpacity,
   SafeAreaView,
-  Image,
   Text,
   ScrollView,
   BackHandler,
   ActivityIndicator,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -190,7 +190,8 @@ export default function PVEarnerScreen({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
             }}
               style={styles.dummyImage}
-              resizeMode="contain"
+              contentFit="contain"
+              transition={200}
               tintColor={isDarkMode ? "#cbd5e1" : "#4b5563"}
             />
           </View>
@@ -291,7 +292,8 @@ export default function PVEarnerScreen({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/pv_earner_bg_fzbxf5.png"
             }}
           style={styles.headerBackgroundImage}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
         />
         <View style={[styles.headerContent, { paddingTop: insets.top }]}>
           <TouchableOpacity

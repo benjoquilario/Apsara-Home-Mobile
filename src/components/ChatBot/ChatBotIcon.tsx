@@ -9,9 +9,9 @@ import {
   TextInput,
   FlatList,
   Pressable,
-  Image,
   PanResponder,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../../constants/colors"
@@ -347,7 +347,8 @@ export default function ChatBotIcon({
             uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
           }}
           style={styles.botAvatarImage}
-          resizeMode="contain"
+          contentFit="contain"
+          transition={200}
         />
       )}
       <View
@@ -450,7 +451,8 @@ export default function ChatBotIcon({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
             }}
             style={styles.chatButtonImage}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
           {messages.length > 1 && (
             <View style={styles.notificationBadge}>
@@ -504,7 +506,8 @@ export default function ChatBotIcon({
               uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
             }}
             style={styles.collapsedTabIcon}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         </TouchableOpacity>
       </Animated.View>
@@ -548,7 +551,8 @@ export default function ChatBotIcon({
                     uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/sir_mvm6cd.png",
                   }}
                   style={styles.headerImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  transition={200}
                 />
                 <View style={styles.headerTextContainer}>
                   <Text

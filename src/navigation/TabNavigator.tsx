@@ -9,10 +9,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Pressable,
 } from "react-native"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../constants/colors"
@@ -413,6 +413,7 @@ function ProfileTabScreen() {
       onWishlistChange={ctx.onWishlistChange}
       onProductPress={ctx.onProductPress}
       onShopNavigate={ctx.onShopNavigate}
+      onNavigateWishlist={ctx.onNavigateWishlist}
     />
   )
 }
@@ -488,8 +489,9 @@ function CustomTabBar({
                         uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png"
                       }}
                         style={styles.homeLogoImage}
-                        resizeMode="contain"
+                        contentFit="contain"
                         tintColor={Colors.white}
+                        transition={200}
                       />
                     </View>
                   </View>
@@ -534,6 +536,7 @@ function CustomTabBar({
                       <Image
                         source={{ uri: enrichedUser.avatar_url }}
                         style={styles.avatarImage}
+                        transition={200}
                       />
                     ) : (
                       <Text
