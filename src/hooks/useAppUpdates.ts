@@ -18,9 +18,18 @@ export const useAppUpdates = () => {
       return
     }
 
+    // checkForUpdateAsync / fetchUpdateAsync are NOT supported in development
+    // builds — they reject at runtime even though Updates.isEnabled may be true.
+    // Skip OTA checks entirely in dev; they only run in preview/production builds.
+    if (__DEV__ || !Updates.isEnabled) {
+      console.log("[useAppUpdates] OTA updates not available in this environment")
+      updateCheckPerformed.current = true
+      return
+    }
+
     try {
       console.log("[useAppUpdates] Checking for updates...")
-      const update = await Updates.checkAsync()
+      const update = await Updates.checkForUpdateAsync()
 
       if (update.isAvailable) {
         console.log("[useAppUpdates] Update available, downloading...")
@@ -30,7 +39,7 @@ export const useAppUpdates = () => {
           type: "info",
           text1: "Update Available",
           text2: "Downloading new version...",
-          duration: 3000,
+          visibilityTime: 3000,
         })
 
         await Updates.fetchUpdateAsync()
@@ -40,7 +49,7 @@ export const useAppUpdates = () => {
           type: "success",
           text1: "Update Complete",
           text2: "Restarting app...",
-          duration: 2000,
+          visibilityTime: 2000,
         })
 
         await Updates.reloadAsync()

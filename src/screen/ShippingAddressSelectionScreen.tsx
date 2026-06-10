@@ -144,7 +144,7 @@ export default function ShippingAddressSelectionScreen({
               No Addresses
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSec }]}>
-              You don't have any saved addresses yet
+              You don&apos;t have any saved addresses yet
             </Text>
           </View>
         ) : (

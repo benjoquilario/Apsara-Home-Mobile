@@ -3,13 +3,12 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   ImageSourcePropType,
   Animated,
 } from "react-native"
+import { Image } from "expo-image"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../../constants/colors"
@@ -86,7 +85,7 @@ function ItemCard({
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  const menuScaleAnim = useRef(new Animated.Value(0)).current
+  const menuScaleAnim = useState(() => new Animated.Value(0))[0]
   const lastClickTimeRef = useRef(0)
 
   // Sync incoming isWishlisted prop, but only if user didn't just click (avoid override)
@@ -219,7 +218,7 @@ function ItemCard({
     } finally {
       setIsTogglingWishlist(false)
     }
-  }, [token, product.id, wishlisted, onWishlistToggle, isTogglingWishlist])
+  }, [token, product, wishlisted, onWishlistToggle, isTogglingWishlist])
 
   const handlePress = () => {
     console.log(`👆 ItemCard pressed: ${product.name} (ID: ${product.id})`)
@@ -248,7 +247,8 @@ function ItemCard({
               styles.imagePlaceholder,
               { tintColor: isDarkMode ? "#cbd5e1" : "#4b5563" },
             ]}
-            resizeMode="contain"
+            contentFit="contain"
+            transition={200}
           />
         ) : (
           <Image
@@ -258,7 +258,8 @@ function ItemCard({
             }
             }
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
             onError={() => {
               setImageError(true)
               console.warn(

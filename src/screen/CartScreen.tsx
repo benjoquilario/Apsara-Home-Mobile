@@ -4,7 +4,6 @@ import {  View,
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  Image,
   RefreshControl,
   Animated,
   BackHandler,
@@ -14,6 +13,7 @@ import {  View,
   Dimensions,
   ScrollView,
 } from "react-native"
+import { Image } from "expo-image"
 import { SwipeListView } from "react-native-swipe-list-view"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
@@ -864,6 +864,7 @@ export default function CartScreen({
                     borderWidth: 1.5,
                     borderColor: colors.border,
                   }}
+                  transition={200}
                 />
               ) : (
                 <Ionicons name="storefront" size={16} color={Colors.sky} />
@@ -945,7 +946,8 @@ export default function CartScreen({
                 })(),
               }}
               style={styles.productImage}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
             />
             {discount > 0 && (
               <View style={styles.discountBadge}>
@@ -1245,7 +1247,8 @@ export default function CartScreen({
                 uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969374/cart_bg_jofj6o.png"
               }}
               style={styles.headerBackgroundImage}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
             />
             <View style={[styles.headerContent, { paddingTop: insets.top }]}>
               <TouchableOpacity
@@ -1310,7 +1313,8 @@ export default function CartScreen({
                 uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969374/cart_bg_jofj6o.png"
               }}
               style={styles.headerBackgroundImage}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
             />
             <View style={[styles.headerContent, { paddingTop: insets.top }]}>
               <TouchableOpacity
@@ -1382,7 +1386,8 @@ export default function CartScreen({
                 uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969374/cart_bg_jofj6o.png"
               }}
             style={styles.headerBackgroundImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
           />
           <View style={[styles.headerContent, { paddingTop: insets.top }]}>
             <TouchableOpacity
@@ -1637,6 +1642,7 @@ export default function CartScreen({
               style={[
                 styles.variantModal,
                 { backgroundColor: colors.containerBg },
+                { paddingBottom: insets.bottom + 20 },
                 {
                   transform: [{ translateY: variantModalTranslateY }],
                 },
@@ -1717,7 +1723,8 @@ export default function CartScreen({
                             <Image
                               source={{ uri: variant.image }}
                               style={styles.variantThumbnailImage}
-                              resizeMode="cover"
+                              contentFit="cover"
+                              transition={200}
                             />
                           ) : variant.colorHex ? (
                             <View

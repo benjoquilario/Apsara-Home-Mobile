@@ -1,23 +1,32 @@
 // @ts-nocheck
-import React, { useState, useEffect } from "react"
-import {  View,
+import React, { useEffect, useState } from "react"
+import {
+  View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  StyleSheet,
   BackHandler,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
+import { useForm, useWatch } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import Toast from "react-native-toast-message"
 import { Colors } from "../constants/colors"
 import Button from "../components/Button/PrimaryButton"
+import ControlledAuthField from "../components/Auth/ControlledAuthField"
+import PasswordChecklist from "../components/Auth/PasswordChecklist"
+import LegalWebViewScreen from "./LegalWebViewScreen"
+import {
+  referralSignupSchema,
+  REFERRAL_PASSWORD_RULES,
+} from "../schemas/authSchemas"
+import { LegalDoc } from "../constants/legal"
 import { authService } from "../services/authService"
 import { storageService } from "../services/storageService"
 import styles from "../styles/ReferralSignupScreen.styles"
@@ -32,42 +41,41 @@ interface ReferralSignupScreenProps {
   onResumOtp?: () => void
 }
 
-function RequirementItem({ met, label }: { met: boolean; label: string }) {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 8,
-      }}
-    >
-      <View
-        style={[
-          {
-            width: 20,
-            height: 20,
-            borderRadius: 4,
-            backgroundColor: met ? "#22c55e" : "#e5e7eb",
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}
-      >
-        {met && <Ionicons name="checkmark" size={14} color={Colors.white} />}
-      </View>
-      <Text
-        style={{
-          color: met ? "#22c55e" : Colors.textSecondary,
-          fontSize: 13,
-          fontWeight: "500",
-        }}
-      >
-        {label}
-      </Text>
-    </View>
-  )
-}
+const DRAFT_KEY = "referral_signup_draft"
+
+const TEXT_FIELDS: Array<{
+  name:
+    | "firstName"
+    | "lastName"
+    | "mobileNumber"
+    | "email"
+    | "username"
+    | "referralCode"
+  label: string
+  keyboard?: any
+  autoCapitalize?: "none" | "words"
+  required?: boolean
+  hint?: string
+}> = [
+  { name: "firstName", label: "First Name", autoCapitalize: "words", required: true },
+  { name: "lastName", label: "Last Name", autoCapitalize: "words", required: true },
+  {
+    name: "mobileNumber",
+    label: "Mobile Number",
+    keyboard: "phone-pad",
+    required: true,
+    hint: "Use 11 digits only.",
+  },
+  { name: "email", label: "Email Address", keyboard: "email-address", autoCapitalize: "none", hint: "Optional" },
+  {
+    name: "username",
+    label: "Username",
+    autoCapitalize: "none",
+    required: true,
+    hint: "Letters and numbers only, no spaces or symbols.",
+  },
+  { name: "referralCode", label: "Referral Code", required: true },
+]
 
 export default function ReferralSignupScreen({
   referrerUsername,
@@ -82,36 +90,10 @@ export default function ReferralSignupScreen({
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [termsModalVisible, setTermsModalVisible] = useState(false)
-  const [termsScrolledToEnd, setTermsScrolledToEnd] = useState(false)
   const [successModalVisible, setSuccessModalVisible] = useState(false)
-  const [signupData, setSignupData] = useState({
-    firstName: "",
-    lastName: "",
-    mobileNumber: "",
-    email: "",
-    username: "",
-    referralCode: referrerUsername,
-    password: "",
-    passwordConfirmation: "",
-  })
+  const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null)
 
-  const passwordRequirements = {
-    minLength: signupData.password.length >= 8,
-    hasUppercase: /[A-Z]/.test(signupData.password),
-    hasLowercase: /[a-z]/.test(signupData.password),
-    hasNumber: /\d/.test(signupData.password),
-    passwordsMatch:
-      signupData.password === signupData.passwordConfirmation &&
-      signupData.password.length > 0,
-  }
-
-  const allPasswordRequirementsMet = Object.values(passwordRequirements).every(
-    (v) => v
-  )
-
+  const variant = isDarkMode ? "dark" : "light"
   const colors = {
     bg: isDarkMode ? "#0f172a" : "#f8fbff",
     containerBg: isDarkMode ? "#1f2937" : Colors.white,
@@ -120,14 +102,33 @@ export default function ReferralSignupScreen({
     border: isDarkMode ? "#374151" : "#e5e7eb",
   }
 
-  // Load saved form data from storage on component mount
+  const { control, handleSubmit, setValue, setError, reset, watch, getValues } =
+    useForm({
+      resolver: zodResolver(referralSignupSchema),
+      mode: "onTouched",
+      defaultValues: {
+        firstName: "",
+        lastName: "",
+        mobileNumber: "",
+        email: "",
+        username: "",
+        referralCode: referrerUsername || "",
+        password: "",
+        passwordConfirmation: "",
+        acceptedTerms: false,
+      },
+    })
+
+  const acceptedTerms = useWatch({ control, name: "acceptedTerms" })
+
+  // Load saved draft on mount.
   useEffect(() => {
-    const loadSavedData = async () => {
+    ;(async () => {
       try {
-        const saved = await storageService.getItem("referral_signup_draft")
+        const saved = await storageService.getItem(DRAFT_KEY)
         if (saved && saved.trim() !== "") {
           const parsed = JSON.parse(saved)
-          setSignupData((prev) => ({
+          reset({
             firstName: parsed.firstName || "",
             lastName: parsed.lastName || "",
             mobileNumber: parsed.mobileNumber || "",
@@ -136,35 +137,24 @@ export default function ReferralSignupScreen({
             referralCode: referrerUsername || parsed.referralCode || "",
             password: parsed.password || "",
             passwordConfirmation: parsed.passwordConfirmation || "",
-          }))
-        } else if (referrerUsername) {
-          // Only set referral code if no saved data
-          setSignupData((prev) => ({
-            ...prev,
-            referralCode: referrerUsername,
-          }))
+            acceptedTerms: false,
+          })
         }
-      } catch (error) {
+      } catch {
         console.log("Could not load saved form data")
       }
-    }
-    loadSavedData()
+    })()
   }, [])
 
-  // Save form data to storage whenever it changes
+  // Persist draft on any change WITHOUT re-rendering (watch subscription).
   useEffect(() => {
-    const saveDraft = async () => {
-      try {
-        await storageService.setItem(
-          "referral_signup_draft",
-          JSON.stringify(signupData)
-        )
-      } catch (error) {
-        console.log("Could not save form draft")
-      }
-    }
-    saveDraft()
-  }, [signupData])
+    const sub = watch((value) => {
+      storageService
+        .setItem(DRAFT_KEY, JSON.stringify(value))
+        .catch(() => console.log("Could not save form draft"))
+    })
+    return () => sub.unsubscribe()
+  }, [watch])
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
@@ -177,45 +167,25 @@ export default function ReferralSignupScreen({
     return () => backHandler.remove()
   }, [onBack])
 
-  function validate() {
-    const next: Record<string, string> = {}
-    const phoneDigits = signupData.mobileNumber.replace(/\D/g, "")
-    if (!signupData.firstName.trim()) next.firstName = "First name is required."
-    if (!signupData.lastName.trim()) next.lastName = "Last name is required."
-    if (!signupData.username.trim()) next.username = "Username is required."
-    if (phoneDigits.length !== 11) next.mobileNumber = "Use 11 digits only."
-    if (signupData.password.length < 8)
-      next.password = "Password must be at least 8 characters."
-    if (signupData.passwordConfirmation !== signupData.password)
-      next.passwordConfirmation = "Passwords do not match."
-    if (!signupData.referralCode.trim())
-      next.referralCode = "Referral code is required."
-    if (!acceptedTerms) next.terms = "Please agree to the Terms and Conditions."
-    setErrors(next)
-    return Object.keys(next).length === 0
-  }
-
-  async function handleRegister() {
-    if (!validate()) return
+  const onSubmit = handleSubmit(async (v) => {
     setLoading(true)
-    console.log("[ReferralSignup] Starting registration...")
     try {
       const payload = {
-        first_name: signupData.firstName,
-        last_name: signupData.lastName,
+        first_name: v.firstName,
+        last_name: v.lastName,
         middle_name: "",
-        name: `${signupData.firstName} ${signupData.lastName}`.trim(),
-        email: signupData.email || null,
-        username: signupData.username,
-        phone: signupData.mobileNumber,
+        name: `${v.firstName} ${v.lastName}`.trim(),
+        email: v.email || null,
+        username: v.username,
+        phone: v.mobileNumber,
         birth_date: "2000-01-01",
         gender: "male",
         occupation: "Not specified",
         work_location: "local",
         country: "Philippines",
-        referred_by: signupData.referralCode,
-        password: signupData.password,
-        password_confirmation: signupData.passwordConfirmation,
+        referred_by: v.referralCode,
+        password: v.password,
+        password_confirmation: v.passwordConfirmation,
         address: "Not specified",
         barangay: "Not specified",
         city: "Not specified",
@@ -225,34 +195,27 @@ export default function ReferralSignupScreen({
       }
       const response = await authService.mobileRegister(payload)
       if (!response) {
-        setErrors({
-          form: "Registration failed. Please try again.",
+        Toast.show({
+          type: "error",
+          text1: "Registration failed",
+          text2: "Please try again.",
         })
         return
       }
-      console.log(
-        "[ReferralSignup] Registration response - requires_otp:",
-        response.requires_otp
-      )
 
-      // If OTP is required, proceed to OTP screen
       if (response.requires_otp) {
         const verificationToken = (response?.verification_token || "").trim()
         if (!verificationToken) {
-          setErrors({
-            form: "Registration response is missing verification token. Please try again.",
+          Toast.show({
+            type: "error",
+            text1: "Registration failed",
+            text2: "Missing verification token. Please try again.",
           })
           return
         }
-
         try {
-          // Send SMS OTP to phone number
-          await authService.sendSmsOtp(
-            verificationToken,
-            signupData.mobileNumber
-          )
-          // Clear saved draft after successful registration
-          await storageService.setItem("referral_signup_draft", "")
+          await authService.sendSmsOtp(verificationToken, v.mobileNumber)
+          await storageService.setItem(DRAFT_KEY, "")
           Toast.show({
             type: "success",
             text1: response.message || "Registration successful",
@@ -260,105 +223,71 @@ export default function ReferralSignupScreen({
               "A 4-digit verification code has been sent to your phone number.",
           })
           setTimeout(() => {
-            onContinueToOtp?.(signupData.mobileNumber, verificationToken)
+            onContinueToOtp?.(v.mobileNumber, verificationToken)
           }, 900)
         } catch (smsError: any) {
-          console.error("[SignupError] SMS OTP failed:", smsError)
-          setErrors({
-            mobileNumber: smsError.message || "Failed to send SMS OTP",
+          setError("mobileNumber", {
+            message: smsError.message || "Failed to send SMS OTP",
           })
         }
       } else {
-        // OTP not required, show success modal
-        console.log("[ReferralSignup] OTP not required, showing success modal")
-        await storageService.setItem("referral_signup_draft", "")
+        await storageService.setItem(DRAFT_KEY, "")
         setSuccessModalVisible(true)
       }
     } catch (error: any) {
-      console.error("[SignupError] Registration failed:", error)
-      const fieldErrors: Record<string, string> = {}
-
-      // Extract field-specific errors from backend
-      if (error.details?.errors) {
-        const backendErrors = error.details.errors
-        const fieldMap: Record<string, string> = {
-          first_name: "firstName",
-          last_name: "lastName",
-          username: "username",
-          email: "email",
-          phone: "mobileNumber",
-          password: "password",
-          password_confirmation: "passwordConfirmation",
-          referred_by: "referralCode",
-        }
-
+      // Map backend field errors onto the form.
+      const fieldMap: Record<string, string> = {
+        first_name: "firstName",
+        last_name: "lastName",
+        username: "username",
+        email: "email",
+        phone: "mobileNumber",
+        password: "password",
+        password_confirmation: "passwordConfirmation",
+        referred_by: "referralCode",
+      }
+      const backendErrors = error.details?.errors
+      let mapped = false
+      if (backendErrors) {
         Object.entries(backendErrors).forEach(
           ([backendField, messages]: [string, any]) => {
-            const fieldKey = fieldMap[backendField] || backendField
+            const key = fieldMap[backendField]
             const message = Array.isArray(messages) ? messages[0] : messages
-            if (message) fieldErrors[fieldKey] = message
+            if (key && message) {
+              setError(key as any, { message })
+              mapped = true
+            }
           }
         )
       }
-
-      // If no field errors, set form error
-      if (Object.keys(fieldErrors).length === 0) {
-        fieldErrors.form = error.message || "Registration failed"
+      if (!mapped) {
+        Toast.show({
+          type: "error",
+          text1: "Registration failed",
+          text2: error.message || "Please try again.",
+        })
       }
-
-      setErrors(fieldErrors)
     } finally {
       setLoading(false)
     }
-  }
+  })
 
-  function openTermsModal() {
-    setTermsScrolledToEnd(false)
-    setTermsModalVisible(true)
+  function startOver() {
+    reset({
+      firstName: "",
+      lastName: "",
+      mobileNumber: "",
+      email: "",
+      username: "",
+      referralCode: referrerUsername || "",
+      password: "",
+      passwordConfirmation: "",
+      acceptedTerms: false,
+    })
   }
-
-  function handleTermsScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent
-    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 24) {
-      setTermsScrolledToEnd(true)
-    }
-  }
-
-  const fields: Array<{
-    key: keyof typeof signupData
-    label: string
-    half?: boolean
-    keyboard?: any
-    disabled?: boolean
-    optional?: boolean
-  }> = [
-    { key: "firstName", label: "First Name", half: true },
-    { key: "lastName", label: "Last Name", half: true },
-    {
-      key: "mobileNumber",
-      label: "Mobile Number",
-      keyboard: "phone-pad",
-      half: true,
-    },
-    {
-      key: "email",
-      label: "Email Address",
-      keyboard: "email-address",
-      half: true,
-      optional: true,
-    },
-    { key: "username", label: "Username", half: true },
-    {
-      key: "referralCode",
-      label: "Referral Code",
-      half: true,
-      disabled: !!referrerUsername,
-    },
-  ]
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Header */}
       <LinearGradient
         colors={
           isDarkMode
@@ -377,7 +306,12 @@ export default function ReferralSignupScreen({
         ]}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -403,379 +337,88 @@ export default function ReferralSignupScreen({
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={true}
           >
-            {Array.from({ length: Math.ceil(fields.length / 2) }).map(
+            {Array.from({ length: Math.ceil(TEXT_FIELDS.length / 2) }).map(
               (_, rowIndex) => {
-                const field1 = fields[rowIndex * 2]
-                const field2 = fields[rowIndex * 2 + 1]
+                const f1 = TEXT_FIELDS[rowIndex * 2]
+                const f2 = TEXT_FIELDS[rowIndex * 2 + 1]
+                const disabled = (n: string) =>
+                  n === "referralCode" && !!referrerUsername
                 return (
                   <View key={`row-${rowIndex}`} style={styles.fieldRow}>
-                    {field1 && (
-                      <View
-                        style={[
-                          styles.fieldWrap,
-                          field1.half && styles.halfField,
-                        ]}
-                      >
-                        <Text style={[styles.label, { color: colors.text }]}>
-                          {field1.label}{" "}
-                          {!field1.optional && (
-                            <Text style={styles.required}>*</Text>
-                          )}
-                        </Text>
-                        <TextInput
-                          style={[
-                            styles.input,
-                            {
-                              color: colors.text,
-                              borderColor: colors.border,
-                              backgroundColor: field1.disabled
-                                ? colors.border
-                                : "transparent",
-                            },
-                            errors[field1.key] ? styles.inputError : null,
-                          ]}
-                          value={signupData[field1.key]}
-                          onChangeText={(t) => {
-                            setSignupData((v) => ({ ...v, [field1.key]: t }))
-                          }}
-                          placeholderTextColor={colors.textSec}
-                          keyboardType={field1.keyboard}
-                          autoCapitalize={
-                            field1.key === "email" || field1.key === "username"
-                              ? "none"
-                              : "words"
-                          }
-                          editable={!field1.disabled}
-                        />
-                        {field1.key === "email" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            Optional
-                          </Text>
-                        ) : null}
-                        {field1.key === "mobileNumber" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            Use 11 digits only.
-                          </Text>
-                        ) : null}
-                        {field1.key === "username" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            Letters and numbers only, no spaces or symbols.
-                          </Text>
-                        ) : null}
-                        {field1.key === "referralCode" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            {referrerUsername
-                              ? "Pre-filled from your referral link."
-                              : "Enter a valid referral code."}
-                          </Text>
-                        ) : null}
-                        {errors[field1.key] ? (
-                          <Text style={styles.errorText}>
-                            {errors[field1.key]}
-                          </Text>
-                        ) : null}
-                      </View>
-                    )}
-                    {field2 && (
-                      <View
-                        style={[
-                          styles.fieldWrap,
-                          field2.half && styles.halfField,
-                        ]}
-                      >
-                        <Text style={[styles.label, { color: colors.text }]}>
-                          {field2.label}{" "}
-                          {!field2.optional && (
-                            <Text style={styles.required}>*</Text>
-                          )}
-                        </Text>
-                        <TextInput
-                          style={[
-                            styles.input,
-                            {
-                              color: colors.text,
-                              borderColor: colors.border,
-                              backgroundColor: field2.disabled
-                                ? colors.border
-                                : "transparent",
-                            },
-                            errors[field2.key] ? styles.inputError : null,
-                          ]}
-                          value={signupData[field2.key]}
-                          onChangeText={(t) => {
-                            setSignupData((v) => ({ ...v, [field2.key]: t }))
-                          }}
-                          placeholderTextColor={colors.textSec}
-                          keyboardType={field2.keyboard}
-                          autoCapitalize={
-                            field2.key === "email" || field2.key === "username"
-                              ? "none"
-                              : "words"
-                          }
-                          editable={!field2.disabled}
-                        />
-                        {field2.key === "email" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            Optional
-                          </Text>
-                        ) : null}
-                        {field2.key === "mobileNumber" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            Use 11 digits only.
-                          </Text>
-                        ) : null}
-                        {field2.key === "username" ? (
-                          <Text
-                            style={[styles.hint, { color: colors.textSec }]}
-                          >
-                            Letters and numbers only, no spaces or symbols.
-                          </Text>
-                        ) : null}
-                        {errors[field2.key] ? (
-                          <Text style={styles.errorText}>
-                            {errors[field2.key]}
-                          </Text>
-                        ) : null}
-                      </View>
-                    )}
+                    {f1 ? (
+                      <ControlledAuthField
+                        control={control}
+                        name={f1.name}
+                        variant={variant}
+                        containerStyle={styles.halfField}
+                        label={f1.label}
+                        required={f1.required}
+                        hint={
+                          f1.name === "referralCode" && referrerUsername
+                            ? "Pre-filled from your referral link."
+                            : f1.hint
+                        }
+                        keyboardType={f1.keyboard}
+                        autoCapitalize={f1.autoCapitalize ?? "words"}
+                        editable={!disabled(f1.name)}
+                      />
+                    ) : null}
+                    {f2 ? (
+                      <ControlledAuthField
+                        control={control}
+                        name={f2.name}
+                        variant={variant}
+                        containerStyle={styles.halfField}
+                        label={f2.label}
+                        required={f2.required}
+                        hint={
+                          f2.name === "referralCode" && referrerUsername
+                            ? "Pre-filled from your referral link."
+                            : f2.hint
+                        }
+                        keyboardType={f2.keyboard}
+                        autoCapitalize={f2.autoCapitalize ?? "words"}
+                        editable={!disabled(f2.name)}
+                      />
+                    ) : null}
                   </View>
                 )
               }
             )}
 
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Password <Text style={styles.required}>*</Text>
-              </Text>
-              <View
-                style={[
-                  styles.passwordRow,
-                  { borderColor: colors.border },
-                  errors.password ? styles.inputError : null,
-                ]}
-              >
-                <TextInput
-                  style={[styles.passwordInput, { color: colors.text }]}
-                  value={signupData.password}
-                  onChangeText={(t) =>
-                    setSignupData((v) => ({ ...v, password: t }))
-                  }
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor={colors.textSec}
-                  autoComplete="new-password"
-                />
-                <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
-                  <Ionicons
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color={colors.textSec}
-                  />
-                </TouchableOpacity>
-              </View>
-              {errors.password ? (
-                <Text style={styles.errorText}>{errors.password}</Text>
-              ) : null}
-            </View>
-
-            <View style={styles.fieldWrap}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Password Confirmation <Text style={styles.required}>*</Text>
-              </Text>
-              <View
-                style={[
-                  styles.passwordRow,
-                  { borderColor: colors.border },
-                  errors.passwordConfirmation ? styles.inputError : null,
-                ]}
-              >
-                <TextInput
-                  style={[styles.passwordInput, { color: colors.text }]}
-                  value={signupData.passwordConfirmation}
-                  onChangeText={(t) =>
-                    setSignupData((v) => ({ ...v, passwordConfirmation: t }))
-                  }
-                  secureTextEntry={!showConfirmPassword}
-                  placeholderTextColor={colors.textSec}
-                  autoComplete="new-password"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword((v) => !v)}
-                >
-                  <Ionicons
-                    name={
-                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
-                    }
-                    size={20}
-                    color={colors.textSec}
-                  />
-                </TouchableOpacity>
-              </View>
-              {errors.passwordConfirmation ? (
-                <Text style={styles.errorText}>
-                  {errors.passwordConfirmation}
-                </Text>
-              ) : null}
-            </View>
-
-            {/* Password Requirements */}
-            <View
-              style={[
-                styles.requirementsBox,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: isDarkMode
-                    ? "rgba(34, 197, 94, 0.12)"
-                    : "rgba(34, 197, 94, 0.08)",
-                },
-              ]}
-            >
-              <View style={styles.requirementsGrid}>
-                <View style={styles.requirementLine}>
-                  <Text
-                    style={[
-                      styles.requirementCheck,
-                      {
-                        color: passwordRequirements.minLength
-                          ? "#22c55e"
-                          : "#9ca3af",
-                      },
-                    ]}
-                  >
-                    {passwordRequirements.minLength ? "✓" : "○"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color: passwordRequirements.minLength
-                          ? "#22c55e"
-                          : colors.textSec,
-                      },
-                    ]}
-                  >
-                    At least 8 chars
-                  </Text>
-                </View>
-                <View style={styles.requirementLine}>
-                  <Text
-                    style={[
-                      styles.requirementCheck,
-                      {
-                        color: passwordRequirements.hasUppercase
-                          ? "#22c55e"
-                          : "#9ca3af",
-                      },
-                    ]}
-                  >
-                    {passwordRequirements.hasUppercase ? "✓" : "○"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color: passwordRequirements.hasUppercase
-                          ? "#22c55e"
-                          : colors.textSec,
-                      },
-                    ]}
-                  >
-                    At least one Uppercase
-                  </Text>
-                </View>
-                <View style={styles.requirementLine}>
-                  <Text
-                    style={[
-                      styles.requirementCheck,
-                      {
-                        color: passwordRequirements.hasLowercase
-                          ? "#22c55e"
-                          : "#9ca3af",
-                      },
-                    ]}
-                  >
-                    {passwordRequirements.hasLowercase ? "✓" : "○"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color: passwordRequirements.hasLowercase
-                          ? "#22c55e"
-                          : colors.textSec,
-                      },
-                    ]}
-                  >
-                    At least one Lowercase
-                  </Text>
-                </View>
-                <View style={styles.requirementLine}>
-                  <Text
-                    style={[
-                      styles.requirementCheck,
-                      {
-                        color: passwordRequirements.hasNumber
-                          ? "#22c55e"
-                          : "#9ca3af",
-                      },
-                    ]}
-                  >
-                    {passwordRequirements.hasNumber ? "✓" : "○"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color: passwordRequirements.hasNumber
-                          ? "#22c55e"
-                          : colors.textSec,
-                      },
-                    ]}
-                  >
-                    At least one Number
-                  </Text>
-                </View>
-                <View style={styles.requirementLine}>
-                  <Text
-                    style={[
-                      styles.requirementCheck,
-                      {
-                        color: passwordRequirements.passwordsMatch
-                          ? "#22c55e"
-                          : "#9ca3af",
-                      },
-                    ]}
-                  >
-                    {passwordRequirements.passwordsMatch ? "✓" : "○"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color: passwordRequirements.passwordsMatch
-                          ? "#22c55e"
-                          : colors.textSec,
-                      },
-                    ]}
-                  >
-                    Should be Match
-                  </Text>
-                </View>
-              </View>
-            </View>
+            <ControlledAuthField
+              control={control}
+              name="password"
+              variant={variant}
+              label="Password"
+              required
+              secureTextEntry={!showPassword}
+              autoComplete="new-password"
+              rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+              onRightIconPress={() => setShowPassword((v) => !v)}
+            />
+            <ControlledAuthField
+              control={control}
+              name="passwordConfirmation"
+              variant={variant}
+              label="Password Confirmation"
+              required
+              secureTextEntry={!showConfirmPassword}
+              autoComplete="new-password"
+              rightIcon={
+                showConfirmPassword ? "eye-off-outline" : "eye-outline"
+              }
+              onRightIconPress={() => setShowConfirmPassword((v) => !v)}
+            />
+            <PasswordChecklist
+              control={control}
+              name="password"
+              confirmName="passwordConfirmation"
+              rules={REFERRAL_PASSWORD_RULES}
+              matchLabel="Should be Match"
+              variant={variant}
+            />
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
@@ -787,16 +430,13 @@ export default function ReferralSignupScreen({
         end={{ x: 1, y: 1 }}
         style={[
           styles.bottomFooter,
-          {
-            backgroundColor: colors.containerBg,
-            borderTopColor: colors.border,
-          },
+          { backgroundColor: colors.containerBg, borderTopColor: colors.border },
         ]}
       >
         <View
           style={{
             paddingTop: 8,
-            paddingBottom: insets.bottom || 4,
+            paddingBottom: insets.bottom + 12,
             paddingHorizontal: 16,
           }}
         >
@@ -808,14 +448,17 @@ export default function ReferralSignupScreen({
           >
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={openTermsModal}
+              onPress={() =>
+                setValue("acceptedTerms", !acceptedTerms, {
+                  shouldValidate: true,
+                })
+              }
               activeOpacity={0.7}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: !!acceptedTerms }}
             >
               <View
-                style={[
-                  styles.checkbox,
-                  acceptedTerms && styles.checkboxChecked,
-                ]}
+                style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}
               >
                 {acceptedTerms && (
                   <Ionicons name="checkmark" size={11} color={Colors.white} />
@@ -823,7 +466,17 @@ export default function ReferralSignupScreen({
               </View>
               <Text style={[styles.termsText, { color: colors.text }]}>
                 I have read and agree to the{" "}
-                <Text style={styles.linkText}>Terms and Conditions</Text>.
+                <Text style={styles.linkText} onPress={() => setLegalDoc("terms")}>
+                  Terms and Conditions
+                </Text>{" "}
+                and{" "}
+                <Text
+                  style={styles.linkText}
+                  onPress={() => setLegalDoc("privacy")}
+                >
+                  Privacy Policy
+                </Text>
+                .
               </Text>
             </TouchableOpacity>
           </View>
@@ -838,28 +491,12 @@ export default function ReferralSignupScreen({
                   { backgroundColor: Colors.sky, marginBottom: 8 },
                 ]}
               />
-              <Button
-                title="START OVER"
-                onPress={() => {
-                  setSignupData({
-                    firstName: "",
-                    lastName: "",
-                    mobileNumber: "",
-                    email: "",
-                    username: "",
-                    referralCode: referrerUsername,
-                    password: "",
-                    passwordConfirmation: "",
-                  })
-                  setAcceptedTerms(false)
-                }}
-                style={styles.signUpBtn}
-              />
+              <Button title="START OVER" onPress={startOver} style={styles.signUpBtn} />
             </>
           ) : (
             <Button
               title="SIGN UP"
-              onPress={handleRegister}
+              onPress={onSubmit}
               loading={loading}
               disabled={!acceptedTerms}
               style={styles.signUpBtn}
@@ -867,220 +504,6 @@ export default function ReferralSignupScreen({
           )}
         </View>
       </LinearGradient>
-
-      <Modal
-        visible={termsModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTermsModalVisible(false)}
-      >
-        <View
-          style={[
-            styles.modalOverlay,
-            {
-              backgroundColor: isDarkMode
-                ? "rgba(0, 0, 0, 0.8)"
-                : "rgba(0, 0, 0, 0.5)",
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.termsModalContent,
-              { backgroundColor: colors.containerBg },
-            ]}
-          >
-            <View style={styles.termsModalHeader}>
-              <Text style={[styles.termsModalTitle, { color: colors.text }]}>
-                Terms and Conditions
-              </Text>
-              <TouchableOpacity onPress={() => setTermsModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <Text
-              style={[styles.termsModalSubtitle, { color: colors.textSec }]}
-            >
-              The following are the latest Terms and Conditions of AF Home.
-            </Text>
-            <ScrollView
-              style={styles.termsModalScroll}
-              contentContainerStyle={styles.termsModalScrollContent}
-              showsVerticalScrollIndicator
-              onScroll={handleTermsScroll}
-              scrollEventThrottle={16}
-            >
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                1. Independent Distributor Agreement
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                By becoming a distributor of our company, you agree to be bound
-                by the terms and conditions outlined in this agreement. You
-                acknowledge that you are an independent contractor and not an
-                employee, partner, or agent of the company.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                2. Distributor Obligations
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                As a distributor, you agree to adhere to all applicable laws,
-                regulations, and ethical guidelines in promoting and selling our
-                products and services, represent the company honestly and
-                accurately, maintain a positive and professional image, and
-                attend company-provided training and development programs.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                3. Compensation Plan
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                Our company uses a compensation plan that rewards distributors
-                for sales and building a network. The details of the
-                compensation plan, including commission structure, bonus
-                eligibility, and qualification criteria, are outlined in a
-                separate document, which is an integral part of these terms and
-                conditions.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                4. Product Purchase Requirements
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                To remain an active distributor and qualify for commissions and
-                bonuses, you are required to meet monthly or quarterly product
-                purchase requirements. These requirements may include personal
-                consumption and or retail sales requirements. Failure to meet
-                these requirements may result in the loss of commissions and
-                bonuses.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                5. Downline Structure
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                You may build and manage a network of distributors, commonly
-                referred to as your downline. You understand that your
-                commissions and bonuses may be based on the sales performance
-                and activities of your downline. However, you are responsible
-                for training, supporting, and motivating your downline members.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                6. Termination and Resignation
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                Either party may terminate this agreement at any time with
-                written notice. You understand that in the event of termination
-                or resignation, you will no longer be eligible to receive
-                commissions, bonuses, or other benefits associated with the MLM
-                business.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                7. Intellectual Property
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                All trademarks, logos, copyrighted materials, and other
-                intellectual property owned by the company are protected and may
-                not be used without written permission. Any unauthorized use of
-                company intellectual property may result in legal action.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                8. Non-Disparagement
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                During and after the term of this agreement, you agree not to
-                make any disparaging or defamatory statements about the company,
-                its products, or other distributors. Violation of this clause
-                may result in termination and legal consequences.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                9. Product Returns and Refunds
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                Our company has a product return policy that allows customers to
-                request refunds or exchanges within a specified time frame. You
-                understand that you are responsible for handling customer
-                returns and refunds, and any costs associated with the process.
-              </Text>
-
-              <Text
-                style={[styles.termsParagraphTitle, { color: colors.text }]}
-              >
-                10. Governing Law and Jurisdiction
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                This agreement shall be governed by and construed in accordance
-                with the laws of the Philippines. Any disputes arising from this
-                agreement shall be subject to the exclusive jurisdiction of the
-                courts of the Philippines.
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                By signing below or by accepting these terms and conditions
-                electronically, you acknowledge that you have read, understood,
-                and agreed to abide by the terms and conditions of AF Home.
-              </Text>
-              <Text style={[styles.termsParagraph, { color: colors.textSec }]}>
-                Need clarification? Reach us anytime through the Contact Us
-                page.
-              </Text>
-            </ScrollView>
-            <View
-              style={[
-                styles.termsModalFooter,
-                { borderTopColor: colors.border },
-              ]}
-            >
-              <TouchableOpacity
-                style={[styles.termsCloseBtn, { borderColor: colors.border }]}
-                onPress={() => setTermsModalVisible(false)}
-              >
-                <Text
-                  style={[styles.termsCloseBtnText, { color: colors.text }]}
-                >
-                  Close
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.termsAcceptBtn,
-                  !termsScrolledToEnd && styles.termsAcceptBtnDisabled,
-                ]}
-                disabled={!termsScrolledToEnd}
-                onPress={() => {
-                  setAcceptedTerms(true)
-                  setTermsModalVisible(false)
-                }}
-              >
-                <Text style={styles.termsAcceptBtnText}>
-                  {termsScrolledToEnd ? "I Agree" : "Scroll to enable"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal visible={successModalVisible} transparent animationType="fade">
         <View
@@ -1105,32 +528,39 @@ export default function ReferralSignupScreen({
             <Text style={[styles.successModalTitle, { color: colors.text }]}>
               Registration Successful!
             </Text>
-            <Text
-              style={[styles.successModalMessage, { color: colors.textSec }]}
-            >
-              Your account has been created successfully. You can now log in
-              with your credentials.
+            <Text style={[styles.successModalMessage, { color: colors.textSec }]}>
+              Your account has been created successfully. You can now log in with
+              your credentials.
             </Text>
             <View style={styles.successModalFooter}>
               <TouchableOpacity
                 style={[styles.successCloseBtn, { borderColor: colors.border }]}
                 onPress={() => onBack()}
               >
-                <Text
-                  style={[styles.successCloseBtnText, { color: colors.text }]}
-                >
+                <Text style={[styles.successCloseBtnText, { color: colors.text }]}>
                   Close
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.successLoginBtn}
-                onPress={() => onBack()}
-              >
+              <TouchableOpacity style={styles.successLoginBtn} onPress={() => onBack()}>
                 <Text style={styles.successLoginBtnText}>Go to Login</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={legalDoc !== null}
+        animationType="slide"
+        onRequestClose={() => setLegalDoc(null)}
+      >
+        {legalDoc ? (
+          <LegalWebViewScreen
+            doc={legalDoc}
+            isDarkMode={isDarkMode}
+            onClose={() => setLegalDoc(null)}
+          />
+        ) : null}
       </Modal>
     </View>
   )
