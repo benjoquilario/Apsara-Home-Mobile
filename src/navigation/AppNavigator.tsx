@@ -180,12 +180,15 @@ export default function AppNavigator({
   user,
   token,
   onLogout,
+  onUserUpdate,
   productSlugFromDeepLink,
   onProductDeepLinkHandled,
 }: {
   user?: User | null
   token?: string | null
   onLogout?: () => void
+  /** Merge a partial update into the global user (avatar, etc.) + persist. */
+  onUserUpdate?: (patch: Record<string, any>) => void
   productSlugFromDeepLink?: string | null
   onProductDeepLinkHandled?: () => void
 }) {
@@ -1998,6 +2001,7 @@ export default function AppNavigator({
               placeholderUser={enrichedUser}
               cartCount={cartCount}
               isDarkMode={isDarkMode}
+              onUserUpdate={onUserUpdate}
               onClose={() => setShowProfileDetails(false)}
               onCartPress={() => {
                 setShowProfileDetails(false)

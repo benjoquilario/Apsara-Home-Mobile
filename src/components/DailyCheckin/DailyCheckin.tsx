@@ -102,24 +102,38 @@ export default function DailyCheckin({
 
   const ladder = board?.ladder ?? []
   const calendar = board?.calendar
-  const nextDayIndex = board?.next_day_index ?? 1
+  // next_day_index is the claimable "current day" (1–7), or null once today is
+  // already claimed. next_reward_pv is likewise null when checked in.
+  const nextDayIndex = board?.next_day_index ?? null
   const nextRewardPv = board?.next_reward_pv ?? 0
   const canCheckIn = board?.can_check_in ?? false
 
-  // Claimed per the server calendar when present, else derived from the streak
-  // position (days before the next claimable day are already claimed).
+  const calendarEntry = (day: number) => calendar?.find((c) => c.day === day)
+
+  // Claimed state — authoritative from the server calendar's `claimed` flag
+  // (e.g. Day 1 claimed yesterday → calendar day 1 claimed: true). Fallback when
+  // no calendar: days before the next claimable day are already claimed.
   const isDayClaimed = (day: number) => {
-    if (calendar) {
-      const entry = calendar.find((c) => c.day === day)
-      if (entry) return !!entry.claimed
-    }
-    return day < nextDayIndex
+    const entry = calendarEntry(day)
+    if (entry) return !!entry.claimed
+    return nextDayIndex != null ? day < nextDayIndex : false
+  }
+
+  // "Today" = the single claimable rung. The server marks it via
+  // `is_today_reward` (true only when not yet checked in today). After today's
+  // claim, next_day_index is null and no rung is "today" — today reads as
+  // claimed instead. Fall back to next_day_index if the flag is absent.
+  const isTodayReward = (day: number) => {
+    const entry = calendarEntry(day)
+    if (entry && typeof entry.is_today_reward === "boolean")
+      return entry.is_today_reward
+    return canCheckIn && day === nextDayIndex
   }
 
   // Claim TODAY (the only claimable day, per the API). 409 = already checked in.
   const handleClaim = () => {
     if (!canCheckIn || claim.isPending) return
-    const anim = scaleAnims[nextDayIndex - 1]
+    const anim = scaleAnims[(nextDayIndex ?? 1) - 1]
     if (anim) {
       Animated.sequence([
         Animated.timing(anim, {
@@ -179,7 +193,8 @@ export default function DailyCheckin({
           const reward = entry.pv
           const isChecked = isDayClaimed(day)
           const scaleAnim = scaleAnims[day - 1] ?? scaleAnims[0]
-          const isToday = day === nextDayIndex && canCheckIn
+          const isToday = isTodayReward(day)
+          const isClaimable = isToday && canCheckIn
 
           return (
             <Animated.View
@@ -203,8 +218,8 @@ export default function DailyCheckin({
                       borderWidth: 1,
                     },
                   ]}
-                  onPress={isToday ? handleClaim : undefined}
-                  disabled={!isToday || claim.isPending}
+                  onPress={isClaimable ? handleClaim : undefined}
+                  disabled={!isClaimable || claim.isPending}
                   activeOpacity={1}
                 >
                   {/* Reward Badge with Check Icon */}

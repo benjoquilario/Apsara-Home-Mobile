@@ -187,18 +187,6 @@ function WishlistTabScreen() {
 
   return (
     <>
-      <AppHeader
-        user={enrichedUser}
-        cartCount={cartCount}
-        isDarkMode={isDarkMode}
-        onCartPress={onCartPress}
-        onCameraPress={() => {
-          console.log("Camera pressed")
-        }}
-        onSearchPress={onSearchPress}
-        onProfilePress={() => {}}
-        onLogout={onLogout}
-      />
       <WishlistScreen
         token={token}
         wishlistItems={wishlistItems}
@@ -344,16 +332,6 @@ function NotificationTabScreen() {
 
   return (
     <>
-      <AppHeader
-        user={enrichedUser}
-        cartCount={cartCount}
-        isDarkMode={isDarkMode}
-        onCartPress={onCartPress}
-        onCameraPress={() => {}}
-        onSearchPress={onSearchPress}
-        onProfilePress={() => {}}
-        onLogout={onLogout}
-      />
       <NotificationsScreen
         token={token}
         isDarkMode={isDarkMode}

@@ -12,11 +12,13 @@ export interface CheckinLadderEntry {
   pv: number
 }
 
-/** Optional per-day calendar state (authoritative "claimed" flags). */
+/** Per-day calendar state — the authoritative source for claimed / today. */
 export interface CheckinCalendarEntry {
   day: number
   pv?: number
   claimed?: boolean
+  claimed_at?: string | null
+  /** True only for the claimable "Today" rung (false once checked in today). */
   is_today_reward?: boolean
 }
 
@@ -25,8 +27,11 @@ export interface DailyCheckinBoard {
   checked_in_today: boolean
   can_check_in: boolean
   current_streak: number
-  next_day_index: number
-  next_reward_pv: number
+  /** Claimable day 1–7, or null once today is already claimed. */
+  next_day_index: number | null
+  /** PV for the next claim, or null once checked in today. */
+  next_reward_pv: number | null
+  today_earned_pv?: number
   week_start?: string
   resets_at?: string
   ladder: CheckinLadderEntry[]

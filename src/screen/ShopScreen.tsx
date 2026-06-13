@@ -20,6 +20,7 @@ import { FlashList, FlashListRef } from "@shopify/flash-list"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons"
 import { Colors } from "../constants/colors"
+import { getColors } from "../theme/theme"
 import { Product } from "../services/productService"
 import ItemCard from "../components/Items/ItemCard"
 import AppHeader from "../components/AppHeader/AppHeader"
@@ -94,13 +95,15 @@ function ShopScreen({
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
+  // Palette from the centralized theme (slate spine + sky accent).
+  const t = getColors(isDarkMode)
   const colors = {
-    bg: isDarkMode ? "#0f172a" : "#f5f5f5",
-    text: isDarkMode ? "#f8fafc" : Colors.text,
-    textSec: isDarkMode ? "#94a3b8" : Colors.textSecondary,
-    border: isDarkMode ? "#334155" : "#e5e7eb",
-    card: isDarkMode ? "#1e293b" : Colors.white,
-    toolbar: isDarkMode ? "#1e293b" : Colors.white,
+    bg: t.bgSubtle,
+    text: t.text,
+    textSec: t.textSecondary,
+    border: t.border,
+    card: t.card,
+    toolbar: t.card,
   }
 
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(() => {
