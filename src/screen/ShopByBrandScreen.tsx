@@ -11,7 +11,7 @@ import {
   Modal,
   Share,
 } from "react-native"
-import { Image, ImageBackground } from "expo-image"
+import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
@@ -300,11 +300,13 @@ export default function ShopByBrandScreen({
   }, [onBack])
 
   const themeColors = {
-    containerBg: isDarkMode ? "#0f172a" : "#f5f5f5",
-    text: isDarkMode ? "#f1f5f9" : Colors.text,
+    containerBg: isDarkMode ? "#0f172a" : "#f8fafc",
+    text: isDarkMode ? "#f8fafc" : Colors.text,
     textSecondary: isDarkMode ? "#94a3b8" : Colors.textSecondary,
-    cardBg: isDarkMode ? "#1e293b" : Colors.white,
-    cardBorder: isDarkMode ? "#334155" : "#e2e8f0",
+    cardBg: isDarkMode ? "#1f2937" : Colors.white,
+    cardBorder: isDarkMode ? "#374151" : "#e5e7eb",
+    searchBg: isDarkMode ? "#0f172a" : "#f1f5f9",
+    followingBg: isDarkMode ? "rgba(14,165,233,0.15)" : "#e0f2fe",
   }
 
   const brandLogo = getBrandLogo()
@@ -313,34 +315,34 @@ export default function ShopByBrandScreen({
     <View
       style={[styles.container, { backgroundColor: themeColors.containerBg }]}
     >
-      {/* Custom Header with Brand Info */}
-      <ImageBackground
-        source={{
-          uri: "https://mms.img.susercontent.com/ph-11134210-81ztm-mlh54hxutfya0b@resize_bs700x700",
-        }}
-        style={[styles.customHeader, { paddingTop: insets.top }]}
-        contentFit="cover"
-        transition={200}
+      {/* Clean white brand-store header */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: themeColors.cardBg,
+            borderBottomColor: themeColors.cardBorder,
+            paddingTop: insets.top + 8,
+          },
+        ]}
       >
-        <View style={styles.headerOverlay} />
-
-        {/* Top Row: Back, Search, Filter */}
+        {/* Top Row: Back, Search, Menu */}
         <View style={styles.searchRow}>
-          <TouchableOpacity onPress={onBack} style={styles.backIconButton}>
-            <Ionicons name="chevron-back" size={24} color={Colors.white} />
+          <TouchableOpacity onPress={onBack} style={styles.iconButton} hitSlop={8}>
+            <Ionicons name="chevron-back" size={24} color={themeColors.text} />
           </TouchableOpacity>
 
-          <View style={styles.searchWrapper}>
+          <View style={[styles.searchWrapper, { backgroundColor: themeColors.searchBg }]}>
             <Ionicons
               name="search-outline"
               size={16}
-              color="rgba(255, 255, 255, 0.7)"
+              color={themeColors.textSecondary}
               style={styles.searchIconLeft}
             />
             <TextInput
-              style={[styles.searchInput, { color: Colors.white }]}
-              placeholder="Search products in this brand"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              style={[styles.searchInput, { color: themeColors.text }]}
+              placeholder={`Search in ${brand?.name ?? "this brand"}`}
+              placeholderTextColor={themeColors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
@@ -353,18 +355,19 @@ export default function ShopByBrandScreen({
                 <Ionicons
                   name="close-circle"
                   size={16}
-                  color="rgba(255, 255, 255, 0.7)"
+                  color={themeColors.textSecondary}
                 />
               </TouchableOpacity>
             )}
           </View>
 
           <TouchableOpacity
-            style={styles.filterIconButton}
+            style={styles.iconButton}
             onPress={() => setShowMenu(true)}
             activeOpacity={0.7}
+            hitSlop={8}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color={Colors.white} />
+            <Ionicons name="ellipsis-horizontal" size={22} color={themeColors.text} />
           </TouchableOpacity>
         </View>
 
@@ -379,7 +382,12 @@ export default function ShopByBrandScreen({
             style={styles.modalOverlay}
             onPress={() => setShowMenu(false)}
           >
-            <View style={[styles.menuContainer, { top: insets.top + 60 }]}>
+            <View
+              style={[
+                styles.menuContainer,
+                { top: insets.top + 56, backgroundColor: themeColors.cardBg },
+              ]}
+            >
               <TouchableOpacity style={styles.menuItem} onPress={handleShareBrand}>
                 <Ionicons
                   name="share-social"
@@ -387,9 +395,13 @@ export default function ShopByBrandScreen({
                   color={Colors.sky}
                   style={styles.menuIcon}
                 />
-                <Text style={styles.menuText}>Share Brand</Text>
+                <Text style={[styles.menuText, { color: themeColors.text }]}>
+                  Share Brand
+                </Text>
               </TouchableOpacity>
-              <View style={styles.menuDivider} />
+              <View
+                style={[styles.menuDivider, { backgroundColor: themeColors.cardBorder }]}
+              />
               <TouchableOpacity style={styles.menuItem} onPress={handleReportBrand}>
                 <Ionicons
                   name="flag"
@@ -405,76 +417,52 @@ export default function ShopByBrandScreen({
           </Pressable>
         </Modal>
 
-        {/* Bottom Row: Brand Info and Follow Button */}
-        <View style={styles.headerContent}>
-          <View style={styles.brandHeaderContent}>
-            <View style={[styles.brandLogoHeader, { borderColor: "#cbd5e1" }]}>
-              {brandLogo ? (
-                <Image
-                  source={{ uri: brandLogo }}
-                  style={styles.brandLogoImageHeader}
-                  contentFit="contain"
-                  transition={200}
-                />
-              ) : (
-                <View style={styles.brandLogoFallbackHeader}>
-                  <Text style={styles.brandInitialHeader}>
-                    {getBrandInitial()}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.brandHeaderText}>
-              <Text style={styles.brandHeaderLabel} numberOfLines={1}>
-                Official Brand Store
+        {/* Brand identity row */}
+        <View style={styles.brandRow}>
+          <View
+            style={[styles.brandLogo, { borderColor: themeColors.cardBorder }]}
+          >
+            {brandLogo ? (
+              <Image
+                source={{ uri: brandLogo }}
+                style={styles.brandLogoImage}
+                contentFit="contain"
+                transition={200}
+              />
+            ) : (
+              <View style={styles.brandLogoFallback}>
+                <Text style={styles.brandInitial}>{getBrandInitial()}</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.brandInfo}>
+            <View style={styles.brandNameRow}>
+              <Text
+                style={[styles.brandName, { color: themeColors.text }]}
+                numberOfLines={1}
+              >
+                {brand?.name ?? "Brand"}
               </Text>
-              <View style={styles.brandNameRow}>
-                <Text
-                  style={[styles.brandHeaderName, { color: Colors.white }]}
-                  numberOfLines={1}
-                >
-                  {brand?.name ?? "Brand"}
-                </Text>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={14}
-                  color={Colors.sky}
-                  style={{ marginLeft: 4 }}
-                />
-              </View>
-              {brand?.supplier_name ? (
-                <Text
-                  style={[styles.brandHeaderSupplier, { color: "#e2e8f0" }]}
-                  numberOfLines={1}
-                >
-                  {brand.supplier_name}
-                </Text>
-              ) : null}
-              {brand?.tagline ? (
-                <Text
-                  style={[styles.brandHeaderTagline, { color: "#e2e8f0" }]}
-                  numberOfLines={1}
-                >
-                  {brand.tagline}
-                </Text>
-              ) : null}
-              <View style={styles.brandMetaRow}>
-                <Ionicons name="star" size={12} color="#fbbf24" />
-                <Text
-                  style={[styles.brandHeaderProducts, { color: Colors.white }]}
-                  numberOfLines={1}
-                >
-                  4.8
-                </Text>
-                <Text style={[styles.brandMetaDot, { color: "#cbd5e1" }]}>•</Text>
-                <Ionicons name="people" size={12} color={Colors.sky} />
-                <Text
-                  style={[styles.brandHeaderProducts, { color: Colors.white }]}
-                  numberOfLines={1}
-                >
-                  12.5K followers
-                </Text>
-              </View>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={Colors.sky}
+                style={{ marginLeft: 4 }}
+              />
+            </View>
+            <View style={styles.brandMetaRow}>
+              <Ionicons name="star" size={13} color="#fbbf24" />
+              <Text style={[styles.brandMetaText, { color: themeColors.text }]}>
+                4.8
+              </Text>
+              <Text style={[styles.brandMetaDot, { color: themeColors.textSecondary }]}>
+                •
+              </Text>
+              <Ionicons name="people" size={12} color={themeColors.textSecondary} />
+              <Text style={[styles.brandMetaText, { color: themeColors.textSecondary }]}>
+                12.5K followers
+              </Text>
             </View>
           </View>
 
@@ -482,19 +470,26 @@ export default function ShopByBrandScreen({
             onPress={handleFollowPress}
             disabled={followLoading}
             style={[
-              styles.topFollowButton,
-              { backgroundColor: isFollowing ? "#0369a1" : Colors.sky },
+              styles.followButton,
+              isFollowing
+                ? { backgroundColor: themeColors.followingBg }
+                : { backgroundColor: Colors.sky },
             ]}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
             <Ionicons
               name={isFollowing ? "heart" : "heart-outline"}
-              size={16}
-              color={Colors.white}
+              size={15}
+              color={isFollowing ? Colors.sky : Colors.white}
               style={{ marginRight: 4 }}
             />
-            <Text style={[styles.topFollowButtonText, { color: Colors.white }]}>
-              {followLoading ? "Follow" : isFollowing ? "Followed" : "Follow"}
+            <Text
+              style={[
+                styles.followButtonText,
+                { color: isFollowing ? Colors.sky : Colors.white },
+              ]}
+            >
+              {isFollowing ? "Following" : "Follow"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -506,10 +501,12 @@ export default function ShopByBrandScreen({
               key={tab}
               style={styles.tabItem}
               onPress={() => setSelectedTab(tab)}
+              activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.tabText,
+                  { color: themeColors.textSecondary },
                   selectedTab === tab && styles.tabTextActive,
                 ]}
               >
@@ -521,7 +518,7 @@ export default function ShopByBrandScreen({
             </TouchableOpacity>
           ))}
         </View>
-      </ImageBackground>
+      </View>
 
       {selectedTab === "home" && (
         <ScrollView
@@ -568,7 +565,11 @@ export default function ShopByBrandScreen({
           <ShopByBrandCategoriesScreen
             categories={categories}
             isDarkMode={isDarkMode}
-            onCategoryPress={(categoryId) => setSelectedCategoryId(categoryId)}
+            onCategoryPress={(categoryId) => {
+              setSelectedCategoryId(categoryId)
+              setSelectedTab("products")
+            }}
+            onShopNow={() => setSelectedTab("products")}
           />
         </ScrollView>
       )}

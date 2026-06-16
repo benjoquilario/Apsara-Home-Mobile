@@ -15,6 +15,7 @@ import {
   PanResponder,
   Dimensions,
   Pressable,
+  Clipboard,
 } from "react-native"
 import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -235,6 +236,12 @@ export default function PurchasesScreen({
       duration: 300,
       useNativeDriver: true,
     }).start(() => setShowDetailModal(false))
+  }
+
+  const handleCopy = (value: string, label = "Copied") => {
+    if (!value) return
+    Clipboard.setString(value)
+    Toast.show({ type: "success", text1: label, text2: value })
   }
   const detailPanResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -638,39 +645,32 @@ export default function PurchasesScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Header with Background Image */}
-      <View style={styles.headerBackground}>
-        <Image
-          source={{
-          uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969376/purchases_bg_l42llq.png"
-        }}
-          style={styles.headerBackgroundImage}
-          contentFit="cover"
-          transition={200}
-        />
-        <View
-          style={[
-            styles.headerContent,
-            { paddingTop: insets.top, paddingHorizontal: 12 },
-          ]}
-        >
-          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <Ionicons
-              name="chevron-back-outline"
-              size={24}
-              color={Colors.white}
-            />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.headerGreeting, { color: Colors.white }]}>
-              My Purchases
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: Colors.white }]}>
-              Track your orders
-            </Text>
-          </View>
-          <View style={{ width: 40 }} />
+      <View
+        style={[
+          styles.headerBackground,
+          {
+            backgroundColor: colors.containerBg,
+            borderBottomColor: colors.border,
+            paddingTop: insets.top + 8,
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+          <Ionicons
+            name="chevron-back-outline"
+            size={24}
+            color={colors.text}
+          />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={[styles.headerGreeting, { color: colors.text }]}>
+            My Purchases
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSec }]}>
+            Track your orders
+          </Text>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Filter Bar at Top */}
@@ -1206,7 +1206,10 @@ export default function PurchasesScreen({
             {selectedOrder && (
               <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={styles.modalContent}
+                contentContainerStyle={[
+                  styles.modalContent,
+                  { paddingBottom: 30 + insets.bottom },
+                ]}
                 showsVerticalScrollIndicator={false}
               >
                 {/* Order Number & Status */}
@@ -1462,11 +1465,27 @@ export default function PurchasesScreen({
                         >
                           Tracking Number
                         </Text>
-                        <Text
-                          style={[styles.detailValue, { color: Colors.sky }]}
+                        <Pressable
+                          style={styles.copyValue}
+                          onPress={() =>
+                            handleCopy(
+                              selectedOrder.tracking_number,
+                              "Tracking Number Copied"
+                            )
+                          }
+                          hitSlop={8}
                         >
-                          {selectedOrder.tracking_number}
-                        </Text>
+                          <Text
+                            style={[styles.detailValue, { color: Colors.sky }]}
+                          >
+                            {selectedOrder.tracking_number}
+                          </Text>
+                          <Ionicons
+                            name="copy-outline"
+                            size={15}
+                            color={Colors.sky}
+                          />
+                        </Pressable>
                       </View>
                     </>
                   )}

@@ -31,9 +31,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: palette.slate100,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: palette.slate200,
   },
   filterButtonActive: {
     borderColor: Colors.sky,
@@ -49,8 +49,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "800",
+    letterSpacing: -0.4,
     color: Colors.text,
   },
   totalBadge: {

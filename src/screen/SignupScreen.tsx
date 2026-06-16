@@ -50,8 +50,18 @@ const TEXT_FIELDS: Array<{
   hint?: string
   required?: boolean
 }> = [
-  { name: "firstName", label: "First Name", autoCapitalize: "words", required: true },
-  { name: "lastName", label: "Last Name", autoCapitalize: "words", required: true },
+  {
+    name: "firstName",
+    label: "First Name",
+    autoCapitalize: "words",
+    required: true,
+  },
+  {
+    name: "lastName",
+    label: "Last Name",
+    autoCapitalize: "words",
+    required: true,
+  },
   {
     name: "mobileNumber",
     label: "Mobile Number",
@@ -59,7 +69,12 @@ const TEXT_FIELDS: Array<{
     hint: "Use 11 digits only. Format 0929-226-0447.",
     required: true,
   },
-  { name: "email", label: "Email Address", keyboard: "email-address", autoCapitalize: "none" },
+  {
+    name: "email",
+    label: "Email Address",
+    keyboard: "email-address",
+    autoCapitalize: "none",
+  },
   {
     name: "username",
     label: "Username",
@@ -67,7 +82,11 @@ const TEXT_FIELDS: Array<{
     hint: "Letters and numbers only, no spaces or symbols.",
     required: true,
   },
-  { name: "referralCode", label: "Referral Code / Referral Link", required: true },
+  {
+    name: "referralCode",
+    label: "Referral Code / Referral Link",
+    required: true,
+  },
 ]
 
 const SignupBackground = React.memo(function SignupBackground() {
@@ -262,7 +281,11 @@ export default function SignupScreen({
                 rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
                 onRightIconPress={() => setShowPassword((v) => !v)}
               />
-              <PasswordChecklist control={control} name="password" variant="dark" />
+              <PasswordChecklist
+                control={control}
+                name="password"
+                variant="dark"
+              />
 
               <ControlledAuthField
                 control={control}
@@ -296,7 +319,11 @@ export default function SignupScreen({
                     ]}
                   >
                     {acceptedTerms && (
-                      <Ionicons name="checkmark" size={11} color={Colors.white} />
+                      <Ionicons
+                        name="checkmark"
+                        size={11}
+                        color={Colors.white}
+                      />
                     )}
                   </View>
                   <Text style={styles.termsText}>
@@ -337,7 +364,10 @@ export default function SignupScreen({
         onRequestClose={() => setLegalDoc(null)}
       >
         {legalDoc ? (
-          <LegalWebViewScreen doc={legalDoc} onClose={() => setLegalDoc(null)} />
+          <LegalWebViewScreen
+            doc={legalDoc}
+            onClose={() => setLegalDoc(null)}
+          />
         ) : null}
       </Modal>
     </View>

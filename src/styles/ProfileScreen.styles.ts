@@ -177,6 +177,32 @@ export const styles = StyleSheet.create({
     position: "relative",
     backgroundColor: "rgba(255,255,255,0.18)",
   },
+  // White-header circular action buttons (cart / bell / settings)
+  headerCircleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  headerCircleBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  headerCircleBadgeText: {
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "800",
+  },
   badge: {
     position: "absolute",
     top: -4,

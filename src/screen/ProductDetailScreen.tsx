@@ -10,6 +10,7 @@ import {  View,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Animated,
+  Easing,
   Share,
 } from "react-native"
 import { Image } from "expo-image"
@@ -19,14 +20,13 @@ import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../constants/colors"
 import {
   productService,
-  type Product,
-  type ProductCard,
   type ProductReviewsResponse,
 } from "../services/productService"
 import { authService } from "../services/authService"
 import { userBehaviorService } from "../services/userBehaviorService"
 import { useProductDetail } from "../hooks/query/useProductDetail"
 import { useRelatedProducts } from "../hooks/query/useRelatedProducts"
+import { useShowcaseProducts } from "../hooks/query/useShowcaseProducts"
 import ImageViewerModal from "../components/Items/ImageViewerModal"
 import BuyNowModal from "../components/Items/BuyNowModal"
 import AddToCartModal from "../components/Items/AddToCartModal"
@@ -45,6 +45,15 @@ import Toast from "react-native-toast-message"
 import styles from "../styles/ProductDetailScreen.styles"
 
 const SCREEN_WIDTH = Dimensions.get("window").width
+
+// Section tabs shown in the sticky header. `key` matches the onLayout key used
+// to record each section's scroll offset (see sectionOffsets).
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "description", label: "Description" },
+  { key: "reviews", label: "Reviews" },
+  { key: "recommendation", label: "Recommendation" },
+] as const
 
 interface WishlistItem {
   wishlist_id: number
@@ -116,25 +125,6 @@ interface BrandProfile {
   supplier_name: string
 }
 
-function toProductCard(p: Product): ProductCard {
-  return {
-    id: p.id,
-    name: p.name,
-    image: p.image,
-    soldCount: p.soldCount,
-    originalPrice: p.priceSrp,
-    memberPrice: p.priceMember,
-    pv: p.prodpv,
-    brandName: p.brand,
-    variantCount: p.variants?.length ?? 0,
-    badges: {
-      musthave: p.musthave,
-      bestseller: p.bestseller,
-      salespromo: p.salespromo,
-    },
-  }
-}
-
 export default function ProductDetailScreen({
   productId,
   token,
@@ -170,6 +160,11 @@ export default function ProductDetailScreen({
       token,
       limit: 8,
     })
+
+  // "You May Also Like" feed — the cached, per_page-bounded random showcase
+  // (shared with the home rails) instead of fetching the entire catalog. Cached
+  // for a few minutes, so revisiting products doesn't refetch.
+  const { data: showcaseFeed = [] } = useShowcaseProducts({ token, count: 40 })
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null)
   const [productReviews, setProductReviews] =
     useState<ProductReviewsResponse | null>(null)
@@ -192,9 +187,6 @@ export default function ProductDetailScreen({
   // Latest focused gallery index, updated via ProductGallery's onIndexChange
   // (ref-only, no re-render) — read when starting the fly-to-cart animation.
   const currentImageIndexRef = useRef(0)
-  const [showHeaderOnScroll, setShowHeaderOnScroll] = useState(false)
-  const headerTranslateY = useState(() => new Animated.Value(-100))[0]
-  const headerOpacity = useState(() => new Animated.Value(0))[0]
   const imageAnimX = useState(() => new Animated.Value(0))[0]
   const imageAnimY = useState(() => new Animated.Value(0))[0]
   const imageAnimScale = useState(() => new Animated.Value(1))[0]
@@ -204,11 +196,32 @@ export default function ProductDetailScreen({
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [wishlistLoading, setWishlistLoading] = useState(false)
   const [showAddToCartModal, setShowAddToCartModal] = useState(false)
-  const [youMayAlsoLike, setYouMayAlsoLike] = useState<ProductCard[]>([])
+  // Derived from the cached showcase feed (minus the current product) — no local
+  // state/fetch. The compiler memoizes the filter; it's ≤40 items regardless.
+  const youMayAlsoLike = showcaseFeed.filter((c) => c.id !== productId)
   const [visibleYouMayAlsoLikeCount, setVisibleYouMayAlsoLikeCount] =
     useState(8)
   const [wishlistCount, setWishlistCount] = useState<number | null>(null)
   const [optimisticCartCount, setOptimisticCartCount] = useState(0)
+
+  // Sticky section-tab navigation. `activeTab` drives the highlight; the sticky
+  // header measures its own height (headerH) so tab taps scroll the target
+  // section to sit just below the header. sectionOffsets records each section's
+  // y within the scroll content (via onLayout) for tap-to-scroll + scroll-spy.
+  const [activeTab, setActiveTab] = useState<string>("overview")
+  const [headerH, setHeaderH] = useState(insets.top + 96)
+  const sectionOffsets = useRef<{ [key: string]: number }>({})
+  // While a tab-tap-driven scroll animates, the scroll-spy is suppressed so the
+  // highlight doesn't flicker through the sections it passes (e.g. tapping
+  // Reviews briefly showing Description). Cleared when the scroll settles.
+  const isTabScrollingRef = useRef(false)
+  const tabScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The search+tabs bar is hidden at the top of the page and slides/fades in
+  // once the user scrolls down past SHOW_BAR_AFTER (the immersive gallery keeps
+  // its own floating buttons for the un-scrolled state).
+  const [showBar, setShowBar] = useState(false)
+  const barTranslateY = useState(() => new Animated.Value(-160))[0]
+  const barOpacity = useState(() => new Animated.Value(0))[0]
 
   // --- Derived/optimistic state synced during render (not in effects) ---
   // `isWishlisted` is optimistic (set instantly on tap, rolled back on error),
@@ -234,31 +247,27 @@ export default function ProductDetailScreen({
   const [prevProductId, setPrevProductId] = useState(productId)
   if (productId !== prevProductId) {
     setPrevProductId(productId)
-    setYouMayAlsoLike([])
     setVisibleYouMayAlsoLikeCount(8)
     setBrandProfile(null)
     setDescriptionExpanded(true)
     setSpecificationsExpanded(false)
     setSelectedVariant(null)
-    setShowHeaderOnScroll(false)
+    setActiveTab("overview")
+    setShowBar(false)
   }
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        console.log("🔙 Back button pressed")
         if (showImageViewer) {
-          console.log("📸 Closing image viewer")
           setShowImageViewer(false)
           return true
         }
         if (showBuyModal) {
-          console.log("🛒 Closing buy modal")
           setShowBuyModal(false)
           return true
         }
-        console.log("🚪 Going back")
         onBack()
         return true
       }
@@ -283,20 +292,19 @@ export default function ProductDetailScreen({
     }
   }, [token, productId])
 
-  // Imperative resets (animation values + scroll position) when the product
-  // changes — external-system sync, correct to keep in an effect. The React
-  // state resets are handled during render above (prevProductId).
+  // Imperative resets (scroll position + bar animation) when the product
+  // changes — external-system sync, correct to keep in an effect. React state
+  // resets are handled during render above (prevProductId).
   useEffect(() => {
-    headerTranslateY.setValue(-100)
-    headerOpacity.setValue(0)
     scrollRef.current?.scrollTo({ y: 0, animated: false })
-  }, [productId, headerTranslateY, headerOpacity])
+    barTranslateY.setValue(-160)
+    barOpacity.setValue(0)
+  }, [productId, barTranslateY, barOpacity])
 
   // When the product (from React Query) is available, run cascading fetches.
   useEffect(() => {
     const data = product
     if (!data) return
-    console.log(`✅ Product loaded: ${data.name} (ID: ${data.id})`)
 
     let active = true
 
@@ -342,31 +350,17 @@ export default function ProductDetailScreen({
         .catch(() => {})
     }
 
-    // Related products now come from GET /products/{id}/related via
-    // useRelatedProducts (cached, public) — no brand-shuffle fetch here.
-
-    // Fetch "You May Also Like" products
-    if (token) {
-      productService
-        .getProducts(token)
-        .then((items) => {
-          if (!active) return
-          // Filter out current product and shuffle
-          const filteredItems = items.filter((p) => p.id !== productId)
-          const shuffled = filteredItems.sort(() => Math.random() - 0.5)
-          // Take at least 20 items for lazy loading
-          const cards = shuffled
-            .slice(0, Math.max(20, shuffled.length))
-            .map(toProductCard)
-          setYouMayAlsoLike(cards)
-        })
-        .catch(() => {})
-    }
+    // Related products come from useRelatedProducts and "You May Also Like" from
+    // useShowcaseProducts (both cached React Query) — no fetches here.
 
     return () => {
       active = false
     }
-  }, [product, productId, token])
+    // Keyed on product?.id (not the product object): a React Query background
+    // refetch hands back a new object with the same id, and we don't want to
+    // re-run the brand/reviews/tracking fetches in that case.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, productId, token])
 
   // Create image list with variant mapping (unique images only). The main
   // gallery shows EVERYTHING — variant photos first, then the product images.
@@ -458,6 +452,20 @@ export default function ProductDetailScreen({
     setShowImageViewer(true)
   }
 
+  // Tap a tab → scroll its section to just under the sticky header. Lock the
+  // highlight to the tapped tab for the duration of the animated scroll so the
+  // scroll-spy doesn't flip it to the sections we pass through on the way.
+  const handleTabPress = (key: string) => {
+    setActiveTab(key)
+    isTabScrollingRef.current = true
+    if (tabScrollTimeoutRef.current) clearTimeout(tabScrollTimeoutRef.current)
+    tabScrollTimeoutRef.current = setTimeout(() => {
+      isTabScrollingRef.current = false
+    }, 550)
+    const y = sectionOffsets.current[key] ?? 0
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - headerH), animated: true })
+  }
+
   const hasDiscount = product
     ? (product.priceMember ?? 0) < (product.priceSrp ?? 0)
     : false
@@ -472,7 +480,26 @@ export default function ProductDetailScreen({
     const contentHeight = event.nativeEvent.contentSize.height
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height
 
-    setShowHeaderOnScroll(scrollY > 100)
+    // Reveal the search+tabs bar only once scrolled away from the very top.
+    const shouldShowBar = scrollY > 80
+    if (shouldShowBar !== showBar) setShowBar(shouldShowBar)
+
+    // Scroll-spy: highlight the tab whose section has reached just below the
+    // sticky header (the deepest section we've scrolled past). Skipped while a
+    // tab-tap scroll is animating so the highlight stays on the tapped tab.
+    if (!isTabScrollingRef.current) {
+      const probe = scrollY + headerH + 8
+      let current = "overview"
+      let best = -Infinity
+      for (const t of TABS) {
+        const off = sectionOffsets.current[t.key]
+        if (off != null && off <= probe && off > best) {
+          best = off
+          current = t.key
+        }
+      }
+      if (current !== activeTab) setActiveTab(current)
+    }
 
     // Auto-load more items when user scrolls near bottom
     if (contentHeight - scrollY - scrollViewHeight < 500) {
@@ -484,35 +511,24 @@ export default function ProductDetailScreen({
     }
   }
 
+  // Slide + fade the search/tabs bar in when scrolled, out when back at the top.
+  // Hidden offset tracks the measured bar height so it fully clears the screen.
   useEffect(() => {
-    if (showHeaderOnScroll) {
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(headerOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start()
-    } else {
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: -100,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(headerOpacity, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start()
-    }
-  }, [showHeaderOnScroll, headerTranslateY, headerOpacity])
+    Animated.parallel([
+      Animated.timing(barTranslateY, {
+        toValue: showBar ? 0 : -(headerH + 8),
+        duration: showBar ? 280 : 200,
+        easing: showBar ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(barOpacity, {
+        toValue: showBar ? 1 : 0,
+        duration: showBar ? 220 : 160,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [showBar, headerH, barTranslateY, barOpacity])
 
   const addToCart = async (cartData: {
     product_id: number
@@ -799,90 +815,136 @@ export default function ProductDetailScreen({
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       {loading ? (
         <ProductDetailSkeleton isDarkMode={isDarkMode} />
       ) : product ? (
         <>
+          {/* Search + section tabs bar — hidden at the top, slides/fades in on
+              scroll. Measures its own height so tab taps land sections beneath
+              it and the hidden offset fully clears the screen. */}
           <Animated.View
             style={[
-              styles.animatedHeader,
+              styles.topBar,
               {
-                transform: [{ translateY: headerTranslateY }],
-                opacity: headerOpacity,
+                backgroundColor: colors.card,
+                paddingTop: insets.top,
+                borderBottomColor: colors.divider,
+                transform: [{ translateY: barTranslateY }],
+                opacity: barOpacity,
               },
             ]}
-            pointerEvents={showHeaderOnScroll ? "auto" : "none"}
+            pointerEvents={showBar ? "auto" : "none"}
+            onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
           >
-            <View
-              style={[
-                styles.scrollHeader,
-                { backgroundColor: colors.card, paddingTop: insets.top },
-              ]}
-            >
+            <View style={styles.topBarRow}>
               <TouchableOpacity
-                onPress={() => {
-                  try {
-                    if (onBack && typeof onBack === "function") {
-                      onBack()
-                    }
-                  } catch (error) {
-                    console.error("Error in back navigation:", error)
-                  }
-                }}
-                style={styles.scrollHeaderBackBtn}
+                onPress={onBack}
+                style={styles.topBarIconBtn}
+                hitSlop={8}
               >
-                <Ionicons name="arrow-back" size={20} color={colors.text} />
+                <Ionicons name="arrow-back" size={22} color={colors.text} />
               </TouchableOpacity>
-              <Text
-                style={[styles.scrollHeaderTitle, { color: colors.text }]}
-                numberOfLines={1}
+
+              {/* Search field — opens the search screen (keeps the immersive
+                  product page free of a keyboard). */}
+              <TouchableOpacity
+                style={[
+                  styles.searchField,
+                  {
+                    backgroundColor: isDarkMode ? "#0f172a" : "#f1f5f9",
+                    borderColor: colors.divider,
+                  },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => onSearch?.()}
               >
-                {product?.name || ""}
-              </Text>
-              <View style={styles.scrollHeaderActions}>
-                <TouchableOpacity
-                  onPress={onNavigateToCart}
-                  style={{ position: "relative" }}
+                <Ionicons name="search" size={16} color={colors.textSec} />
+                <Text
+                  style={[styles.searchPlaceholder, { color: colors.textSec }]}
+                  numberOfLines={1}
                 >
-                  <Ionicons name="cart" size={20} color={colors.text} />
-                  {cartCount + optimisticCartCount > 0 && (
-                    <View
-                      style={{
-                        position: "absolute",
-                        top: -8,
-                        right: -8,
-                        backgroundColor: "#ef4444",
-                        borderRadius: 8,
-                        minWidth: 16,
-                        height: 16,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderWidth: 1,
-                        borderColor: colors.bg,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: "700",
-                        }}
-                      >
-                        {cartCount + optimisticCartCount}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleShareProduct}>
-                  <Ionicons
-                    name="share-social-outline"
-                    size={20}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-              </View>
+                  Search products
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleShareProduct}
+                style={styles.topBarIconBtn}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="share-social-outline"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={onNavigateToCart}
+                style={styles.topBarIconBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="cart-outline" size={21} color={colors.text} />
+                {cartCount + optimisticCartCount > 0 && (
+                  <View style={styles.topBarBadge}>
+                    <Text style={styles.topBarBadgeText}>
+                      {cartCount + optimisticCartCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={toggleWishlist}
+                disabled={wishlistLoading}
+                style={styles.topBarIconBtn}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={isWishlisted ? "heart" : "heart-outline"}
+                  size={21}
+                  color={isWishlisted ? "#ef4444" : colors.text}
+                />
+              </TouchableOpacity>
             </View>
+
+            {/* Section tabs — horizontally scrollable so longer labels
+                ("Recommendation") aren't truncated on narrow screens. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabBar}
+            >
+              {TABS.map((tab) => {
+                const active = activeTab === tab.key
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    style={styles.tabItem}
+                    onPress={() => handleTabPress(tab.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.tabLabel,
+                        { color: active ? Colors.sky : colors.textSec },
+                        active && styles.tabLabelActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {tab.label}
+                    </Text>
+                    <View
+                      style={[
+                        styles.tabIndicator,
+                        active && { backgroundColor: Colors.sky },
+                      ]}
+                    />
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
           </Animated.View>
           <ScrollView
             ref={scrollRef}
@@ -893,11 +955,29 @@ export default function ProductDetailScreen({
             ]}
             onScroll={handleScrollEvent}
             scrollEventThrottle={16}
+            onScrollBeginDrag={() => {
+              // User took over — resume the scroll-spy immediately.
+              isTabScrollingRef.current = false
+              if (tabScrollTimeoutRef.current) {
+                clearTimeout(tabScrollTimeoutRef.current)
+                tabScrollTimeoutRef.current = null
+              }
+            }}
+            onMomentumScrollEnd={() => {
+              isTabScrollingRef.current = false
+            }}
           >
             {/* Image Gallery — pager + counter + thumbnails own activeImage
                 internally, so swiping re-renders only ProductGallery (not this
-                whole screen). key={product.id} resets it on product change. */}
-            <View style={{ position: "relative" }}>
+                whole screen). key={product.id} resets it on product change.
+                Floating buttons serve the immersive top state; the search/tabs
+                bar slides in over them once the user scrolls down. */}
+            <View
+              style={{ position: "relative" }}
+              onLayout={(e) => {
+                sectionOffsets.current.overview = e.nativeEvent.layout.y
+              }}
+            >
               <ProductGallery
                 ref={galleryRef}
                 key={product.id}
@@ -912,17 +992,7 @@ export default function ProductDetailScreen({
               />
               {/* Back Button */}
               <TouchableOpacity
-                onPress={() => {
-                  try {
-                    if (onBack && typeof onBack === "function") {
-                      onBack()
-                    } else {
-                      console.warn("onBack callback is not available")
-                    }
-                  } catch (error) {
-                    console.error("Error in back navigation:", error)
-                  }
-                }}
+                onPress={onBack}
                 style={[styles.galleryBackBtn, { paddingTop: insets.top + 10 }]}
                 activeOpacity={0.7}
               >
@@ -945,10 +1015,7 @@ export default function ProductDetailScreen({
                   activeOpacity={0.7}
                 >
                   <View
-                    style={[
-                      styles.galleryIconBtnInner,
-                      { position: "relative" },
-                    ]}
+                    style={[styles.galleryIconBtnInner, { position: "relative" }]}
                   >
                     <Ionicons name="cart" size={22} color={Colors.white} />
                     {cartCount + optimisticCartCount > 0 && (
@@ -1208,7 +1275,7 @@ export default function ProductDetailScreen({
             </View>
 
             {/* Gray Gap Separator */}
-            <View style={{ height: 12, backgroundColor: "#ffffff" }} />
+            <View style={{ height: 12, backgroundColor: colors.bg }} />
 
             {/* Product Name and Brand Section */}
             <View
@@ -1272,7 +1339,7 @@ export default function ProductDetailScreen({
             </View>
 
             {/* Gray Gap Separator */}
-            <View style={{ height: 12, backgroundColor: "#ffffff" }} />
+            <View style={{ height: 12, backgroundColor: colors.bg }} />
 
             {/* Delivery Information */}
             <View
@@ -1294,7 +1361,7 @@ export default function ProductDetailScreen({
             </View>
 
             {/* Gray Gap Separator */}
-            <View style={{ height: 12, backgroundColor: "#ffffff" }} />
+            <View style={{ height: 12, backgroundColor: colors.bg }} />
 
             {/* Description & Specifications Wrapper */}
             {(!!product.description ||
@@ -1309,6 +1376,9 @@ export default function ProductDetailScreen({
                   styles.descriptionsWrapper,
                   { backgroundColor: colors.card, borderColor: colors.divider },
                 ]}
+                onLayout={(e) => {
+                  sectionOffsets.current.description = e.nativeEvent.layout.y
+                }}
               >
                 {/* Description (memoized component — RenderHtml no longer
                     rebuilds on every swipe/variant change). */}
@@ -1455,7 +1525,12 @@ export default function ProductDetailScreen({
             )}
 
             {/* Product Rating - Shopee Style */}
-            <View style={styles.ratingSection}>
+            <View
+              style={styles.ratingSection}
+              onLayout={(e) => {
+                sectionOffsets.current.reviews = e.nativeEvent.layout.y
+              }}
+            >
               <View
                 style={[
                   styles.ratingCard,
@@ -1783,7 +1858,7 @@ export default function ProductDetailScreen({
             </View>
 
             {/* Gray Gap Separator */}
-            <View style={{ height: 12, backgroundColor: "#ffffff" }} />
+            <View style={{ height: 12, backgroundColor: colors.bg }} />
 
             {/* Brand Information */}
             {brandProfile && (
@@ -1879,7 +1954,12 @@ export default function ProductDetailScreen({
             )}
 
             {/* Gray Gap Separator */}
-            <View style={{ height: 0, backgroundColor: "#ffffff" }} />
+            <View
+              style={{ height: 0, backgroundColor: colors.bg }}
+              onLayout={(e) => {
+                sectionOffsets.current.recommendation = e.nativeEvent.layout.y
+              }}
+            />
 
             {/* Related Products (memoized — won't re-render on swipe) */}
             <RelatedProducts

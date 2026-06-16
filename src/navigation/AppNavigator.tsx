@@ -11,8 +11,11 @@ import {
   Clipboard,
   Linking,
   AppState,
+  Platform,
 } from "react-native"
 import type { AppStateStatus } from "react-native"
+import * as SystemUI from "expo-system-ui"
+import * as NavigationBar from "expo-navigation-bar"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Ionicons from "../components/ui/Icon"
 import {
@@ -246,6 +249,19 @@ export default function AppNavigator({
 
   const [activeTab, setActiveTab] = useState<TabKey>("home")
   const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // Sync the Android device navigation bar (the ☰ ○ ◁ strip) to the app theme.
+  // Edge-to-edge keeps the bar transparent, so the BACKGROUND comes from the
+  // window background (expo-system-ui) and the BUTTON ICONS contrast is set via
+  // expo-navigation-bar's setStyle ("light" = light icons for a dark bar).
+  useEffect(() => {
+    if (Platform.OS !== "android") return
+    const barColor = isDarkMode ? "#0f172a" : "#ffffff"
+    SystemUI.setBackgroundColorAsync(barColor).catch(() => {})
+    try {
+      NavigationBar.setStyle(isDarkMode ? "light" : "dark")
+    } catch {}
+  }, [isDarkMode])
   const [searchVisible, setSearchVisible] = useState(false)
   const [showCart, setShowCart] = useState(false)
   const [cartRefreshTrigger, setCartRefreshTrigger] = useState(0)
@@ -2242,6 +2258,7 @@ export default function AppNavigator({
             <ReferralNetworkScreen
               token={token}
               tree={referralTree}
+              isDarkMode={isDarkMode}
               onBack={() => {
                 console.log(
                   "[AppNavigator] ReferralNetworkScreen.onBack called - closing modal"

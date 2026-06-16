@@ -12,6 +12,7 @@ import {
   BackHandler,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { LinearGradient } from "expo-linear-gradient"
 import Ionicons from "../components/ui/Icon"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -253,22 +254,43 @@ export default function ReferralSignupScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity
-          onPress={onBack}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerGreeting, { color: colors.text }]}>
-          Create Account
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textSec }]}>
-          Complete your registration
-        </Text>
-      </View>
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(59,130,246,0.15)", "rgba(31,41,55,0)"]
+            : ["rgba(14,165,233,0.18)", "rgba(255,255,255,0)"]
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 12,
+            backgroundColor: colors.containerBg,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={[styles.headerGreeting, { color: colors.text }]}>
+              Register
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSec }]}>
+              Complete your registration
+            </Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
 
       <View style={styles.scrollableContainer}>
         <KeyboardAvoidingView
@@ -282,40 +304,47 @@ export default function ReferralSignupScreen({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.fieldRow}>
-              <ControlledAuthField
-                control={control}
-                name="firstName"
-                variant={variant}
-                containerStyle={styles.halfField}
-                label="First Name"
-                required
-                placeholder="First name"
-                leftIcon="person-outline"
-                autoCapitalize="words"
-              />
-              <ControlledAuthField
-                control={control}
-                name="lastName"
-                variant={variant}
-                containerStyle={styles.halfField}
-                label="Last Name"
-                required
-                placeholder="Last name"
-                leftIcon="person-outline"
-                autoCapitalize="words"
-              />
-            </View>
-
-            <View style={styles.fieldRow}>
+            {/* ── Personal details ── */}
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.containerBg,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.cardTitle, { color: colors.textSec }]}>
+                PERSONAL DETAILS
+              </Text>
+              <View style={styles.fieldRow}>
+                <ControlledAuthField
+                  control={control}
+                  name="firstName"
+                  variant={variant}
+                  containerStyle={styles.halfField}
+                  label="First Name"
+                  required
+                  leftIcon="person-outline"
+                  autoCapitalize="words"
+                />
+                <ControlledAuthField
+                  control={control}
+                  name="lastName"
+                  variant={variant}
+                  containerStyle={styles.halfField}
+                  label="Last Name"
+                  required
+                  leftIcon="person-outline"
+                  autoCapitalize="words"
+                />
+              </View>
               <ControlledAuthField
                 control={control}
                 name="mobileNumber"
                 variant={variant}
-                containerStyle={styles.halfField}
                 label="Mobile Number"
                 required
-                placeholder="09XXXXXXXXX"
                 leftIcon="call-outline"
                 keyboardType="phone-pad"
                 hint="Use 11 digits only."
@@ -324,9 +353,7 @@ export default function ReferralSignupScreen({
                 control={control}
                 name="email"
                 variant={variant}
-                containerStyle={styles.halfField}
                 label="Email Address"
-                placeholder="you@email.com"
                 leftIcon="mail-outline"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -334,16 +361,26 @@ export default function ReferralSignupScreen({
               />
             </View>
 
-            <View style={styles.fieldRow}>
+            {/* ── Account ── */}
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.containerBg,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.cardTitle, { color: colors.textSec }]}>
+                ACCOUNT
+              </Text>
               <ControlledAuthField
                 control={control}
                 name="username"
                 variant={variant}
-                containerStyle={styles.halfField}
                 label="Username"
                 required
-                placeholder="Choose username"
-                leftIcon="at-outline"
+                leftIcon="person-circle"
                 autoCapitalize="none"
                 hint="Letters and numbers only, no spaces or symbols."
               />
@@ -351,59 +388,63 @@ export default function ReferralSignupScreen({
                 control={control}
                 name="referralCode"
                 variant={variant}
-                containerStyle={styles.halfField}
                 label="Referral Code"
                 required
-                placeholder="Enter referral code"
-                leftIcon="pricetag-outline"
+                leftIcon="gift-outline"
                 editable={!referrerUsername}
-                hint={referrerUsername ? "Pre-filled from your link." : undefined}
+                hint={
+                  referrerUsername
+                    ? "Pre-filled from your referral link."
+                    : undefined
+                }
+              />
+              <ControlledAuthField
+                control={control}
+                name="password"
+                variant={variant}
+                label="Password"
+                required
+                leftIcon="lock-closed-outline"
+                secureTextEntry={!showPassword}
+                autoComplete="new-password"
+                rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                onRightIconPress={() => setShowPassword((v) => !v)}
+              />
+              <ControlledAuthField
+                control={control}
+                name="passwordConfirmation"
+                variant={variant}
+                label="Confirm Password"
+                required
+                leftIcon="lock-closed-outline"
+                secureTextEntry={!showConfirmPassword}
+                autoComplete="new-password"
+                rightIcon={
+                  showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                }
+                onRightIconPress={() => setShowConfirmPassword((v) => !v)}
+              />
+              <PasswordChecklist
+                control={control}
+                name="password"
+                confirmName="passwordConfirmation"
+                rules={REFERRAL_PASSWORD_RULES}
+                matchLabel="Should be Match"
+                variant={variant}
               />
             </View>
-
-            <ControlledAuthField
-              control={control}
-              name="password"
-              variant={variant}
-              label="Password"
-              required
-              placeholder="Create a password"
-              leftIcon="lock-closed-outline"
-              secureTextEntry={!showPassword}
-              autoComplete="new-password"
-              rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
-              onRightIconPress={() => setShowPassword((v) => !v)}
-            />
-            <ControlledAuthField
-              control={control}
-              name="passwordConfirmation"
-              variant={variant}
-              label="Confirm Password"
-              required
-              placeholder="Re-enter password"
-              leftIcon="lock-closed-outline"
-              secureTextEntry={!showConfirmPassword}
-              autoComplete="new-password"
-              rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-              onRightIconPress={() => setShowConfirmPassword((v) => !v)}
-            />
-            <PasswordChecklist
-              control={control}
-              name="password"
-              confirmName="passwordConfirmation"
-              rules={REFERRAL_PASSWORD_RULES}
-              matchLabel="Should be Match"
-              variant={variant}
-            />
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
 
       {/* Fixed Bottom Footer */}
-      <View
+      <LinearGradient
+        colors={isDarkMode ? ["#0f172a", "#1e293b"] : ["#f0f9ff", "#f0fdf4"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={[
           styles.bottomFooter,
-          { backgroundColor: colors.bg, borderTopColor: colors.border },
+          { backgroundColor: colors.containerBg, borderTopColor: colors.border },
         ]}
       >
         <View
@@ -475,17 +516,8 @@ export default function ReferralSignupScreen({
               style={styles.signUpBtn}
             />
           )}
-
-          <View style={styles.loginLinkRow}>
-            <Text style={[styles.loginLinkText, { color: colors.textSec }]}>
-              Already have an account?{" "}
-            </Text>
-            <TouchableOpacity onPress={onBack}>
-              <Text style={styles.loginLink}>Log In</Text>
-            </TouchableOpacity>
-          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <Modal visible={successModalVisible} transparent animationType="fade">
         <View

@@ -18,7 +18,7 @@ import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import { useAppContext } from "../context/AppContext"
 
-import AppHeader from "../components/AppHeader/AppHeader"
+import HomeHeader from "../components/HomeHeader/HomeHeader"
 import HomeScreen from "../screen/HomeScreen"
 import WishlistScreen from "../screen/WishlistScreen"
 import ShopScreen from "../screen/ShopScreen"
@@ -67,6 +67,7 @@ function HomeTabScreen() {
     setPreviousTab,
     activeTab,
     onShowProfileDetails,
+    unreadCount,
   } = useAppContext()
 
   const handleShopByRoom = useCallback(
@@ -127,16 +128,14 @@ function HomeTabScreen() {
 
   return (
     <>
-      <AppHeader
+      <HomeHeader
         user={enrichedUser}
         cartCount={cartCount}
+        unreadCount={unreadCount}
         isDarkMode={isDarkMode}
         onCartPress={onCartPress}
-        onCameraPress={() => {
-          console.log("Camera pressed")
-        }}
         onSearchPress={onSearchPress}
-        onProfilePress={() => onShowProfileDetails(true)}
+        onNotificationPress={() => navigation.navigate("notification" as any)}
       />
       <HomeScreen
         token={token}
@@ -305,6 +304,7 @@ function ShopTabScreen() {
           onProductPress={handleShopProductPress}
           onCartPress={onCartPress}
           onOpenSearch={onSearchPress}
+          onWishlistPress={() => navigation.navigate("wishlist" as any)}
           wishlistItems={wishlistItems}
           isDarkMode={isDarkMode}
           onWishlistChange={onWishlistChange}
@@ -383,6 +383,7 @@ function ProfileTabScreen() {
       }}
       onCartPress={ctx.onCartPress}
       cartCount={ctx.cartCount}
+      unreadCount={ctx.unreadCount}
       isDarkMode={ctx.isDarkMode}
       onShowProfileDetails={ctx.onShowProfileDetails}
       onShowReferralNetwork={ctx.onShowReferralNetwork}
@@ -418,6 +419,9 @@ function CustomTabBar({
   const { isDarkMode, wishlistItems, unreadCount, enrichedUser } =
     useAppContext() as any
   const safeAreaInsets = useSafeAreaInsets()
+  // Inactive tab tint — a muted slate that reads on both the white (light) and
+  // slate-800 (dark) bar. Colors.textSecondary is slate-700, too dark on dark.
+  const inactiveColor = isDarkMode ? "#94a3b8" : "#64748b"
 
   if (hideTabBar) {
     return null
@@ -500,21 +504,21 @@ function CustomTabBar({
                   <Ionicons
                     name={isFocused ? "home" : "home-outline"}
                     size={26}
-                    color={isFocused ? Colors.sky : Colors.textSecondary}
+                    color={isFocused ? Colors.sky : inactiveColor}
                   />
                 )}
                 {route.name === "wishlist" && (
                   <Ionicons
                     name={isFocused ? "heart" : "heart-outline"}
                     size={24}
-                    color={isFocused ? Colors.sky : Colors.textSecondary}
+                    color={isFocused ? Colors.sky : inactiveColor}
                   />
                 )}
                 {route.name === "notification" && (
                   <Ionicons
                     name={isFocused ? "notifications" : "notifications-outline"}
                     size={24}
-                    color={isFocused ? Colors.sky : Colors.textSecondary}
+                    color={isFocused ? Colors.sky : inactiveColor}
                   />
                 )}
                 {route.name === "profile" && (
@@ -669,7 +673,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 10,
-    color: Colors.textSecondary,
+    color: "#64748b", // slate-500 muted (Colors.textSecondary is now slate-700)
     fontWeight: "600",
     lineHeight: 12,
   },

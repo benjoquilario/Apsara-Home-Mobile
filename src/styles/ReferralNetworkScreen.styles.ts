@@ -10,51 +10,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  headerBackground: {
-    position: "relative",
-    overflow: "hidden",
-    minHeight: 90,
-    borderBottomWidth: 1,
-  },
-
-  headerBackgroundImage: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-  },
-
-  headerContent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 2,
+  header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
-    paddingBottom: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
   },
 
   headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
 
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "800",
-    color: Colors.white,
+    letterSpacing: -0.3,
     flex: 1,
-    textAlign: "center",
+    marginLeft: 4,
   },
 
   section: {

@@ -14,6 +14,7 @@ import {
 } from "react-native"
 import Ionicons from "../ui/Icon"
 import { Colors } from "../../constants/colors"
+import { getRoomIcon, getCategoryIcon } from "../../utils/categoryIcons"
 
 interface HeaderFilterProps {
   onFilterChange?: (filterType: string, value: any) => void
@@ -333,6 +334,33 @@ export default function HeaderFilter({
                           setExpandedFilter(null)
                         }}
                       >
+                        <View
+                          style={[
+                            styles.filterItemIcon,
+                            {
+                              backgroundColor:
+                                activeRoom === room.name &&
+                                room.name !== "All Room Types"
+                                  ? colors.buttonBgActive
+                                  : colors.dropdownItem,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name={
+                              room.name === "All Room Types"
+                                ? "layout-grid"
+                                : getRoomIcon(room.name)
+                            }
+                            size={18}
+                            color={
+                              activeRoom === room.name &&
+                              room.name !== "All Room Types"
+                                ? Colors.sky
+                                : colors.textSec
+                            }
+                          />
+                        </View>
                         <View style={styles.roomFilterItemContent}>
                           <Text
                             style={[
@@ -467,6 +495,18 @@ export default function HeaderFilter({
                         onFilterChange?.("category", null)
                       }}
                     >
+                      <View
+                        style={[
+                          styles.filterItemIcon,
+                          { backgroundColor: colors.dropdownItem },
+                        ]}
+                      >
+                        <Ionicons
+                          name="layout-grid"
+                          size={18}
+                          color={colors.textSec}
+                        />
+                      </View>
                       <View style={styles.roomFilterItemContent}>
                         <Text
                           style={[
@@ -505,6 +545,27 @@ export default function HeaderFilter({
                           onFilterChange?.("category", category.id)
                         }}
                       >
+                        <View
+                          style={[
+                            styles.filterItemIcon,
+                            {
+                              backgroundColor:
+                                activeCategory === category.name
+                                  ? colors.buttonBgActive
+                                  : colors.dropdownItem,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name={getCategoryIcon(category.name)}
+                            size={18}
+                            color={
+                              activeCategory === category.name
+                                ? Colors.sky
+                                : colors.textSec
+                            }
+                          />
+                        </View>
                         <View style={styles.roomFilterItemContent}>
                           <Text
                             style={[
@@ -1227,6 +1288,14 @@ const styles = StyleSheet.create({
   },
   roomFilterItemActive: {
     backgroundColor: "#eff6ff",
+  },
+  filterItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
   roomFilterItemContent: {
     flex: 1,

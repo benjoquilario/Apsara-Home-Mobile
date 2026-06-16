@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from "react"
-import {  View,
+import {
+  View,
   Text,
   TouchableOpacity,
   ScrollView,
@@ -319,7 +320,7 @@ export default function ReferralOtpScreen({
           {/* Resend OTP */}
           <View style={styles.resendContainer}>
             <Text style={[styles.resendText, { color: colors.textSec }]}>
-              Didn't receive code?
+              Didn&apos;t receive code?
             </Text>
             <TouchableOpacity
               onPress={handleResendOtp}

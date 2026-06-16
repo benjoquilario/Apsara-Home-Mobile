@@ -298,8 +298,8 @@ export default function IndexScreen({
             <View style={styles.logoWithTextRow}>
               <Image
                 source={{
-                uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png"
-              }}
+                  uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png",
+                }}
                 style={styles.homeLogoImage}
                 contentFit="contain"
                 transition={200}
@@ -399,7 +399,7 @@ export default function IndexScreen({
 
           {/* Signup Link */}
           <View style={styles.signupLinkSection}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
+            <Text style={styles.signupText}>Don&apos;t have an account? </Text>
             <TouchableOpacity onPress={onGoToSignup}>
               <Text style={styles.signupLink}>Signup</Text>
             </TouchableOpacity>
@@ -450,7 +450,10 @@ export default function IndexScreen({
         onRequestClose={() => setLegalDoc(null)}
       >
         {legalDoc ? (
-          <LegalWebViewScreen doc={legalDoc} onClose={() => setLegalDoc(null)} />
+          <LegalWebViewScreen
+            doc={legalDoc}
+            onClose={() => setLegalDoc(null)}
+          />
         ) : null}
       </Modal>
     </View>

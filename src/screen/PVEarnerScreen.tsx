@@ -79,7 +79,7 @@ export default function PVEarnerScreen({
     }
     // Limit to 20 products
     return products.slice(0, 20)
-  }, [data?.pages, currentPage])
+  }, [data, currentPage])
 
   const masonryData = useMemo(() => {
     const leftColumn: Product[] = []

@@ -26,6 +26,12 @@ interface ItemCardProps {
   wishlistId?: number
   onWishlistToggle?: (productId: number, isWishlisted: boolean) => void
   isDarkMode?: boolean
+  /** Image height; defaults to 200 (grid). Rails pass a smaller value to keep
+   *  the horizontal card compact. */
+  imageHeight?: number
+  /** Reserve fixed space for the name (2 lines) + badges (2 rows) so prices line
+   *  up across cards. Used by the horizontal home rails; the grid stays organic. */
+  uniformHeight?: boolean
 }
 
 const BADGE_CONFIG = [
@@ -80,6 +86,8 @@ function ItemCard({
   onHideItem,
   onReportItem,
   isDarkMode = false,
+  imageHeight = 200,
+  uniformHeight = false,
 }: ItemCardProps) {
   const [wishlisted, setWishlisted] = useState(isWishlisted)
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false)
@@ -240,7 +248,7 @@ function ItemCard({
       activeOpacity={0.8}
     >
       {/* Image */}
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { height: imageHeight }]}>
         {imageError || !product.image ? (
           <Image
             source={{
@@ -278,6 +286,18 @@ function ItemCard({
           <View style={styles.enjoyBadge}>
             <Ionicons name="pricetag" size={10} color={Colors.white} />
             <Text style={styles.enjoyBadgeText}>Enjoy {discountPct}% OFF</Text>
+          </View>
+        )}
+
+        {/* Rail mode: Save amount moves onto the image (frees a badge row below
+            so the price always fits and prices line up across cards). */}
+        {uniformHeight && hasDiscount && (
+          <View style={styles.imageSaveBadge}>
+            <Ionicons name="pricetag" size={9} color={Colors.white} />
+            <Text style={styles.imageSaveBadgeText}>
+              Save ₱
+              {((product.originalPrice || 0) - displayPrice).toLocaleString()}
+            </Text>
           </View>
         )}
 
@@ -352,7 +372,11 @@ function ItemCard({
 
         {/* Product Name */}
         <Text
-          style={[styles.productName, { color: colors.text }]}
+          style={[
+            styles.productName,
+            { color: colors.text },
+            uniformHeight && styles.productNameUniform,
+          ]}
           numberOfLines={2}
           ellipsizeMode="tail"
         >
@@ -360,7 +384,9 @@ function ItemCard({
         </Text>
 
         {/* Badges Row */}
-        <View style={styles.badgesRow}>
+        <View
+          style={[styles.badgesRow, uniformHeight && styles.badgesRowUniform]}
+        >
           {/* PV badge — only when the product carries PV (recommendation feeds
               may omit it; "PV 0" would be misleading) */}
           {Number(product.pv) > 0 && (
@@ -390,8 +416,8 @@ function ItemCard({
             </LinearGradient>
           )}
 
-          {/* Save amount badge */}
-          {hasDiscount && (
+          {/* Save amount badge — in rail mode this moves onto the image above */}
+          {hasDiscount && !uniformHeight && (
             <LinearGradient
               colors={["#ef4444", "#dc2626"]}
               start={{ x: 0, y: 0 }}
@@ -423,7 +449,7 @@ function ItemCard({
       {/* Options Menu Overlay - On Image Section */}
       {showMenu && (
         <TouchableOpacity
-          style={styles.imageMenuOverlay}
+          style={[styles.imageMenuOverlay, { height: imageHeight }]}
           activeOpacity={1}
           onPress={() => setShowMenu(false)}
         >
@@ -576,6 +602,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
+  imageSaveBadge: {
+    position: "absolute",
+    top: 30,
+    left: 8,
+    backgroundColor: "#ef4444",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  imageSaveBadgeText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: "800",
+  },
   wishlistButton: {
     position: "absolute",
     top: 8,
@@ -654,10 +697,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     flexShrink: 1,
   },
+  // Reserve two lines so single-line names don't shift the rows below them up.
+  productNameUniform: {
+    minHeight: 36,
+  },
   badgesRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 5,
+  },
+  // Reserve two badge rows so cards with/without a variants badge stay aligned.
+  badgesRowUniform: {
+    minHeight: 48,
+    alignItems: "flex-start",
+    alignContent: "flex-start",
   },
   badge: {
     flexDirection: "row",

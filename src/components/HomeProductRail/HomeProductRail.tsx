@@ -8,6 +8,9 @@ import type { ProductCard } from "../../services/productService"
 
 // Matches the ShopScreen product card (lighter than the old 220px FeaturedItems).
 const CARD_W = 165
+// Rails are horizontal browse strips, so the card runs shorter than the grid's
+// 200px image to keep the section from eating the viewport.
+const RAIL_IMG_H = 140
 
 interface WishlistRef {
   product_id?: number
@@ -81,7 +84,7 @@ function HomeProductRail({
         <View style={styles.skeletonRow}>
           {[0, 1, 2].map((i) => (
             <View key={i} style={styles.card}>
-              <ItemCardSkeleton imageHeight={200} isDarkMode={isDarkMode} />
+              <ItemCardSkeleton imageHeight={RAIL_IMG_H} isDarkMode={isDarkMode} />
             </View>
           ))}
         </View>
@@ -101,6 +104,8 @@ function HomeProductRail({
                 onPress={(p) => onProductPress?.(p.id)}
                 onWishlistToggle={() => onWishlistChange?.()}
                 isDarkMode={isDarkMode}
+                imageHeight={RAIL_IMG_H}
+                uniformHeight
               />
             </View>
           )}

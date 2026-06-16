@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react"
-import {  View,
+import {
+  View,
   Text,
   ScrollView,
   TouchableOpacity,
@@ -281,7 +282,7 @@ export default function ShippingInfoScreen({
               Once your order has been shipped, you will receive a tracking
               number via email or SMS. You can use this number to monitor your
               delivery status through our Track Order page or directly on the
-              courier's website.
+              courier&apos;s website.
             </Text>
           </View>
 

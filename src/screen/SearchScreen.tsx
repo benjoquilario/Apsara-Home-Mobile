@@ -28,6 +28,8 @@ import { userBehaviorService } from "../services/userBehaviorService"
 import { API_CONFIG } from "../config/api"
 import { useLiveSearch } from "../hooks/query/useLiveSearch"
 import { useSearchRecommendations } from "../hooks/query/useSearchRecommendations"
+import { useSearchHistory } from "../hooks/query/useSearchHistory"
+import { useQueryClient } from "@tanstack/react-query"
 import Toast from "react-native-toast-message"
 import styles from "../styles/SearchScreen.styles"
 
@@ -74,10 +76,9 @@ export default function SearchScreen({
     liveRow: isDarkMode ? "#1e293b" : Colors.white,
   }
 
+  const queryClient = useQueryClient()
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")
-  const [history, setHistory] = useState<SearchHistoryItem[]>([])
-  const [loadingHistory, setLoadingHistory] = useState(false)
   const [savingQuery, setSavingQuery] = useState(false)
   const [showAllRecent, setShowAllRecent] = useState(false)
   const [isVoiceRecording, setIsVoiceRecording] = useState(false)
@@ -89,6 +90,12 @@ export default function SearchScreen({
 
   const { data: recommendations = [], isFetching: loadingRecs } =
     useSearchRecommendations({ token })
+
+  const {
+    data: history = [],
+    isFetching: loadingHistory,
+    error: historyError,
+  } = useSearchHistory({ token })
 
   const { data: liveResults = [], isFetching: isLiveFetching } = useLiveSearch({
     query: debouncedQuery,
@@ -107,14 +114,6 @@ export default function SearchScreen({
     }).start(() => inputRef.current?.focus())
   }, [])
 
-  useEffect(() => {
-    initializeAudio()
-    return () => {
-      audioRecorder.stop().catch(() => {})
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   const initializeAudio = async () => {
     try {
       await setAudioModeAsync({
@@ -125,6 +124,14 @@ export default function SearchScreen({
       console.error("Audio mode setup failed:", error)
     }
   }
+
+  useEffect(() => {
+    initializeAudio()
+    return () => {
+      audioRecorder.stop().catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const transcribeAudio = async (uri: string) => {
     try {
@@ -234,46 +241,29 @@ export default function SearchScreen({
   }
 
   useEffect(() => {
-    if (!token) return
-    let active = true
-    setLoadingHistory(true)
-    authService
-      .getSearchHistory(token)
-      .then((items) => {
-        if (active) setHistory(items)
-      })
-      .catch((error) => {
-        if (!active) return
-        Toast.show({
-          type: "error",
-          text1: "Search history failed",
-          text2: error.message || "Unable to load search history.",
-        })
-      })
-      .finally(() => {
-        if (active) setLoadingHistory(false)
-      })
-    return () => {
-      active = false
-    }
-  }, [token])
+    if (!historyError) return
+    Toast.show({
+      type: "error",
+      text1: "Search history failed",
+      text2:
+        (historyError as Error).message || "Unable to load search history.",
+    })
+  }, [historyError])
 
-  const displayedRecommendations = useMemo<RecommendationItem[]>(() => {
-    const shuffled = [...(recommendations as RecommendationItem[])]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-    return shuffled.slice(0, 6)
-  }, [recommendations])
+  const displayedRecommendations = useMemo<RecommendationItem[]>(
+    () => (recommendations as RecommendationItem[]).slice(0, 6),
+    [recommendations]
+  )
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (query.trim().length < 2) {
-      setDebouncedQuery("")
-      return
-    }
-    debounceRef.current = setTimeout(() => setDebouncedQuery(query), 350)
+    const trimmed = query.trim()
+    // Clear promptly (0ms) below the min length; otherwise debounce the live query.
+    // setState lives in the timeout callback so it never runs synchronously here.
+    debounceRef.current = setTimeout(
+      () => setDebouncedQuery(trimmed.length < 2 ? "" : query),
+      trimmed.length < 2 ? 0 : 350
+    )
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
@@ -319,12 +309,15 @@ export default function SearchScreen({
     setSavingQuery(true)
     try {
       await authService.saveSearchHistory(token, next)
-      setHistory((prev) => {
-        const normalized = prev.filter(
-          (item) => getHistoryLabel(item).toLowerCase() !== next.toLowerCase()
-        )
-        return [{ query: next }, ...normalized].slice(0, 8)
-      })
+      queryClient.setQueryData<SearchHistoryItem[]>(
+        ["search-history", token],
+        (prev = []) => {
+          const normalized = prev.filter(
+            (item) => getHistoryLabel(item).toLowerCase() !== next.toLowerCase()
+          )
+          return [{ query: next }, ...normalized].slice(0, 8)
+        }
+      )
       // Track search behavior
       userBehaviorService
         .trackBehavior(token, "search", undefined, undefined, undefined, next)
@@ -352,87 +345,79 @@ export default function SearchScreen({
         { transform: [{ translateX: slideAnim }] },
       ]}
     >
-      <View style={styles.headerBackground}>
-        <Image
-          source={{
-          uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
-        }}
-          style={styles.headerBackgroundImage}
-          contentFit="cover"
-          transition={200}
-        />
+      <View
+        style={[
+          styles.headerBackground,
+          {
+            backgroundColor: colors.headerBg,
+            borderBottomColor: colors.border,
+            paddingTop: insets.top + 8,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.backBtn}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+
         <View
           style={[
-            styles.header,
-            { paddingTop: insets.top + 10, paddingHorizontal: 12 },
+            styles.searchWrapper,
+            { backgroundColor: colors.bg, borderColor: colors.border },
           ]}
         >
-          <TouchableOpacity
-            onPress={handleBack}
-            style={styles.backBtn}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
-          </TouchableOpacity>
-
-          <View
-            style={[
-              styles.searchWrapper,
-              isDarkMode && styles.searchWrapperDark,
-            ]}
-          >
-            <Ionicons
-              name="search-outline"
-              size={16}
-              color={Colors.white}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              ref={inputRef}
-              style={[
-                styles.searchInput,
-                isDarkMode && styles.searchInputDark,
-                { color: Colors.white },
-              ]}
-              value={query}
-              onChangeText={setQuery}
-              onSubmitEditing={() => submitSearch(query)}
-              placeholder="Search products..."
-              placeholderTextColor={Colors.white}
-              returnKeyType="search"
-            />
-            {hasQuery ? (
-              <TouchableOpacity
-                onPress={() => setQuery("")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close-circle" size={16} color={Colors.white} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={handleMicPress}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={isVoiceRecording ? "mic" : "mic-outline"}
-                  size={18}
-                  color={isVoiceRecording ? Colors.forest : Colors.white}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <TouchableOpacity
-            onPress={handleBack}
-            style={styles.cancelBtn}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.cancelText, { color: Colors.white }]}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
+          <Ionicons
+            name="search-outline"
+            size={16}
+            color={Colors.sky}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            ref={inputRef}
+            style={[styles.searchInput, { color: colors.text }]}
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={() => submitSearch(query)}
+            placeholder="Search products..."
+            placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+          />
+          {hasQuery ? (
+            <TouchableOpacity
+              onPress={() => setQuery("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={handleMicPress}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isVoiceRecording ? "mic" : "mic-outline"}
+                size={18}
+                color={isVoiceRecording ? Colors.sky : colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
+
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.cancelBtn}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.cancelText, { color: Colors.sky }]}>Cancel</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView

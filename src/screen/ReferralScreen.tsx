@@ -103,7 +103,7 @@ export default function ReferralScreen({
         >
           <View style={styles.bannerContent}>
             <Ionicons name="gift" size={48} color={Colors.white} />
-            <Text style={styles.bannerTitle}>You're Invited!</Text>
+            <Text style={styles.bannerTitle}>You&apos;re Invited!</Text>
             <Text style={styles.bannerSubtitle}>
               Join through a special referral link
             </Text>

@@ -7,9 +7,8 @@ import {  View,
 import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Ionicons from "../components/ui/Icon"
-import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../constants/colors"
-import { TIER_REQUIREMENTS, getTierColor } from "../constants/tierConfig"
+import { TIER_REQUIREMENTS } from "../constants/tierConfig"
 import styles from "../styles/LevelProgressDetailsScreen.styles"
 
 const BADGE_IMAGES: Record<number, any> = {
@@ -53,11 +52,13 @@ export default function LevelProgressDetailsScreen({
 }: LevelProgressDetailsScreenProps) {
   const insets = useSafeAreaInsets()
   const colors = {
-    bg: isDarkMode ? "#0f172a" : "#f0f9ff",
+    bg: isDarkMode ? "#0f172a" : "#f8fafc",
     containerBg: isDarkMode ? "#1f2937" : Colors.white,
     text: isDarkMode ? "#f8fafc" : Colors.text,
     textSec: isDarkMode ? "#94a3b8" : Colors.textSecondary,
     border: isDarkMode ? "#374151" : "#e5e7eb",
+    soft: isDarkMode ? "rgba(14,165,233,0.1)" : "#f0f9ff",
+    achievedBg: isDarkMode ? "rgba(16,185,129,0.18)" : "#dcfce7",
   }
 
   const getValue = (
@@ -79,28 +80,28 @@ export default function LevelProgressDetailsScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(59,130,246,0.15)", "rgba(31,41,55,0)"]
-            : ["rgba(14,165,233,0.18)", "rgba(255,255,255,0)"]
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top }]}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.containerBg,
+            borderBottomColor: colors.border,
+            paddingTop: insets.top + 8,
+          },
+        ]}
       >
         <TouchableOpacity
           onPress={onBack}
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back-outline" size={22} color={colors.text} />
+          <Ionicons name="chevron-back-outline" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>
           Level Progress Details
         </Text>
         <View style={styles.backBtn} />
-      </LinearGradient>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -108,24 +109,37 @@ export default function LevelProgressDetailsScreen({
       >
         {Object.values(TIER_REQUIREMENTS).map((tier) => {
           const achieved = currentRank >= tier.rank
-          const tierColor = getTierColor(tier.tier)
+          const isCurrent = tier.rank === currentRank
+          const renderReq = (
+            label: string,
+            req: number | null | undefined,
+            you?: number | null
+          ) => (
+            <View style={styles.reqRow}>
+              <Text style={[styles.reqLabel, { color: colors.textSec }]}>
+                {label}
+              </Text>
+              <Text style={[styles.reqValue, { color: colors.text }]}>
+                {req ?? "-"}
+                {isCurrent && you != null ? (
+                  <Text style={{ color: Colors.sky }}> · you {you}</Text>
+                ) : null}
+              </Text>
+            </View>
+          )
           return (
             <View
               key={tier.rank}
               style={[
                 styles.card,
                 {
-                  backgroundColor: colors.containerBg,
-                  borderColor: colors.border,
+                  backgroundColor: isCurrent ? colors.soft : colors.containerBg,
+                  borderColor: isCurrent ? Colors.sky : colors.border,
+                  borderWidth: isCurrent ? 1.5 : 1,
                 },
               ]}
             >
               <View style={styles.cardHead}>
-                <View
-                  style={[styles.rankBubble, { backgroundColor: tierColor }]}
-                >
-                  <Text style={styles.rankText}>R{tier.rank}</Text>
-                </View>
                 <Image
                   source={BADGE_IMAGES[tier.rank]}
                   style={styles.badgeImage}
@@ -136,9 +150,25 @@ export default function LevelProgressDetailsScreen({
                   <Text style={[styles.tierName, { color: colors.text }]}>
                     {tier.tier}
                   </Text>
+                  <Text style={[styles.rankLabel, { color: colors.textSec }]}>
+                    Rank {tier.rank}
+                    {isCurrent ? " · Current" : ""}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.statePill,
+                    { backgroundColor: achieved ? colors.achievedBg : colors.border },
+                  ]}
+                >
+                  <Ionicons
+                    name={achieved ? "checkmark-circle" : "lock-closed"}
+                    size={12}
+                    color={achieved ? "#10b981" : colors.textSec}
+                  />
                   <Text
                     style={[
-                      styles.state,
+                      styles.statePillText,
                       { color: achieved ? "#10b981" : colors.textSec },
                     ]}
                   >
@@ -146,27 +176,18 @@ export default function LevelProgressDetailsScreen({
                   </Text>
                 </View>
               </View>
-              <Text style={[styles.req, { color: colors.textSec }]}>
-                PV: {tier.pv ?? "-"}{" "}
-                {tier.rank === currentRank
-                  ? `(You: ${getValue(tier.rank, "pv")})`
-                  : ""}
-              </Text>
-              <Text style={[styles.req, { color: colors.textSec }]}>
-                Referrals: {tier.referrals ?? "-"}{" "}
-                {tier.rank === currentRank
-                  ? `(You: ${getValue(tier.rank, "referrals")})`
-                  : ""}
-              </Text>
-              <Text style={[styles.req, { color: colors.textSec }]}>
-                Active Members: {tier.active_members ?? "-"}
-              </Text>
-              <Text style={[styles.req, { color: colors.textSec }]}>
-                Active Builders: {tier.active_builders ?? "-"}
-              </Text>
-              <Text style={[styles.req, { color: colors.textSec }]}>
-                Active Leaders: {tier.active_leaders ?? "-"}
-              </Text>
+
+              <View style={[styles.reqGrid, { borderTopColor: colors.border }]}>
+                {renderReq("PV", tier.pv, getValue(tier.rank, "pv"))}
+                {renderReq(
+                  "Referrals",
+                  tier.referrals,
+                  getValue(tier.rank, "referrals")
+                )}
+                {renderReq("Active Members", tier.active_members)}
+                {renderReq("Active Builders", tier.active_builders)}
+                {renderReq("Active Leaders", tier.active_leaders)}
+              </View>
             </View>
           )
         })}

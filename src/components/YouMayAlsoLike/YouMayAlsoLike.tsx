@@ -40,13 +40,18 @@ function YouMayAlsoLike({
   const left = visible.filter((_, i) => i % 2 === 0)
   const right = visible.filter((_, i) => i % 2 === 1)
 
+  // Stable per the compiler so ItemCard's React.memo holds — without this, the
+  // fresh arrow per card per render re-renders every visible card on each
+  // lazy-load (visibleCount bump), instead of just the newly added ones.
+  const handleCardPress = (item: ProductCard) => onProductPress?.(item.id)
+
   const renderCard = (p: ProductCard) => (
     <View key={p.id} style={styles.youMayAlsoLikeItem}>
       <ItemCard
         product={p}
         token={token}
         isWishlisted={wishlistSet.has(p.id)}
-        onPress={(item) => onProductPress?.(item.id)}
+        onPress={handleCardPress}
         onWishlistToggle={onWishlistToggle}
         isDarkMode={isDarkMode}
       />

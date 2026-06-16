@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react"
-import {  View,
+import React, { useState } from "react"
+import {
+  View,
   Text,
   ScrollView,
   ActivityIndicator,
@@ -16,6 +17,8 @@ import { API_CONFIG } from "../config/api"
 import { orderService } from "../services/orderService"
 import { ChatBotIcon } from "../components/ChatBot"
 import { useNotifications } from "../hooks/useNotifications"
+import { useNotificationList } from "../hooks/query/useNotificationList"
+import { useQueryClient } from "@tanstack/react-query"
 import styles from "../styles/NotificationsScreen.styles"
 
 interface NotificationsScreenProps {
@@ -33,9 +36,7 @@ export default function NotificationsScreen({
   onNavigateToPurchases,
   isVisible = true,
 }: NotificationsScreenProps) {
-  const [notifications, setNotifications] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const queryClient = useQueryClient()
   const [filterType, setFilterType] = useState<"all" | "unread" | "read">("all")
   const [expandedNotificationId, setExpandedNotificationId] = useState<
     number | null
@@ -44,11 +45,22 @@ export default function NotificationsScreen({
     {}
   )
 
+  const {
+    data: notifications,
+    isLoading: loading,
+    isRefetching: refreshing,
+    refetch,
+  } = useNotificationList(token)
+
+  // Optimistically patch the cached notifications object in place.
+  const patchNotifications = (updater: (prev: any) => any) =>
+    queryClient.setQueryData(["notifications", token], updater)
+
   // Integrate with useNotifications for realtime updates
   useNotifications(userId || "", token || "", onNavigateToPurchases, () => {
     // Refresh notification list when realtime event is received
     if (isVisible) {
-      fetchNotifications(true)
+      refetch()
     }
   })
 
@@ -66,35 +78,8 @@ export default function NotificationsScreen({
     unreadBg: t.primarySoft,
   }
 
-  useEffect(() => {
-    if (token) {
-      fetchNotifications()
-    }
-  }, [token])
-
-  const fetchNotifications = async (isRefresh = false) => {
-    if (!token) return
-    if (isRefresh) {
-      setRefreshing(true)
-    } else {
-      setLoading(true)
-    }
-    try {
-      const data = await orderService.getNotifications(token)
-      setNotifications(data)
-    } catch (error: any) {
-      console.error("Error fetching notifications:", error)
-    } finally {
-      if (isRefresh) {
-        setRefreshing(false)
-      } else {
-        setLoading(false)
-      }
-    }
-  }
-
   const handleRefresh = () => {
-    fetchNotifications(true)
+    refetch()
   }
 
   const fetchNotificationUpdates = async (notificationId: number) => {
@@ -113,7 +98,7 @@ export default function NotificationsScreen({
       if (response.ok) {
         const data = await response.json()
         // Update the notification with fetched updates
-        setNotifications((prev: any) => {
+        patchNotifications((prev: any) => {
           if (!prev?.notifications) return prev
           const updated = prev.notifications.map((n: any) =>
             n.id === notificationId ? { ...n, updates: data.updates } : n
@@ -157,7 +142,7 @@ export default function NotificationsScreen({
     }
   }
 
-  const getSeverityIcon = (severity: string): any => {
+  const getSeverityIcon = (severity: string): string => {
     switch (severity) {
       case "success":
         return "checkmark-circle"
@@ -228,7 +213,7 @@ export default function NotificationsScreen({
     if (token && item?.id) {
       try {
         await orderService.readNotification(token, item.id)
-        setNotifications((prev: any) => {
+        patchNotifications((prev: any) => {
           if (!prev?.notifications) return prev
           const updated = prev.notifications.map((n: any) =>
             n.id === item.id ? { ...n, is_read: true } : n
@@ -283,9 +268,11 @@ export default function NotificationsScreen({
     // 3) Keyword scan of the title/message — but only for order-related
     // notifications (has order_id or mentions an order/shipment), so promo
     // notifications don't get a bogus status badge / redirect.
-    const text = `${item?.title ?? ""} ${item?.message ?? ""} ${item?.body ?? ""} ${item?.description ?? ""}`.toLowerCase()
+    const text =
+      `${item?.title ?? ""} ${item?.message ?? ""} ${item?.body ?? ""} ${item?.description ?? ""}`.toLowerCase()
     const isOrderNotif =
-      !!item?.order_id || /order|purchase|delivery|shipment|parcel|package/.test(text)
+      !!item?.order_id ||
+      /order|purchase|delivery|shipment|parcel|package/.test(text)
     if (isOrderNotif) {
       if (text.includes("out for delivery")) return "to_receive"
       if (text.includes("delivered")) return "delivered"
@@ -631,7 +618,9 @@ export default function NotificationsScreen({
                                   ]}
                                 >
                                   View {(item.updates || []).length} update
-                                  {(item.updates || []).length !== 1 ? "s" : ""}{" "}
+                                  {(item.updates || []).length !== 1
+                                    ? "s"
+                                    : ""}{" "}
                                   {isExpanded ? "▼" : "▶"}
                                 </Text>
                               </TouchableOpacity>
