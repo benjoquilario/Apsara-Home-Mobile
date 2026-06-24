@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react"
-import {  View,
+import {
+  View,
   Text,
   ScrollView,
   TouchableOpacity,
@@ -8,7 +9,7 @@ import {  View,
 } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import styles from "../styles/ShippingInfoScreen.styles"
 
@@ -281,7 +282,7 @@ export default function ShippingInfoScreen({
               Once your order has been shipped, you will receive a tracking
               number via email or SMS. You can use this number to monitor your
               delivery status through our Track Order page or directly on the
-              courier's website.
+              courier&apos;s website.
             </Text>
           </View>
 

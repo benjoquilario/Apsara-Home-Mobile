@@ -14,15 +14,14 @@ import {
   TouchableOpacity,
 } from "react-native"
 import { Image } from "expo-image"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { VideoView, useVideoPlayer } from "expo-video"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../constants/colors"
-import { getColors, gradients } from "../theme/theme"
+import { getColors } from "../theme/theme"
 import SectionHeader from "../components/ui/SectionHeader"
 import { authService, BrandItem, CategoryItem } from "../services/authService"
 import { productService } from "../services/productService"
-import { getBadgeImageSource } from "../constants/tierConfig"
 import type { ProductCard } from "../services/productService"
 import Toast from "react-native-toast-message"
 import {
@@ -33,7 +32,10 @@ import {
   BrandCardSkeleton,
 } from "../components/SkeletonLoader/SkeletonLoader"
 import { usePrefetchProducts } from "../hooks/usePrefetchProducts"
-import { useCartCount } from "../hooks/query/useCartCount"
+import { useShowcaseProducts } from "../hooks/query/useShowcaseProducts"
+import { useBehaviorRecommendations } from "../hooks/query/useBehaviorRecommendations"
+import HomeProductRail from "../components/HomeProductRail/HomeProductRail"
+import { getRoomIcon, getCategoryIcon } from "../utils/categoryIcons"
 import { ChatBotIcon } from "../components/ChatBot"
 import { FlashList } from "@shopify/flash-list"
 import styles, { BANNER_HEIGHT } from "../styles/HomeScreen.styles"
@@ -97,12 +99,6 @@ function sortByOrder(items: CategoryItem[]) {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
-function getCategoryImages(category: CategoryItem) {
-  if (category.image) return [category.image]
-  const seed = encodeURIComponent(category.url || category.name)
-  return [`https://picsum.photos/seed/${seed}/240/240`]
-}
-
 function getBrandImage(brand: BrandItem) {
   if (brand.logo) return brand.logo
   if (brand.image) return brand.image
@@ -157,29 +153,10 @@ function CategoryCircle({
   isDarkMode?: boolean
   colors?: any
 }) {
-  const image = useMemo(() => getCategoryImages(category)[0], [category])
-  const pulseAnim = useState(() => new Animated.Value(1))[0]
+  const iconName = useMemo(() => getCategoryIcon(category.name), [category.name])
   const scale = useState(() => new Animated.Value(1))[0]
 
   const badgeType = index === 0 ? "Hot" : index === 2 ? "New" : null
-
-  useEffect(() => {
-    if (!badgeType) return
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start()
-  }, [badgeType, pulseAnim])
 
   const handlePressIn = () => {
     Animated.spring(scale, {
@@ -196,35 +173,37 @@ function CategoryCircle({
   }
 
   return (
-    <Animated.View
-      style={[styles.categoryCircleItem, { transform: [{ scale }] }]}
-    >
+    <Animated.View style={[styles.browseItem, { transform: [{ scale }] }]}>
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => onPress?.(category.id)}
+        style={{ alignItems: "center", width: "100%", gap: 8 }}
       >
-        <View
-          style={[
-            styles.circleImageWrap,
-            styles.categoryCircle,
-            { backgroundColor: isDarkMode ? colors?.card : Colors.white },
-          ]}
-        >
-          <Image source={{ uri: image }} style={styles.circleImage} transition={200} />
+        <View style={styles.browseCircleContainer}>
+          <View
+            style={[
+              styles.browseCircle,
+              {
+                backgroundColor: isDarkMode ? colors?.card : "#f1f5f9",
+                borderColor: isDarkMode ? colors?.border : "#e2e8f0",
+              },
+            ]}
+          >
+            <Ionicons name={iconName} size={26} color={Colors.sky} />
+          </View>
           {badgeType && (
-            <Animated.View
+            <View
               style={[
-                styles.categoryBadge,
-                isDarkMode && styles.categoryBadgeDark,
-                badgeType === "Hot"
-                  ? { backgroundColor: "#ef4444" }
-                  : { backgroundColor: "#3b82f6" },
-                { transform: [{ scale: pulseAnim }] },
+                styles.browseBadge,
+                {
+                  backgroundColor: badgeType === "Hot" ? "#ef4444" : "#3b82f6",
+                  borderColor: isDarkMode ? "#0f172a" : "#ffffff",
+                },
               ]}
             >
-              <Text style={styles.categoryBadgeText}>{badgeType}</Text>
-            </Animated.View>
+              <Text style={styles.browseBadgeText}>{badgeType}</Text>
+            </View>
           )}
         </View>
         <Text
@@ -304,59 +283,40 @@ function RoomItemComponent({
   const badge = item.room_id === 1 ? "New" : item.room_id === 3 ? "Hot" : null
 
   return (
-    <Animated.View
-      style={[
-        styles.roomItem,
-        {
-          transform: [{ scale }],
-          borderColor: isDarkMode ? colors?.border : "#e5e7eb",
-        },
-      ]}
-    >
+    <Animated.View style={[styles.browseItem, { transform: [{ scale }] }]}>
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => onPress?.(item.room_id)}
-        style={{ alignItems: "center", width: "100%", gap: 6 }}
+        style={{ alignItems: "center", width: "100%", gap: 8 }}
       >
-        <View style={styles.roomCircleContainer}>
+        <View style={styles.browseCircleContainer}>
           <View
             style={[
-              styles.roomCircleWrap,
-              { borderColor: isDarkMode ? colors?.border : "#e0f2fe" },
+              styles.browseCircle,
+              {
+                backgroundColor: isDarkMode ? colors?.card : "#f1f5f9",
+                borderColor: isDarkMode ? colors?.border : "#e2e8f0",
+              },
             ]}
           >
-            {item.image ? (
-              <Image
-                source={{ uri: item.image }}
-                style={styles.roomImage}
-                contentFit="cover"
-                transition={200}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.roomCircleFallback,
-                  {
-                    backgroundColor: isDarkMode
-                      ? colors?.sectionEven
-                      : "#eff6ff",
-                  },
-                ]}
-              >
-                <Ionicons name="home-outline" size={24} color={Colors.sky} />
-              </View>
-            )}
+            <Ionicons
+              name={getRoomIcon(item.room_name)}
+              size={26}
+              color={Colors.sky}
+            />
           </View>
           {badge && (
             <View
               style={[
-                styles.roomBadge,
-                isDarkMode && styles.roomBadgeDark,
-                badge === "Hot" ? { backgroundColor: "#ef4444" } : {},
+                styles.browseBadge,
+                {
+                  backgroundColor: badge === "Hot" ? "#ef4444" : "#3b82f6",
+                  borderColor: isDarkMode ? "#0f172a" : "#ffffff",
+                },
               ]}
             >
-              <Text style={styles.roomBadgeText}>{badge}</Text>
+              <Text style={styles.browseBadgeText}>{badge}</Text>
             </View>
           )}
         </View>
@@ -376,8 +336,6 @@ function HomeScreen({
   user,
   isDarkMode = false,
   onProductPress,
-  onCartPress = () => {},
-  onReferralPress = () => {},
   categories = [],
   setCategories = () => {},
   brands = [],
@@ -411,11 +369,8 @@ function HomeScreen({
 
   const [refreshing, setRefreshing] = useState(false)
   const [activeBanner, setActiveBanner] = useState(0)
-  const [totalOrders, setTotalOrders] = useState(0)
-  const [totalReferrals, setTotalReferrals] = useState(0)
-  // "View all" expands a section in place (show every room/category/brand)
-  // instead of navigating to the products screen.
-  const [showAllRooms, setShowAllRooms] = useState(false)
+  // "View all" expands a section in place (show every category/brand)
+  // instead of navigating to the products screen. (Rooms now scroll inline.)
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [showAllBrands, setShowAllBrands] = useState(false)
   const bannerRef = useRef<ScrollView>(null)
@@ -423,37 +378,33 @@ function HomeScreen({
   // Prefetch products in background for instant Shop screen load
   usePrefetchProducts(token)
 
-  // Cart count GET migrated to React Query
-  const { data: cartCountData } = useCartCount({ token })
-  const totalCart = cartCountData?.count ?? 0
+  // Randomized product feed that fills the home rails (Popular Picks / Just For
+  // You) so the page doesn't feel empty. One fetch of up to 200 active products,
+  // shuffled; refetch surfaces a fresh set.
+  const {
+    data: showcaseProducts = [],
+    isLoading: showcaseLoading,
+    refetch: refetchShowcase,
+  } = useShowcaseProducts({ token, count: 24 })
+
+  // Personalized feed from the user's behavior. Empty for new users (no history)
+  // → the "Just For You" rail falls back to the random showcase slice below.
+  const { data: behaviorRecs = [], refetch: refetchBehaviorRecs } =
+    useBehaviorRecommendations({ token, limit: 12 })
+
+  const hasBehaviorRecs = behaviorRecs.length > 0
+  const justForYouProducts = useMemo(
+    () => (hasBehaviorRecs ? behaviorRecs : showcaseProducts.slice(12)),
+    [hasBehaviorRecs, behaviorRecs, showcaseProducts]
+  )
 
   const handleRefresh = () => {
     console.log("🔄 [HOMESCREEN] PULL-TO-REFRESH TRIGGERED")
     setRefreshing(true)
+    refetchShowcase()
+    refetchBehaviorRecs()
     Promise.resolve(onRefreshProp?.()).finally(() => setRefreshing(false))
   }
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!token) return
-      try {
-        const { orderService } = require("../services/orderService")
-        const { referralService } = require("../services/referralService")
-
-        const [orderCounts, referralData] = await Promise.all([
-          orderService.getOrderCounts(token),
-          referralService.getReferralTree(token),
-        ])
-
-        setTotalOrders(orderCounts?.all || 0)
-        setTotalReferrals(referralData?.summary?.direct_count || 0)
-      } catch (error) {
-        console.log("Error fetching stats:", error)
-      }
-    }
-
-    fetchStats()
-  }, [token])
 
   // Data fetching is handled by parent (AppNavigator)
   // HomeScreen only handles pull-to-refresh
@@ -661,146 +612,6 @@ function HomeScreen({
           />
         }
       >
-        {/* Hero membership card */}
-        <LinearGradient
-          colors={gradients.membership}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <Image
-            source={{
-              uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png",
-            }}
-            style={styles.heroWatermark}
-            contentFit="contain"
-            transition={200}
-          />
-
-          <View style={styles.heroTop}>
-            <View style={styles.heroBadgeWrap}>
-              {user?.badge && user.badge > 0 ? (
-                (() => {
-                  const badgeSource = getBadgeImageSource(user.badge_image)
-                  return badgeSource ? (
-                    <Image
-                      source={badgeSource}
-                      style={styles.heroBadgeImg}
-                      contentFit="contain"
-                      transition={200}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="shield-checkmark"
-                      size={34}
-                      color={Colors.white}
-                    />
-                  )
-                })()
-              ) : (
-                <Ionicons
-                  name="ribbon-outline"
-                  size={32}
-                  color="rgba(255,255,255,0.85)"
-                />
-              )}
-            </View>
-
-            <View style={styles.heroInfo}>
-              <Text style={styles.heroEyebrow}>Your membership</Text>
-              <Text style={styles.heroLevel} numberOfLines={1}>
-                {user?.badge && user.badge > 0 ? user.badge_name : "No Badge Yet"}
-              </Text>
-              <Text style={styles.heroSubtext} numberOfLines={2}>
-                {user?.badge && user.badge > 0
-                  ? "Grow your team and earn more per order."
-                  : "Invite 2 friends to unlock your first badge."}
-              </Text>
-            </View>
-          </View>
-
-          {/* Glass stat strip */}
-          <View style={styles.heroStats}>
-            <View style={styles.heroStatCell}>
-              <Text style={styles.heroStatValue}>{totalOrders}</Text>
-              <Text style={styles.heroStatLabel}>Orders</Text>
-            </View>
-            <View style={styles.heroStatDivider} />
-            <TouchableOpacity
-              style={styles.heroStatCell}
-              activeOpacity={0.7}
-              onPress={onCartPress}
-            >
-              <Text style={styles.heroStatValue}>{totalCart}</Text>
-              <Text style={styles.heroStatLabel}>Cart</Text>
-            </TouchableOpacity>
-            <View style={styles.heroStatDivider} />
-            <TouchableOpacity
-              style={styles.heroStatCell}
-              activeOpacity={0.7}
-              onPress={onReferralPress}
-            >
-              <Text style={styles.heroStatValue}>{totalReferrals}</Text>
-              <Text style={styles.heroStatLabel}>Referrals</Text>
-            </TouchableOpacity>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStatCell}>
-              <Text style={styles.heroStatValue}>
-                {user?.monthly_activation?.remaining_pv ?? 0}
-              </Text>
-              <Text style={styles.heroStatLabel}>PV Left</Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* Quick actions */}
-        <View style={styles.quickActionRow}>
-          <TouchableOpacity
-            style={styles.quickActionCard}
-            activeOpacity={0.9}
-            onPress={onReferralPress}
-          >
-            <LinearGradient
-              colors={["#fb923c", "#f97316"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.quickActionGradient}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="people" size={18} color={Colors.white} />
-              </View>
-              <View style={styles.quickActionText}>
-                <Text style={styles.quickActionTitle}>Invite Friends</Text>
-                <Text style={styles.quickActionSubtitle} numberOfLines={1}>
-                  Earn from every order
-                </Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickActionCard}
-            activeOpacity={0.9}
-            onPress={onCartPress}
-          >
-            <LinearGradient
-              colors={gradients.primary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.quickActionGradient}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="bag-check" size={18} color={Colors.white} />
-              </View>
-              <View style={styles.quickActionText}>
-                <Text style={styles.quickActionTitle}>Order Now</Text>
-                <Text style={styles.quickActionSubtitle} numberOfLines={1}>
-                  Gain PV faster
-                </Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.bannerShell}>
           <ScrollView
             ref={bannerRef}
@@ -887,23 +698,32 @@ function HomeScreen({
           </View>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.bg }]}>
+        {/* Popular Picks — randomized product rail so the page feels alive */}
+        <HomeProductRail
+          title="Popular Picks"
+          icon="sparkles"
+          products={showcaseProducts}
+          offset={0}
+          limit={12}
+          loading={showcaseLoading}
+          token={token}
+          isDarkMode={isDarkMode}
+          wishlistItems={wishlistItems}
+          onProductPress={onProductPress}
+          onWishlistChange={onWishlistChange}
+          actionLabel="Shuffle"
+          onAction={() => refetchShowcase()}
+          containerStyle={[styles.section, { backgroundColor: colors.bg }]}
+        />
+
+        <View style={[styles.sectionEven, { backgroundColor: colors.bg }]}>
           <SectionHeader
             title="Shop by Rooms"
             icon="bed-outline"
             isDarkMode={isDarkMode}
-            actionLabel={showAllRooms ? "Show less" : "View all"}
-            onAction={
-              (roomTypes.length > 0 ? roomTypes : FALLBACK_ROOMS).length > 4
-                ? () => setShowAllRooms((v) => !v)
-                : undefined
-            }
           />
           <FlatList
-            data={(() => {
-              const all = roomTypes.length > 0 ? roomTypes : FALLBACK_ROOMS
-              return showAllRooms ? all : all.slice(0, 4)
-            })()}
+            data={roomTypes.length > 0 ? roomTypes : FALLBACK_ROOMS}
             renderItem={({ item }) => (
               <RoomItemComponent
                 item={item}
@@ -913,9 +733,9 @@ function HomeScreen({
               />
             )}
             keyExtractor={(item) => `room-${item.room_id}`}
-            numColumns={4}
-            contentContainerStyle={styles.roomGrid}
-            scrollEnabled={false}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.circleRow}
           />
         </View>
 
@@ -928,7 +748,7 @@ function HomeScreen({
             onAction={() => setShowAllCategories((v) => !v)}
           />
           {loadingFeatured && categories.length === 0 ? (
-            <CategoryRowSkeleton />
+            <CategoryRowSkeleton isDarkMode={isDarkMode} />
           ) : showAllCategories ? (
             <View style={styles.categoryGridWrap}>
               {categories.map((item, index) => (
@@ -943,28 +763,22 @@ function HomeScreen({
               ))}
             </View>
           ) : (
-            <ScrollView
+            <FlatList
+              data={categories}
+              renderItem={({ item, index }) => (
+                <CategoryCircle
+                  category={item}
+                  index={index}
+                  onPress={onShopByCategoryPress}
+                  isDarkMode={isDarkMode}
+                  colors={colors}
+                />
+              )}
+              keyExtractor={(item) => `category-${item.id}`}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.circleRow}
-            >
-              <FlashList
-                data={categories}
-                renderItem={({ item, index }) => (
-                  <CategoryCircle
-                    category={item}
-                    index={index}
-                    onPress={onShopByCategoryPress}
-                    isDarkMode={isDarkMode}
-                    colors={colors}
-                  />
-                )}
-                keyExtractor={(item) => `category-${item.id}`}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.circleRow}
-              />
-            </ScrollView>
+            />
           )}
         </View>
 
@@ -977,7 +791,7 @@ function HomeScreen({
             onAction={() => setShowAllBrands((v) => !v)}
           />
           {loadingFeatured && brands.length === 0 ? (
-            <BrandCardSkeleton />
+            <BrandCardSkeleton isDarkMode={isDarkMode} />
           ) : showAllBrands ? (
             <View style={styles.brandListWrap}>
               {brands.map((item) => {
@@ -1048,6 +862,20 @@ function HomeScreen({
           )}
         </View>
 
+        {/* Recommended for you — personalized via user-behavior recommendations;
+            falls back to the random showcase slice for new users (no history) */}
+        <HomeProductRail
+          title="Recommended for you"
+          icon="sparkles"
+          products={justForYouProducts}
+          loading={showcaseLoading}
+          token={token}
+          isDarkMode={isDarkMode}
+          wishlistItems={wishlistItems}
+          onProductPress={onProductPress}
+          onWishlistChange={onWishlistChange}
+          containerStyle={[styles.sectionEven, { backgroundColor: colors.bg }]}
+        />
       </ScrollView>
 
       {/* Chat Bot Icon */}

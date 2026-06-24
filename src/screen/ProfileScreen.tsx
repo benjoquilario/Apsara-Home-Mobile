@@ -14,13 +14,14 @@ import {
 import { Image } from "expo-image"
 import Toast from "react-native-toast-message"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import { useNavigation } from "@react-navigation/native"
+import Ionicons from "../components/ui/Icon"
 import { useQueryClient } from "@tanstack/react-query"
 import { Colors } from "../constants/colors"
-import { getColors, gradients } from "../theme/theme"
+import { getColors, tw } from "../theme/theme"
 import PrimaryButton from "../components/Button/PrimaryButton"
 import OutlineButton from "../components/Button/OutlineButton"
+import MembershipCard from "../components/MembershipCard/MembershipCard"
 import { referralService, ReferralTree } from "../services/referralService"
 import { useWallet } from "../hooks/query/useWallet"
 import {
@@ -29,7 +30,6 @@ import {
   useReferralTree,
   useSecuritySettings,
   useGoogleLinked,
-  useUserLeaderboardRank,
   useProfileScreenInvalidate,
 } from "../hooks/query/useProfileScreenData"
 import LevelProgress from "../components/LevelProgress/LevelProgress"
@@ -39,6 +39,13 @@ import { ChatBotIcon } from "../components/ChatBot"
 import LeaderboardScreen from "./LeaderboardScreen"
 import WebViewModal from "../components/WebViewModal/WebViewModal"
 import { styles } from "../styles/ProfileScreen.styles"
+
+// Peso formatter for wallet amounts (grouped, up to 2 decimals).
+const peso = (n?: number) =>
+  `₱${Number(n ?? 0).toLocaleString("en-PH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`
 
 interface User {
   id: string
@@ -69,7 +76,9 @@ interface ProfileScreenProps {
   onLogout?: () => void
   onNavigateSettings?: () => void
   onCartPress?: () => void
+  onShowPurchases?: () => void
   cartCount?: number
+  unreadCount?: number
   token?: string | null
   onShowProfileDetails?: (show: boolean) => void
   onShowReferralNetwork?: (tree: ReferralTree | null) => void
@@ -183,6 +192,12 @@ const MENU_ITEMS = [
     key: "wishlist",
   },
   {
+    icon: "trophy-outline" as const,
+    label: "Rankings",
+    chevron: true,
+    key: "rankings",
+  },
+  {
     icon: "settings-outline" as const,
     label: "Settings",
     chevron: true,
@@ -202,7 +217,9 @@ export default function ProfileScreen({
   onLogout,
   onNavigateSettings,
   onCartPress,
+  onShowPurchases,
   cartCount = 0,
+  unreadCount = 0,
   token,
   onShowProfileDetails,
   onShowReferralNetwork,
@@ -224,22 +241,14 @@ export default function ProfileScreen({
   onShopNavigate = () => {},
   onNavigateWishlist = () => {},
 }: ProfileScreenProps) {
-  console.log("[ProfileScreen] Component mounted/updated", {
-    userEmail: user?.email,
-    hasToken: !!token,
-    linkedAccountsRefreshTrigger,
-  })
-  console.log("[ProfileScreen] User object received:", {
-    name: user?.name,
-    badge_name: user?.badge_name,
-    badge_image: user?.badge_image,
-    avatar_url: user?.avatar_url,
-  })
   const insets = useSafeAreaInsets()
+  const navigation = useNavigation<any>()
 
   // Palette sourced from the centralized theme (slate spine + sky accent),
   // matching the website. Same keys the render already uses.
   const t = getColors(isDarkMode)
+  // Soft sky tint (avatar ring / badge pill) — the semantic primarySoft token.
+  const softSky = t.primarySoft
   const colors = {
     bg: t.bgSubtle,
     containerBg: t.card,
@@ -270,10 +279,6 @@ export default function ProfileScreen({
   const { data: referralTreeData = null } = useReferralTree({ token })
   const { data: biometricEnabled = false } = useSecuritySettings({ token })
   const { data: googleLinked = false } = useGoogleLinked({ token })
-  const { data: userLeaderboardRank = null } = useUserLeaderboardRank({
-    token,
-    userId: user?.id,
-  })
   const { data: walletData = null, isLoading: loadingWallet } = useWallet({
     token,
     walletType: "all",
@@ -433,151 +438,158 @@ export default function ProfileScreen({
   return (
     <View style={{ flex: 1, position: "relative" }}>
       <View style={[styles.root, { backgroundColor: colors.bg }]}>
-        {/* ── Gradient header (matches the app header / website scheme) ── */}
-        <LinearGradient
-          colors={isDarkMode ? ["#0f172a", "#1e293b"] : [...gradients.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.headerBackground, { paddingTop: insets.top + 6 }]}
+        {/* ── White header (avatar + name + cart/bell/settings) ── */}
+        <View
+          style={{
+            backgroundColor: colors.headerBg,
+            paddingTop: insets.top + 8,
+            paddingHorizontal: 16,
+            paddingBottom: 10,
+          }}
         >
-          <View style={styles.headerContent}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
             <TouchableOpacity
-              style={styles.headerLeft}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                flex: 1,
+              }}
               onPress={() => onShowProfileDetails?.(true)}
               activeOpacity={0.7}
             >
-              <View style={styles.headerAvatar}>
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  borderWidth: 2,
+                  borderColor: Colors.sky,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: softSky,
+                }}
+              >
                 {photoUrl ? (
                   <Image
                     source={{ uri: photoUrl }}
-                    style={styles.headerAvatarImg}
+                    style={{ width: 52, height: 52, borderRadius: 26 }}
                     transition={200}
                   />
                 ) : (
-                  <Text style={styles.headerAvatarInitial}>{initial}</Text>
+                  <Text
+                    style={{ fontSize: 22, fontWeight: "800", color: Colors.sky }}
+                  >
+                    {initial}
+                  </Text>
                 )}
               </View>
-              <View style={styles.headerNameContainer}>
-                <View style={styles.headerNameRow}>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{ fontSize: 18, fontWeight: "800", color: colors.text }}
+                  numberOfLines={1}
+                >
+                  {user?.name ?? "Guest"}
+                </Text>
+                {user?.username && (
                   <Text
-                    style={[styles.headerName, { color: Colors.white }]}
+                    style={{
+                      fontSize: 13,
+                      color: colors.textSec,
+                      marginTop: 1,
+                    }}
                     numberOfLines={1}
                   >
-                    {user?.name ?? "Guest"}
+                    @{user.username}
                   </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={Colors.white}
-                    style={styles.profileIcon}
-                  />
-                </View>
-                {user?.username && (
-                  <View style={styles.usernameRow}>
+                )}
+                {user?.badge_name && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      alignSelf: "flex-start",
+                      backgroundColor: softSky,
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 10,
+                      marginTop: 5,
+                    }}
+                  >
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={11}
+                      color={Colors.sky}
+                    />
                     <Text
-                      style={[
-                        styles.usernameText,
-                        { color: "rgba(255,255,255,0.9)" },
-                      ]}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "700",
+                        color: Colors.sky,
+                      }}
                     >
-                      @{user.username}
-                    </Text>
-                    {user?.badge_name && (
-                      <View style={styles.userBadge}>
-                        <Ionicons
-                          name="shield-checkmark"
-                          size={9}
-                          color={Colors.white}
-                        />
-                        <Text style={styles.userBadgeText}>
-                          {user.badge_name}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.usernameDot} />
-                    <Text
-                      style={[
-                        styles.usernamePvText,
-                        { color: "rgba(255,255,255,0.85)" },
-                      ]}
-                    >
-                      {user.monthly_activation?.remaining_pv ?? 0} PV
+                      {user.badge_name}
                     </Text>
                   </View>
                 )}
               </View>
             </TouchableOpacity>
-            <View style={styles.headerActions}>
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <TouchableOpacity
-                style={styles.iconBtn}
+                style={[styles.headerCircleBtn, { backgroundColor: colors.cardBg }]}
                 activeOpacity={0.7}
                 onPress={onCartPress}
               >
-                <Ionicons name="cart-outline" size={20} color={Colors.white} />
+                <Ionicons name="cart-outline" size={20} color={colors.text} />
                 {cartCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {cartCount > 99 ? "99+" : cartCount}
+                  <View style={styles.headerCircleBadge}>
+                    <Text style={styles.headerCircleBadgeText}>
+                      {cartCount > 9 ? "9+" : cartCount}
                     </Text>
                   </View>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.iconBtn}
+                style={[styles.headerCircleBtn, { backgroundColor: colors.cardBg }]}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate("notification")}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={20}
+                  color={colors.text}
+                />
+                {unreadCount > 0 && (
+                  <View style={styles.headerCircleBadge}>
+                    <Text style={styles.headerCircleBadgeText}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.headerCircleBtn, { backgroundColor: colors.cardBg }]}
                 activeOpacity={0.7}
                 onPress={onNavigateSettings}
               >
                 <Ionicons
                   name="settings-outline"
                   size={20}
-                  color={Colors.white}
+                  color={colors.text}
                 />
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Frosted glass stats strip — mirrors the Home membership hero */}
-          <View style={styles.heroStats}>
-            <View style={styles.heroStatCell}>
-              <Text style={styles.heroStatValue}>
-                {user?.monthly_activation?.remaining_pv ?? 0}
-              </Text>
-              <Text style={styles.heroStatLabel}>Total PV</Text>
-            </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStatCell}>
-              <Text style={styles.heroStatValue} numberOfLines={1}>
-                ₱{loyaltyData?.earnings || 0}
-              </Text>
-              <Text style={styles.heroStatLabel}>Earnings</Text>
-            </View>
-            <View style={styles.heroStatDivider} />
-            <TouchableOpacity
-              style={styles.heroStatCell}
-              onPress={() => setShowLeaderboard?.(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.heroStatValueRow}>
-                <Ionicons name="trophy" size={13} color="#fbbf24" />
-                <Text style={styles.heroStatValue}>
-                  #{userLeaderboardRank ?? "-"}
-                </Text>
-              </View>
-              <Text style={styles.heroStatLabel}>Rank</Text>
-            </TouchableOpacity>
-            <View style={styles.heroStatDivider} />
-            <TouchableOpacity
-              style={styles.heroStatCell}
-              onPress={() => onShowReferralNetwork?.(referralTree)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.heroStatValue}>
-                {loyaltyData?.referral_count || 0}
-              </Text>
-              <Text style={styles.heroStatLabel}>Referrals</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
+        </View>
 
         {/* ── Scrollable body ── */}
         <ScrollView
@@ -593,13 +605,27 @@ export default function ProfileScreen({
             />
           }
         >
+          {/* Membership card (moved from Home) */}
+          <MembershipCard
+            badgeName={user?.badge_name}
+            badgeImage={user?.badge_image}
+            remainingPv={user?.monthly_activation?.remaining_pv ?? 0}
+            orders={orderCounts?.all ?? 0}
+            cart={cartCount}
+            referrals={referralTree?.summary?.direct_count ?? 0}
+            isDarkMode={isDarkMode}
+            onCartPress={onCartPress}
+            onReferralPress={() => onShowReferralNetwork?.(referralTree)}
+            onOrdersPress={onShowPurchases}
+          />
+
           {/* Security Settings Banner */}
           {showSecurityBanner && (!biometricEnabled || !googleLinked) && (
             <View
               style={[
                 styles.securityBannerNew,
                 {
-                  backgroundColor: isDarkMode ? "#1e3a8a" : "#dbeafe",
+                  backgroundColor: isDarkMode ? tw.blue[900] : tw.blue[100],
                   borderColor: Colors.sky,
                 },
               ]}
@@ -624,7 +650,7 @@ export default function ProfileScreen({
                   <Text
                     style={[
                       styles.securityBannerTitleNew,
-                      { color: isDarkMode ? "#e0e7ff" : "#1e40af" },
+                      { color: isDarkMode ? tw.indigo[100] : tw.blue[800] },
                     ]}
                   >
                     Secure Your Account
@@ -633,7 +659,7 @@ export default function ProfileScreen({
                 <Text
                   style={[
                     styles.securityBannerSubtitleNew,
-                    { color: isDarkMode ? "#bfdbfe" : "#1e3a8a" },
+                    { color: isDarkMode ? tw.blue[200] : tw.blue[900] },
                   ]}
                 >
                   Add biometric or link Google for faster login
@@ -672,7 +698,7 @@ export default function ProfileScreen({
                 {
                   backgroundColor: isDarkMode
                     ? "rgba(245, 158, 11, 0.15)"
-                    : "#fffbeb",
+                    : tw.amber[50],
                 },
               ]}
             >
@@ -964,7 +990,7 @@ export default function ProfileScreen({
                     <View
                       style={[
                         styles.referralIconContainer,
-                        { backgroundColor: "#e0f2fe" },
+                        { backgroundColor: tw.sky[100] },
                       ]}
                     >
                       <Ionicons
@@ -995,13 +1021,13 @@ export default function ProfileScreen({
                     <View
                       style={[
                         styles.referralIconContainer,
-                        { backgroundColor: "#fef3c7" },
+                        { backgroundColor: tw.sky[100] },
                       ]}
                     >
                       <Ionicons
                         name="person-outline"
                         size={28}
-                        color="#f59e0b"
+                        color={Colors.sky}
                       />
                     </View>
                     <Text
@@ -1026,10 +1052,10 @@ export default function ProfileScreen({
                     <View
                       style={[
                         styles.referralIconContainer,
-                        { backgroundColor: "#fed7aa" },
+                        { backgroundColor: tw.sky[100] },
                       ]}
                     >
-                      <Ionicons name="cash-outline" size={28} color="#f97316" />
+                      <Ionicons name="cash-outline" size={28} color={Colors.sky} />
                     </View>
                     <Text
                       style={[styles.referralItemValue, { color: colors.text }]}
@@ -1107,7 +1133,7 @@ export default function ProfileScreen({
                   <View
                     style={[
                       styles.qrIconBox,
-                      { backgroundColor: isDarkMode ? "#0c2340" : "#e0f2fe" },
+                      { backgroundColor: isDarkMode ? "#0c2340" : tw.sky[100] },
                     ]}
                   >
                     <Ionicons name="person-add" size={16} color={Colors.sky} />
@@ -1209,9 +1235,9 @@ export default function ProfileScreen({
               >
                 <View style={styles.qrCardHeader}>
                   <View
-                    style={[styles.qrIconBox, { backgroundColor: "#fed7aa" }]}
+                    style={[styles.qrIconBox, { backgroundColor: tw.sky[100] }]}
                   >
-                    <Ionicons name="cart" size={16} color="#f97316" />
+                    <Ionicons name="cart" size={16} color={Colors.sky} />
                   </View>
                   <Text style={[styles.qrCardTitle, { color: colors.text }]}>
                     Share Shopping Link
@@ -1224,7 +1250,7 @@ export default function ProfileScreen({
                   checkout will carry your referral automatically.
                 </Text>
 
-                <Text style={[styles.qrTopLabel, { color: "#f97316" }]}>
+                <Text style={[styles.qrTopLabel, { color: Colors.sky }]}>
                   Shopping referral QR code
                 </Text>
 
@@ -1251,7 +1277,7 @@ export default function ProfileScreen({
                     <View
                       style={[
                         styles.qrImageTag,
-                        { backgroundColor: "#f97316" },
+                        { backgroundColor: Colors.sky },
                       ]}
                     >
                       <Text style={styles.qrImageTagText}>Shopping</Text>
@@ -1287,13 +1313,13 @@ export default function ProfileScreen({
                     icon="share-social"
                     onPress={() => handleShare(shoppingUrl, "shopping")}
                     size="small"
-                    style={{ backgroundColor: "#f97316", flex: 1 }}
+                    style={{ backgroundColor: Colors.sky, flex: 1 }}
                   />
                   <OutlineButton
                     title="Copy Link"
                     icon="copy-outline"
                     onPress={() => handleCopy(shoppingUrl)}
-                    color="#f97316"
+                    color={Colors.sky}
                     size="small"
                     style={{ flex: 1 }}
                   />
@@ -1344,119 +1370,148 @@ export default function ProfileScreen({
                 style={{ paddingVertical: 20 }}
               />
             ) : walletData ? (
-              <View style={styles.walletCardsContainer}>
-                {/* Overview Card */}
-                <TouchableOpacity
+              <View style={styles.walletBody}>
+                {/* Balance hero — white card in the app's theme (was a gradient) */}
+                <View
                   style={[
-                    styles.walletCard,
+                    styles.walletHero,
                     {
-                      backgroundColor: colors.cardBg,
+                      backgroundColor: colors.containerBg,
+                      borderWidth: 1,
                       borderColor: colors.border,
                     },
                   ]}
-                  onPress={() => onShowAFWalletOverview?.()}
-                  activeOpacity={0.7}
                 >
-                  <View style={styles.walletCardTitle}>
+                  <View style={styles.walletHeroTop}>
+                    <Text
+                      style={[styles.walletHeroLabel, { color: colors.textSec }]}
+                    >
+                      Available Balance
+                    </Text>
+                    <View
+                      style={[styles.walletHeroBadge, { backgroundColor: softSky }]}
+                    >
+                      <Ionicons name="wallet" size={11} color={Colors.sky} />
+                      <Text
+                        style={[styles.walletHeroBadgeText, { color: Colors.sky }]}
+                      >
+                        AF Wallet
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[styles.walletHeroAmount, { color: colors.text }]}
+                  >
+                    {peso(walletData.encashment_available)}
+                  </Text>
+
+                  <View style={styles.walletHeroStats}>
+                    <View style={styles.walletHeroStat}>
+                      <Text
+                        style={[
+                          styles.walletHeroStatLabel,
+                          { color: colors.textSec },
+                        ]}
+                      >
+                        Locked
+                      </Text>
+                      <Text
+                        style={[
+                          styles.walletHeroStatValue,
+                          { color: colors.text },
+                        ]}
+                      >
+                        {peso(walletData.encashment_locked)}
+                      </Text>
+                    </View>
                     <View
                       style={[
-                        styles.walletIconChip,
-                        {
-                          backgroundColor: isDarkMode
-                            ? "rgba(14,165,233,0.15)"
-                            : "#e0f2fe",
-                        },
+                        styles.walletHeroSep,
+                        { backgroundColor: colors.border },
                       ]}
-                    >
-                      <Ionicons
-                        name="wallet-outline"
-                        size={17}
-                        color={Colors.sky}
-                      />
+                    />
+                    <View style={styles.walletHeroStat}>
+                      <Text
+                        style={[
+                          styles.walletHeroStatLabel,
+                          { color: colors.textSec },
+                        ]}
+                      >
+                        Pending
+                      </Text>
+                      <Text
+                        style={[
+                          styles.walletHeroStatValue,
+                          { color: colors.text },
+                        ]}
+                      >
+                        {peso(walletData.pending_referral_earnings)}
+                      </Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.walletCardTitleText,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Overview
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textSec}
-                  />
-                </TouchableOpacity>
-
-                {/* AF Voucher Card */}
-                <TouchableOpacity
-                  style={[
-                    styles.walletCard,
-                    {
-                      backgroundColor: colors.cardBg,
-                      borderColor: colors.border,
-                      marginTop: 12,
-                    },
-                  ]}
-                  onPress={() => onShowAFWalletVoucher?.()}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.walletCardTitle}>
                     <View
                       style={[
-                        styles.walletIconChip,
-                        {
-                          backgroundColor: isDarkMode
-                            ? "rgba(249,115,22,0.15)"
-                            : "#ffedd5",
-                        },
+                        styles.walletHeroSep,
+                        { backgroundColor: colors.border },
                       ]}
-                    >
-                      <Ionicons
-                        name="ticket-outline"
-                        size={17}
-                        color="#f97316"
-                      />
+                    />
+                    <View style={styles.walletHeroStat}>
+                      <Text
+                        style={[
+                          styles.walletHeroStatLabel,
+                          { color: colors.textSec },
+                        ]}
+                      >
+                        Total Bonus
+                      </Text>
+                      <Text
+                        style={[
+                          styles.walletHeroStatValue,
+                          { color: colors.text },
+                        ]}
+                      >
+                        {peso(walletData.total_bonus)}
+                      </Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.walletCardTitleText,
-                        { color: colors.text },
-                      ]}
-                    >
-                      AF Voucher
-                    </Text>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textSec}
-                  />
-                </TouchableOpacity>
 
-                {/* Rewards Card */}
-                <TouchableOpacity
-                  style={[
-                    styles.walletCard,
-                    {
-                      backgroundColor: colors.cardBg,
-                      borderColor: colors.border,
-                      marginTop: 12,
-                    },
-                  ]}
-                  onPress={() => onShowAFWalletRewards?.()}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.walletCardTitle}>
+                  <TouchableOpacity
+                    style={[styles.walletHeroCta, { backgroundColor: softSky }]}
+                    onPress={() => onShowAFWalletOverview?.()}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="cash-outline" size={15} color={Colors.sky} />
+                    <Text
+                      style={[styles.walletHeroCtaText, { color: Colors.sky }]}
+                    >
+                      View Wallet & Cash Out
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={15}
+                      color={Colors.sky}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Quick balances */}
+                <View style={styles.walletQuickRow}>
+                  <View
+                    style={[
+                      styles.walletQuickCard,
+                      {
+                        backgroundColor: colors.cardBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
                     <View
                       style={[
                         styles.walletIconChip,
                         {
                           backgroundColor: isDarkMode
                             ? "rgba(245,158,11,0.15)"
-                            : "#fffbeb",
+                            : tw.amber[50],
                         },
                       ]}
                     >
@@ -1469,67 +1524,249 @@ export default function ProfileScreen({
                         transition={200}
                       />
                     </View>
-                    <Text
-                      style={[
-                        styles.walletCardTitleText,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Rewards & Cashback
-                    </Text>
+                    <View style={styles.walletQuickInfo}>
+                      <Text
+                        style={[styles.walletQuickValue, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {peso(walletData.personal_cashback_balance)}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.walletQuickLabel,
+                          { color: colors.textSec },
+                        ]}
+                      >
+                        Cashback
+                      </Text>
+                    </View>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textSec}
-                  />
-                </TouchableOpacity>
 
-                {/* Network Earnings Card */}
-                <TouchableOpacity
-                  style={[
-                    styles.walletCard,
-                    {
-                      backgroundColor: colors.cardBg,
-                      borderColor: colors.border,
-                      marginTop: 12,
-                    },
-                  ]}
-                  onPress={() => onShowAFWalletNetwork?.()}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.walletCardTitle}>
+                  <View
+                    style={[
+                      styles.walletQuickCard,
+                      {
+                        backgroundColor: colors.cardBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
                     <View
                       style={[
                         styles.walletIconChip,
                         {
                           backgroundColor: isDarkMode
-                            ? "rgba(139,92,246,0.15)"
-                            : "#ede9fe",
+                            ? "rgba(16,185,129,0.15)"
+                            : tw.emerald[50],
                         },
                       ]}
                     >
                       <Ionicons
-                        name="git-network-outline"
-                        size={17}
-                        color="#8b5cf6"
+                        name="ribbon-outline"
+                        size={18}
+                        color={tw.emerald[500]}
                       />
                     </View>
-                    <Text
-                      style={[
-                        styles.walletCardTitleText,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Network Earnings
-                    </Text>
+                    <View style={styles.walletQuickInfo}>
+                      <Text
+                        style={[styles.walletQuickValue, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {Number(walletData.lifetime_pv ?? 0).toLocaleString()}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.walletQuickLabel,
+                          { color: colors.textSec },
+                        ]}
+                      >
+                        Lifetime PV
+                      </Text>
+                    </View>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textSec}
-                  />
-                </TouchableOpacity>
+                </View>
+
+                {/* Navigation tiles */}
+                <View style={styles.walletTilesGrid}>
+                  <TouchableOpacity
+                    style={[
+                      styles.walletTile,
+                      {
+                        backgroundColor: colors.cardBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => onShowAFWalletOverview?.()}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.walletTileTop}>
+                      <View
+                        style={[
+                          styles.walletIconChip,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(14,165,233,0.15)"
+                              : tw.sky[100],
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="wallet-outline"
+                          size={17}
+                          color={Colors.sky}
+                        />
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={15}
+                        color={colors.textSec}
+                      />
+                    </View>
+                    <Text style={[styles.walletTileLabel, { color: colors.text }]}>
+                      Overview
+                    </Text>
+                    <Text
+                      style={[styles.walletTileSub, { color: colors.textSec }]}
+                    >
+                      Full statement
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.walletTile,
+                      {
+                        backgroundColor: colors.cardBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => onShowAFWalletVoucher?.()}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.walletTileTop}>
+                      <View
+                        style={[
+                          styles.walletIconChip,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(14,165,233,0.15)"
+                              : tw.sky[100],
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="ticket-outline"
+                          size={17}
+                          color={Colors.sky}
+                        />
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={15}
+                        color={colors.textSec}
+                      />
+                    </View>
+                    <Text style={[styles.walletTileLabel, { color: colors.text }]}>
+                      AF Voucher
+                    </Text>
+                    <Text
+                      style={[styles.walletTileSub, { color: colors.textSec }]}
+                    >
+                      Gift credits
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.walletTile,
+                      {
+                        backgroundColor: colors.cardBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => onShowAFWalletRewards?.()}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.walletTileTop}>
+                      <View
+                        style={[
+                          styles.walletIconChip,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(245,158,11,0.15)"
+                              : tw.amber[50],
+                          },
+                        ]}
+                      >
+                        <Image
+                          source={{
+                            uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780879975/coin_1_kpacst.png",
+                          }}
+                          style={styles.walletCardIcon}
+                          contentFit="contain"
+                          transition={200}
+                        />
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={15}
+                        color={colors.textSec}
+                      />
+                    </View>
+                    <Text style={[styles.walletTileLabel, { color: colors.text }]}>
+                      Rewards
+                    </Text>
+                    <Text
+                      style={[styles.walletTileSub, { color: colors.textSec }]}
+                    >
+                      {peso(walletData.personal_cashback_balance)} cashback
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.walletTile,
+                      {
+                        backgroundColor: colors.cardBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => onShowAFWalletNetwork?.()}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.walletTileTop}>
+                      <View
+                        style={[
+                          styles.walletIconChip,
+                          {
+                            backgroundColor: isDarkMode
+                              ? "rgba(139,92,246,0.15)"
+                              : tw.violet[100],
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="git-network-outline"
+                          size={17}
+                          color={tw.violet[500]}
+                        />
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={15}
+                        color={colors.textSec}
+                      />
+                    </View>
+                    <Text style={[styles.walletTileLabel, { color: colors.text }]}>
+                      Network
+                    </Text>
+                    <Text
+                      style={[styles.walletTileSub, { color: colors.textSec }]}
+                    >
+                      {peso(walletData.total_bonus)} bonuses
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : null}
           </View>
@@ -1562,6 +1799,7 @@ export default function ProfileScreen({
                   if (item.key === "settings") onNavigateSettings?.()
                   if (item.key === "wishlist") onNavigateWishlist?.()
                   if (item.key === "track") setShowTrackOrder(true)
+                  if (item.key === "rankings") setShowLeaderboard?.(true)
                 }}
               >
                 <View
@@ -1571,11 +1809,11 @@ export default function ProfileScreen({
                     {
                       backgroundColor: isDarkMode
                         ? item.danger
-                          ? "#7f1d1d"
+                          ? tw.red[900]
                           : "#0c2340"
                         : item.danger
-                          ? "#fee2e2"
-                          : "#e0f2fe",
+                          ? tw.red[100]
+                          : tw.sky[100],
                     },
                   ]}
                 >

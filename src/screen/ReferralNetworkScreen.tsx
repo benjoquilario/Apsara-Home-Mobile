@@ -11,7 +11,7 @@ import {  View,
 } from "react-native"
 import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import Toast from "react-native-toast-message"
 import { Colors } from "../constants/colors"
 import { ReferralTree, ReferralUser } from "../services/referralService"
@@ -84,12 +84,15 @@ export default function ReferralNetworkScreen({
   }, [onBack])
 
   const colors = {
-    bg: isDarkMode ? "#0f172a" : "#f5f5f5",
+    bg: isDarkMode ? "#0f172a" : "#f8fafc",
     containerBg: isDarkMode ? "#1f2937" : Colors.white,
     text: isDarkMode ? "#f8fafc" : Colors.text,
     textSec: isDarkMode ? "#94a3b8" : Colors.textSecondary,
     border: isDarkMode ? "#374151" : "#e5e7eb",
-    borderLight: isDarkMode ? "#475569" : "#f1f5f9",
+    borderLight: isDarkMode ? "#374151" : "#f1f5f9",
+    soft: isDarkMode ? "rgba(14,165,233,0.15)" : "#e0f2fe",
+    summaryBg: isDarkMode ? "#0f172a" : "#f8fafc",
+    line: isDarkMode ? "#475569" : "#e2e8f0",
   }
 
   useEffect(() => {
@@ -144,20 +147,39 @@ export default function ReferralNetworkScreen({
                 marginRight: 12,
               }}
             >
-              <View style={[styles.treeLine, { alignSelf: "stretch" }]} />
-              <View style={styles.horizontalConnector} />
+              <View
+                style={[
+                  styles.treeLine,
+                  { alignSelf: "stretch", backgroundColor: colors.line },
+                ]}
+              />
+              <View
+                style={[
+                  styles.horizontalConnector,
+                  { backgroundColor: colors.line },
+                ]}
+              />
             </View>
           )}
 
           <View style={{ flex: 1 }}>
             <TouchableOpacity
-              style={[styles.userCard, level === 0 && styles.rootCard]}
+              style={[
+                styles.userCard,
+                { backgroundColor: colors.containerBg, borderColor: colors.border },
+                level === 0 && [
+                  styles.rootCard,
+                  { backgroundColor: colors.soft, borderColor: Colors.sky },
+                ],
+              ]}
               onPress={hasChildren ? () => toggleNode(user.id) : undefined}
               activeOpacity={hasChildren ? 0.7 : 1}
             >
               <View style={styles.userCardContent}>
                 <View style={styles.userCardHeader}>
-                  <View style={styles.userAvatar}>
+                  <View
+                    style={[styles.userAvatar, { backgroundColor: colors.soft }]}
+                  >
                     {user.avatar_url ? (
                       <Image
                         source={{ uri: user.avatar_url }}
@@ -173,7 +195,10 @@ export default function ReferralNetworkScreen({
 
                   <View style={styles.userInfo}>
                     <View style={styles.nameRow}>
-                      <Text style={styles.userName} numberOfLines={1}>
+                      <Text
+                        style={[styles.userName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
                         {user.name}
                       </Text>
                       <View style={styles.badgesContainer}>
@@ -199,14 +224,19 @@ export default function ReferralNetworkScreen({
                       </View>
                     </View>
                     <Text style={styles.userUsername}>@{user.username}</Text>
-                    <Text style={styles.joinDate}>
+                    <Text style={[styles.joinDate, { color: colors.textSec }]}>
                       {new Date(user.joined_at).toLocaleDateString()}
                     </Text>
                   </View>
                 </View>
 
                 {statsExpanded ? (
-                  <View style={styles.userStats}>
+                  <View
+                    style={[
+                      styles.userStats,
+                      { borderTopColor: colors.borderLight },
+                    ]}
+                  >
                     <View style={styles.statItem}>
                       <View style={styles.statContent}>
                         <Ionicons name="people" size={13} color={Colors.sky} />
@@ -214,7 +244,9 @@ export default function ReferralNetworkScreen({
                           {user.children_count || 0}
                         </Text>
                       </View>
-                      <Text style={styles.statLabel}>Direct</Text>
+                      <Text style={[styles.statLabel, { color: colors.textSec }]}>
+                        Direct
+                      </Text>
                     </View>
                     <View style={styles.statItem}>
                       <View style={styles.statContent}>
@@ -223,7 +255,9 @@ export default function ReferralNetworkScreen({
                           ₱{user.total_earnings}
                         </Text>
                       </View>
-                      <Text style={styles.statLabel}>Earnings</Text>
+                      <Text style={[styles.statLabel, { color: colors.textSec }]}>
+                        Earnings
+                      </Text>
                     </View>
                     <View style={styles.statItem}>
                       <View style={styles.statContent}>
@@ -236,20 +270,30 @@ export default function ReferralNetworkScreen({
                           {user.total_pv}
                         </Text>
                       </View>
-                      <Text style={styles.statLabel}>PV</Text>
+                      <Text style={[styles.statLabel, { color: colors.textSec }]}>
+                        PV
+                      </Text>
                     </View>
                   </View>
                 ) : !isRoot ? (
                   <TouchableOpacity
-                    style={styles.statsPlaceholder}
+                    style={[
+                      styles.statsPlaceholder,
+                      { borderTopColor: colors.borderLight },
+                    ]}
                     onPress={() => toggleStats(user.id)}
                   >
                     <Ionicons
                       name="information-circle-outline"
                       size={16}
-                      color={Colors.textSecondary}
+                      color={colors.textSec}
                     />
-                    <Text style={styles.statsPlaceholderText}>
+                    <Text
+                      style={[
+                        styles.statsPlaceholderText,
+                        { color: colors.textSec },
+                      ]}
+                    >
                       Tap to view stats
                     </Text>
                   </TouchableOpacity>
@@ -283,35 +327,29 @@ export default function ReferralNetworkScreen({
         >
           <View
             style={[
-              styles.headerBackground,
-              { borderBottomColor: colors.border },
+              styles.header,
+              {
+                backgroundColor: colors.containerBg,
+                borderBottomColor: colors.border,
+                paddingTop: insets.top + 8,
+              },
             ]}
           >
-            <Image
-              source={{
-              uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
-            }}
-              style={styles.headerBackgroundImage}
-              contentFit="cover"
-              transition={200}
-            />
-            <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-              <TouchableOpacity
-                onPress={onBack}
-                style={styles.headerIcon}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="chevron-back-outline"
-                  size={20}
-                  color={Colors.white}
-                />
-              </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: Colors.white }]}>
-                Referral Network
-              </Text>
-              <View style={{ width: 36 }} />
-            </View>
+            <TouchableOpacity
+              onPress={onBack}
+              style={styles.headerIcon}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="chevron-back-outline"
+                size={24}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Referral Network
+            </Text>
+            <View style={{ width: 38 }} />
           </View>
           <View style={styles.emptyContainer}>
             <ActivityIndicator
@@ -322,10 +360,12 @@ export default function ReferralNetworkScreen({
             <Ionicons
               name="people-outline"
               size={40}
-              color={Colors.textSecondary}
+              color={colors.textSec}
             />
-            <Text style={styles.emptyTitle}>Loading your network...</Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              Loading your network...
+            </Text>
+            <Text style={[styles.emptyText, { color: colors.textSec }]}>
               Please wait while we fetch your referral data.
             </Text>
             <TouchableOpacity
@@ -352,38 +392,32 @@ export default function ReferralNetworkScreen({
         style={[styles.root, { backgroundColor: colors.bg }]}
         edges={["left", "right", "bottom"]}
       >
-        {/* Header with Background Image */}
+        {/* Header */}
         <View
           style={[
-            styles.headerBackground,
-            { borderBottomColor: colors.border },
+            styles.header,
+            {
+              backgroundColor: colors.containerBg,
+              borderBottomColor: colors.border,
+              paddingTop: insets.top + 8,
+            },
           ]}
         >
-          <Image
-            source={{
-              uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969375/header_bg_jjpkvu.png"
-            }}
-            style={styles.headerBackgroundImage}
-            contentFit="cover"
-            transition={200}
-          />
-          <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-            <TouchableOpacity
-              onPress={handleBackPress}
-              style={styles.headerIcon}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="chevron-back-outline"
-                size={20}
-                color={Colors.white}
-              />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: Colors.white }]}>
-              Referral Network
-            </Text>
-            <View style={{ width: 36 }} />
-          </View>
+          <TouchableOpacity
+            onPress={handleBackPress}
+            style={styles.headerIcon}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Referral Network
+          </Text>
+          <View style={{ width: 38 }} />
         </View>
 
         <ScrollView

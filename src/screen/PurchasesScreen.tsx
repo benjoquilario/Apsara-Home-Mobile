@@ -15,10 +15,11 @@ import {
   PanResponder,
   Dimensions,
   Pressable,
+  Clipboard,
 } from "react-native"
 import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import axios from "axios"
 import { LinearGradient } from "expo-linear-gradient"
 import { Colors } from "../constants/colors"
@@ -178,6 +179,15 @@ export default function PurchasesScreen({
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
+  // Follow the incoming status prop (e.g. opened from a notification tap on a
+  // specific order status) even if the screen is already mounted. Adjusting
+  // state during render (not an effect) — converges via the prev-value guard.
+  const [prevInitialStatus, setPrevInitialStatus] = useState(initialStatus)
+  if (initialStatus !== prevInitialStatus) {
+    setPrevInitialStatus(initialStatus)
+    setSelectedStatus(initialStatus)
+  }
+
   const {
     data: allOrders = [],
     isLoading: ordersLoading,
@@ -229,6 +239,12 @@ export default function PurchasesScreen({
       duration: 300,
       useNativeDriver: true,
     }).start(() => setShowDetailModal(false))
+  }
+
+  const handleCopy = (value: string, label = "Copied") => {
+    if (!value) return
+    Clipboard.setString(value)
+    Toast.show({ type: "success", text1: label, text2: value })
   }
   const detailPanResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -326,11 +342,8 @@ export default function PurchasesScreen({
     borderLight: isDarkMode ? "#475569" : "#f1f5f9",
   }
 
-  useEffect(() => {
-    // Clear modal when switching tabs (data is fetched via useOrders + filtered)
-    setShowDetailModal(false)
-    setSelectedOrder(null)
-  }, [token, selectedStatus])
+  // (Switching tabs clears any open detail modal — handled in the tab onPress so
+  // it only fires on a user tab change, not the programmatic deep-link change.)
 
   // COMMENTED OUT: Fetch cancellation reasons - API endpoint returns 404
   // useEffect(() => {
@@ -350,42 +363,25 @@ export default function PurchasesScreen({
   //   fetchCancellationReasons();
   // }, [token]);
 
-  const hasSetInitialOrder = React.useRef(false)
-
-  useEffect(() => {
-    if (initialOrderId && allOrders.length > 0 && !hasSetInitialOrder.current) {
-      console.log(
-        "[PurchasesScreen] Looking for order with initialOrderId:",
-        initialOrderId
-      )
-
-      // Try to find order by any of the IDs (they should all be the same value according to user)
-      let order = allOrders.find(
-        (o) =>
-          o.mobile_order_id === initialOrderId ||
-          o.order_number === initialOrderId ||
-          o.checkout_id === initialOrderId ||
-          o.id.toString() === initialOrderId
-      )
-
-      if (order) {
-        console.log("[PurchasesScreen] Found order:", order)
-        setSelectedOrder(order)
-        setShowDetailModal(true)
-
-        // Also update selectedStatus to match the order's status so user sees it in the right tab
-        const normalizedStatus = normalizeStatusKey(order.status)
-        console.log("[PurchasesScreen] Updating status to:", normalizedStatus)
-        setSelectedStatus(normalizedStatus)
-        hasSetInitialOrder.current = true
-      } else {
-        console.warn(
-          "[PurchasesScreen] Order not found with ID:",
-          initialOrderId
-        )
-      }
+  // Open the deep-linked order's detail modal once, after orders load. Adjusting
+  // state during render (not an effect); the didOpen flag makes it run a single
+  // time once the orders list is available (replaces a render-unsafe ref write).
+  const [didOpenInitialOrder, setDidOpenInitialOrder] = useState(false)
+  if (initialOrderId && allOrders.length > 0 && !didOpenInitialOrder) {
+    const order = (allOrders as Order[]).find(
+      (o) =>
+        o.mobile_order_id === initialOrderId ||
+        o.order_number === initialOrderId ||
+        o.checkout_id === initialOrderId ||
+        o.id.toString() === initialOrderId
+    )
+    setDidOpenInitialOrder(true)
+    if (order) {
+      setSelectedOrder(order)
+      setShowDetailModal(true)
+      setSelectedStatus(normalizeStatusKey(order.status))
     }
-  }, [initialOrderId, allOrders])
+  }
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
@@ -632,39 +628,28 @@ export default function PurchasesScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Header with Background Image */}
-      <View style={styles.headerBackground}>
-        <Image
-          source={{
-          uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969376/purchases_bg_l42llq.png"
-        }}
-          style={styles.headerBackgroundImage}
-          contentFit="cover"
-          transition={200}
-        />
-        <View
-          style={[
-            styles.headerContent,
-            { paddingTop: insets.top, paddingHorizontal: 12 },
-          ]}
-        >
-          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <Ionicons
-              name="chevron-back-outline"
-              size={24}
-              color={Colors.white}
-            />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.headerGreeting, { color: Colors.white }]}>
-              My Purchases
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: Colors.white }]}>
-              Track your orders
-            </Text>
-          </View>
-          <View style={{ width: 40 }} />
+      <View
+        style={[
+          styles.headerBackground,
+          {
+            backgroundColor: colors.containerBg,
+            borderBottomColor: colors.border,
+            paddingTop: insets.top + 8,
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+          <Ionicons name="chevron-back-outline" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={[styles.headerGreeting, { color: colors.text }]}>
+            My Purchases
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSec }]}>
+            Track your orders
+          </Text>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Filter Bar at Top */}
@@ -702,7 +687,11 @@ export default function PurchasesScreen({
                     { backgroundColor: Colors.sky },
                   ],
                 ]}
-                onPress={() => setSelectedStatus(filterStatus)}
+                onPress={() => {
+                  setSelectedStatus(filterStatus)
+                  setShowDetailModal(false)
+                  setSelectedOrder(null)
+                }}
               >
                 <Text
                   style={[
@@ -752,7 +741,8 @@ export default function PurchasesScreen({
               No Purchases Yet
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSec }]}>
-              You don't have any {statusConfig.label.toLowerCase()} orders yet
+              You don&apos;t have any {statusConfig.label.toLowerCase()} orders
+              yet
             </Text>
 
             <TouchableOpacity
@@ -1200,7 +1190,10 @@ export default function PurchasesScreen({
             {selectedOrder && (
               <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={styles.modalContent}
+                contentContainerStyle={[
+                  styles.modalContent,
+                  { paddingBottom: 30 + insets.bottom },
+                ]}
                 showsVerticalScrollIndicator={false}
               >
                 {/* Order Number & Status */}
@@ -1456,11 +1449,27 @@ export default function PurchasesScreen({
                         >
                           Tracking Number
                         </Text>
-                        <Text
-                          style={[styles.detailValue, { color: Colors.sky }]}
+                        <Pressable
+                          style={styles.copyValue}
+                          onPress={() =>
+                            handleCopy(
+                              selectedOrder.tracking_number,
+                              "Tracking Number Copied"
+                            )
+                          }
+                          hitSlop={8}
                         >
-                          {selectedOrder.tracking_number}
-                        </Text>
+                          <Text
+                            style={[styles.detailValue, { color: Colors.sky }]}
+                          >
+                            {selectedOrder.tracking_number}
+                          </Text>
+                          <Ionicons
+                            name="copy-outline"
+                            size={15}
+                            color={Colors.sky}
+                          />
+                        </Pressable>
                       </View>
                     </>
                   )}

@@ -1,145 +1,111 @@
 import { StyleSheet } from "react-native"
 import { Colors } from "../constants/colors"
+import { radius, shadow } from "../theme/theme"
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  headerBackground: {
-    position: "relative",
-    overflow: "hidden",
-    minHeight: 90,
-    borderBottomWidth: 1,
-  },
-  headerBackgroundImage: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: "100%",
-    height: "100%",
-  },
-  headerContent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingBottom: 8,
-  },
+  container: { flex: 1 },
+  scroll: { flex: 1 },
+
+  // ── White header ──────────────────────────────────────────────────────
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    flex: 1,
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
   },
   headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: Colors.white,
     flex: 1,
-    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    marginLeft: 4,
   },
-  content: {
-    padding: 8,
-    gap: 8,
-    paddingBottom: 16,
-  },
-  section: {
-    borderRadius: 8,
+
+  content: { padding: 12, paddingBottom: 24 },
+
+  // ── Card + section ────────────────────────────────────────────────────
+  card: {
+    borderRadius: radius.lg,
     borderWidth: 1,
     overflow: "hidden",
+    marginBottom: 6,
+    ...shadow.sm,
   },
-  sectionTitle: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  sectionTitleText: {
+  sectionLabel: {
     fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    marginTop: 14,
+    marginBottom: 8,
+    marginLeft: 4,
   },
-  settingRow: {
+
+  // ── Row ───────────────────────────────────────────────────────────────
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
     gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
   },
-  settingRowWithBorder: {
-    borderBottomWidth: 1,
-  },
-  settingIcon: {
+  iconChip: {
     width: 36,
     height: 36,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  settingLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
+  rowRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rowValue: { fontSize: 13, fontWeight: "500" },
+
+  // ── Profile card ──────────────────────────────────────────────────────
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
   },
-  languageValue: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  logoutIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  profileAvatar: { width: 56, height: 56, borderRadius: 28 },
+  profileAvatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
-  linkRow: {
+  profileAvatarInitial: { fontSize: 22, fontWeight: "800" },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 17, fontWeight: "800", marginBottom: 2 },
+  profileEmail: { fontSize: 13, fontWeight: "400" },
+
+  // ── Payments ──────────────────────────────────────────────────────────
+  paymentCard: { padding: 14 },
+  paymentLabel: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
+  paymentMethods: { fontSize: 12.5, lineHeight: 19, fontWeight: "400" },
+
+  // ── Logout ────────────────────────────────────────────────────────────
+  logoutRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    marginTop: 14,
   },
-  linkRowWithBorder: {
-    borderBottomWidth: 1,
-  },
-  linkLabel: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  paymentContent: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  paymentLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  paymentMethods: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: "400",
-  },
+
+  versionFooter: { alignItems: "center", paddingVertical: 18 },
+  versionText: { fontSize: 12, fontWeight: "500" },
+
+  // ── Logout modal ──────────────────────────────────────────────────────
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -162,21 +128,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
+  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
   modalMessage: {
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
     marginBottom: 24,
   },
-  modalButtons: {
-    width: "100%",
-    gap: 10,
-  },
+  modalButtons: { width: "100%", gap: 10 },
   modalButton: {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -184,103 +143,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cancelButton: {
-    borderWidth: 1.5,
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  logoutConfirmButton: {
-    backgroundColor: Colors.error,
-  },
-  logoutConfirmText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.white,
-  },
-  versionFooter: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-  },
-  versionText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  profileCard: {
-    borderRadius: 8,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  profileHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  profileAvatarContainer: {
-    marginRight: 4,
-  },
-  profileAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  profileAvatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileAvatarInitial: {
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  profileEmail: {
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileDivider: {
-    height: 1,
-  },
-  profileActions: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  profileActionButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    gap: 6,
-  },
-  profileActionText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  cancelButton: { borderWidth: 1.5 },
+  cancelButtonText: { fontSize: 14, fontWeight: "600" },
+  logoutConfirmButton: { backgroundColor: Colors.error },
+  logoutConfirmText: { fontSize: 14, fontWeight: "600", color: Colors.white },
 })
 
 export default styles

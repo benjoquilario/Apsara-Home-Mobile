@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from "react"
-import {  View,
+import {
+  View,
   Text,
   TouchableOpacity,
   Switch,
@@ -10,8 +11,7 @@ import {  View,
   Pressable,
 } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
-import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import { Image } from "expo-image"
 import styles from "../styles/SettingsScreen.styles"
@@ -67,70 +67,167 @@ export default function SettingsScreen({
   const insets = useSafeAreaInsets()
 
   const colors = {
-    bg: isDarkMode ? "#0f172a" : "#f5f5f5",
+    bg: isDarkMode ? "#0f172a" : "#f8fafc",
     containerBg: isDarkMode ? "#1f2937" : Colors.white,
     text: isDarkMode ? "#f8fafc" : Colors.text,
     textSec: isDarkMode ? "#94a3b8" : Colors.textSecondary,
     border: isDarkMode ? "#374151" : "#e5e7eb",
-    cardBg: isDarkMode ? "#1e293b" : "#f8fafc",
-    borderLight: isDarkMode ? "#475569" : "#f1f5f9",
+    borderLight: isDarkMode ? "#374151" : "#f1f5f9",
   }
+  const softSky = isDarkMode ? "rgba(14,165,233,0.15)" : "#e0f2fe"
 
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        onBack()
-        return true
-      }
-    )
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      onBack()
+      return true
+    })
     return () => backHandler.remove()
   }, [onBack])
 
-  return (
-    <View
+  // A single settings row (icon chip · label · right element / chevron).
+  const renderRow = (icon, label, onPress, right, showBorder) => (
+    <TouchableOpacity
+      key={label}
       style={[
-        styles.container,
-        {
-          backgroundColor: colors.bg,
+        styles.row,
+        showBorder && {
+          borderBottomWidth: 1,
+          borderBottomColor: colors.borderLight,
         },
       ]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+      disabled={!onPress}
     >
+      <View style={[styles.iconChip, { backgroundColor: softSky }]}>
+        <Ionicons name={icon} size={18} color={Colors.sky} />
+      </View>
+      <Text style={[styles.rowLabel, { color: colors.text }]} numberOfLines={1}>
+        {label}
+      </Text>
+      {right ?? (
+        <Ionicons name="chevron-forward" size={18} color={colors.textSec} />
+      )}
+    </TouchableOpacity>
+  )
+
+  const renderSection = (title, items) => (
+    <View key={title}>
+      <Text style={[styles.sectionLabel, { color: colors.textSec }]}>
+        {title}
+      </Text>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.containerBg, borderColor: colors.border },
+        ]}
+      >
+        {items.map((it, i) =>
+          renderRow(it.icon, it.label, it.onPress, undefined, i < items.length - 1)
+        )}
+      </View>
+    </View>
+  )
+
+  const accountItems = [
+    onEditProfile && {
+      icon: "person-outline",
+      label: "Profile",
+      onPress: onEditProfile,
+    },
+    {
+      icon: "shield-checkmark-outline",
+      label: "Security",
+      onPress: onNavigateSecurity,
+    },
+    { icon: "people-outline", label: "Community", onPress: undefined },
+  ].filter(Boolean)
+
+  const infoItems = [
+    {
+      icon: "information-circle-outline",
+      label: "About us",
+      onPress: onNavigateAboutUs,
+    },
+    {
+      icon: "lock-closed-outline",
+      label: "Privacy Policy",
+      onPress: onNavigatePrivacyPolicy,
+    },
+    {
+      icon: "document-text-outline",
+      label: "Terms and Conditions",
+      onPress: onNavigateTermsAndConditions,
+    },
+    {
+      icon: "cash-outline",
+      label: "Income Disclaimer",
+      onPress: onNavigateIncomeDisclaimer,
+    },
+    {
+      icon: "shield-outline",
+      label: "Cookie Policy",
+      onPress: onNavigateCookiePolicy,
+    },
+    {
+      icon: "gift-outline",
+      label: "Rewards and Commissions",
+      onPress: onNavigateRewardsAndCommissions,
+    },
+  ]
+
+  const supportItems = [
+    {
+      icon: "chatbubble-ellipses-outline",
+      label: "Contact Us",
+      onPress: onNavigateContactUs,
+    },
+    {
+      icon: "location-outline",
+      label: "Our Branches",
+      onPress: onNavigateOurBranches,
+    },
+    { icon: "help-circle-outline", label: "FAQs", onPress: onNavigateFAQs },
+    {
+      icon: "cube-outline",
+      label: "Shipping Info",
+      onPress: onNavigateShippingInfo,
+    },
+    { icon: "refresh-outline", label: "Returns", onPress: onNavigateReturns },
+  ]
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.bg }]}
         edges={[]}
       >
+        {/* Header */}
         <View
           style={[
-            styles.headerBackground,
-            { borderBottomColor: colors.border },
+            styles.header,
+            {
+              backgroundColor: colors.containerBg,
+              borderBottomColor: colors.border,
+              paddingTop: insets.top + 8,
+            },
           ]}
         >
-          <Image
-            source={{
-            uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969378/settings_bg_pz2uw5.png"
-          }}
-            style={styles.headerBackgroundImage}
-            contentFit="cover"
-            transition={200}
-          />
-          <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-            <TouchableOpacity
-              onPress={onBack}
-              style={styles.headerIcon}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="chevron-back-outline"
-                size={20}
-                color={Colors.white}
-              />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: Colors.white }]}>
-              Settings
-            </Text>
-            <View style={{ width: 36 }} />
-          </View>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.headerIcon}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Settings
+          </Text>
+          <View style={{ width: 38 }} />
         </View>
 
         <ScrollView
@@ -138,106 +235,70 @@ export default function SettingsScreen({
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          {/* Profile Header */}
-          <View
+          {/* Profile card */}
+          <TouchableOpacity
             style={[
+              styles.card,
               styles.profileCard,
               {
                 backgroundColor: colors.containerBg,
                 borderColor: colors.border,
               },
             ]}
+            onPress={onEditProfile}
+            activeOpacity={onEditProfile ? 0.7 : 1}
+            disabled={!onEditProfile}
           >
-            <View style={styles.profileHeader}>
-              <View style={styles.profileAvatarContainer}>
-                {user?.avatar_url ? (
-                  <Image
-                    source={{ uri: user.avatar_url }}
-                    style={styles.profileAvatar}
-                    transition={200}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.profileAvatarPlaceholder,
-                      { backgroundColor: colors.cardBg },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.profileAvatarInitial,
-                        { color: Colors.sky },
-                      ]}
-                    >
-                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.profileInfo}>
+            {user?.avatar_url ? (
+              <Image
+                source={{ uri: user.avatar_url }}
+                style={styles.profileAvatar}
+                transition={200}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.profileAvatarPlaceholder,
+                  { backgroundColor: softSky },
+                ]}
+              >
                 <Text
-                  style={[styles.profileName, { color: colors.text }]}
-                  numberOfLines={1}
+                  style={[styles.profileAvatarInitial, { color: Colors.sky }]}
                 >
-                  {user?.name || "User"}
-                </Text>
-                <Text
-                  style={[styles.profileEmail, { color: colors.textSec }]}
-                  numberOfLines={1}
-                >
-                  {user?.email || "No email"}
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </Text>
               </View>
-              {onEditProfile && (
-                <TouchableOpacity
-                  onPress={onEditProfile}
-                  style={styles.editButton}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={isDarkMode ? "#64748b" : "#94a3b8"}
-                  />
-                </TouchableOpacity>
-              )}
+            )}
+            <View style={styles.profileInfo}>
+              <Text
+                style={[styles.profileName, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {user?.name || "User"}
+              </Text>
+              <Text
+                style={[styles.profileEmail, { color: colors.textSec }]}
+                numberOfLines={1}
+              >
+                {user?.email || "No email"}
+              </Text>
             </View>
-            <View
-              style={[
-                styles.profileDivider,
-                { backgroundColor: colors.border },
-              ]}
-            />
-            <View style={styles.profileActions}>
-              {onLogout && (
-                <TouchableOpacity
-                  style={styles.profileActionButton}
-                  onPress={() => setShowLogoutConfirm(true)}
-                >
-                  <Ionicons
-                    name="log-out-outline"
-                    size={18}
-                    color={Colors.error}
-                  />
-                  <Text
-                    style={[styles.profileActionText, { color: Colors.error }]}
-                  >
-                    Logout
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.profileActionButton}>
-                <Ionicons name="add-outline" size={18} color={Colors.sky} />
-                <Text style={[styles.profileActionText, { color: Colors.sky }]}>
-                  Add Account
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            {onEditProfile && (
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.textSec}
+              />
+            )}
+          </TouchableOpacity>
 
-          {/* Appearance Section */}
+          {/* Appearance */}
+          <Text style={[styles.sectionLabel, { color: colors.textSec }]}>
+            APPEARANCE
+          </Text>
           <View
             style={[
-              styles.section,
+              styles.card,
               {
                 backgroundColor: colors.containerBg,
                 borderColor: colors.border,
@@ -246,29 +307,14 @@ export default function SettingsScreen({
           >
             <View
               style={[
-                styles.sectionTitle,
-                { borderBottomColor: colors.borderLight },
+                styles.row,
+                { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
               ]}
             >
-              <Text
-                style={[styles.sectionTitleText, { color: colors.textSec }]}
-              >
-                APPEARANCE
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.settingRow,
-                styles.settingRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-            >
-              <View
-                style={[styles.settingIcon, { backgroundColor: colors.cardBg }]}
-              >
-                <Ionicons name="moon-outline" size={20} color={Colors.sky} />
+              <View style={[styles.iconChip, { backgroundColor: softSky }]}>
+                <Ionicons name="moon-outline" size={18} color={Colors.sky} />
               </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
+              <Text style={[styles.rowLabel, { color: colors.text }]}>
                 Dark Mode
               </Text>
               <Switch
@@ -278,387 +324,81 @@ export default function SettingsScreen({
                 thumbColor="#fff"
               />
             </View>
-            <TouchableOpacity style={[styles.settingRow]}>
-              <View
-                style={[styles.settingIcon, { backgroundColor: colors.cardBg }]}
-              >
-                <Ionicons name="globe-outline" size={20} color={Colors.sky} />
-              </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
-                Language
-              </Text>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-              >
-                <Text style={[styles.languageValue, { color: colors.textSec }]}>
+            {renderRow(
+              "globe-outline",
+              "Language",
+              undefined,
+              <View style={styles.rowRight}>
+                <Text style={[styles.rowValue, { color: colors.textSec }]}>
                   English
                 </Text>
                 <Ionicons
                   name="chevron-forward"
-                  size={20}
-                  color={isDarkMode ? "#64748b" : "#94a3b8"}
+                  size={18}
+                  color={colors.textSec}
                 />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Account Section */}
-          <View
-            style={[
-              styles.section,
-              {
-                backgroundColor: colors.containerBg,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.sectionTitle,
-                { borderBottomColor: colors.borderLight },
-              ]}
-            >
-              <Text
-                style={[styles.sectionTitleText, { color: colors.textSec }]}
-              >
-                ACCOUNT
-              </Text>
-            </View>
-            {onEditProfile && (
-              <TouchableOpacity
-                style={[
-                  styles.settingRow,
-                  styles.settingRowWithBorder,
-                  { borderBottomColor: colors.border },
-                ]}
-                onPress={onEditProfile}
-              >
-                <View
-                  style={[
-                    styles.settingIcon,
-                    { backgroundColor: colors.cardBg },
-                  ]}
-                >
-                  <Ionicons
-                    name="person-outline"
-                    size={20}
-                    color={Colors.sky}
-                  />
-                </View>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>
-                  Profile
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={isDarkMode ? "#64748b" : "#94a3b8"}
-                />
-              </TouchableOpacity>
+              </View>,
+              false
             )}
-            <TouchableOpacity
-              style={[
-                styles.settingRow,
-                styles.settingRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateSecurity}
-            >
-              <View
-                style={[styles.settingIcon, { backgroundColor: colors.cardBg }]}
-              >
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={20}
-                  color={Colors.sky}
-                />
-              </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
-                Security
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.settingRow]}>
-              <View
-                style={[styles.settingIcon, { backgroundColor: colors.cardBg }]}
-              >
-                <Ionicons name="people-outline" size={20} color={Colors.sky} />
-              </View>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
-                Community
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
           </View>
 
-          {/* Information Section */}
+          {renderSection("ACCOUNT", accountItems)}
+          {renderSection("INFORMATION", infoItems)}
+          {renderSection("SUPPORT", supportItems)}
+
+          {/* Payments */}
+          <Text style={[styles.sectionLabel, { color: colors.textSec }]}>
+            PAYMENTS
+          </Text>
           <View
             style={[
-              styles.section,
+              styles.card,
+              styles.paymentCard,
               {
                 backgroundColor: colors.containerBg,
                 borderColor: colors.border,
               },
             ]}
           >
-            <View
-              style={[
-                styles.sectionTitle,
-                { borderBottomColor: colors.borderLight },
-              ]}
-            >
-              <Text
-                style={[styles.sectionTitleText, { color: colors.textSec }]}
-              >
-                INFORMATION
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateAboutUs}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                About us
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigatePrivacyPolicy}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Privacy Policy
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateTermsAndConditions}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Terms and Conditions
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateIncomeDisclaimer}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Income Disclaimer
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateCookiePolicy}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Cookie Policy
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.linkRow]}
-              onPress={onNavigateRewardsAndCommissions}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Rewards and Commissions
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
+            <Text style={[styles.paymentLabel, { color: colors.text }]}>
+              We Accept
+            </Text>
+            <Text style={[styles.paymentMethods, { color: colors.textSec }]}>
+              Credit/Debit Cards · E-Wallets · Bank Transfers · GCash · PayMaya ·
+              and more
+            </Text>
           </View>
 
-          {/* Support Section */}
-          <View
+          {/* Logout */}
+          <TouchableOpacity
             style={[
-              styles.section,
+              styles.card,
+              styles.logoutRow,
               {
                 backgroundColor: colors.containerBg,
                 borderColor: colors.border,
               },
             ]}
+            onPress={() => setShowLogoutConfirm(true)}
+            activeOpacity={0.7}
           >
             <View
               style={[
-                styles.sectionTitle,
-                { borderBottomColor: colors.borderLight },
+                styles.iconChip,
+                {
+                  backgroundColor: isDarkMode
+                    ? "rgba(239,68,68,0.15)"
+                    : "#fee2e2",
+                },
               ]}
             >
-              <Text
-                style={[styles.sectionTitleText, { color: colors.textSec }]}
-              >
-                SUPPORT
-              </Text>
+              <Ionicons name="log-out-outline" size={18} color={Colors.error} />
             </View>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateContactUs}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Contact Us
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateOurBranches}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Our Branches
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateFAQs}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                FAQs
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.linkRow,
-                styles.linkRowWithBorder,
-                { borderBottomColor: colors.border },
-              ]}
-              onPress={onNavigateShippingInfo}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Shipping Info
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.linkRow]}
-              onPress={onNavigateReturns}
-            >
-              <Text style={[styles.linkLabel, { color: Colors.sky }]}>
-                Returns
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={isDarkMode ? "#64748b" : "#94a3b8"}
-              />
-            </TouchableOpacity>
-          </View>
+            <Text style={[styles.rowLabel, { color: Colors.error }]}>
+              Logout
+            </Text>
+          </TouchableOpacity>
 
-          {/* Payments Section */}
-          <View
-            style={[
-              styles.section,
-              {
-                backgroundColor: colors.containerBg,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.sectionTitle,
-                { borderBottomColor: colors.borderLight },
-              ]}
-            >
-              <Text
-                style={[styles.sectionTitleText, { color: colors.textSec }]}
-              >
-                PAYMENTS
-              </Text>
-            </View>
-            <View style={styles.paymentContent}>
-              <Text style={[styles.paymentLabel, { color: colors.text }]}>
-                We Accept:
-              </Text>
-              <Text style={[styles.paymentMethods, { color: colors.textSec }]}>
-                Credit/Debit Cards • E-Wallets • Bank Transfers • GCash •
-                PayMaya • and more
-              </Text>
-            </View>
-          </View>
-
-          {/* Version Footer */}
           <View style={styles.versionFooter}>
             <Text style={[styles.versionText, { color: colors.textSec }]}>
               AF Home v1.0.0
@@ -676,7 +416,6 @@ export default function SettingsScreen({
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setShowLogoutConfirm(false)}
-            activeOpacity={1}
           >
             <View
               style={[

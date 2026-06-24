@@ -17,9 +17,7 @@ import {
 import { Image } from "expo-image"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar"
-import { useVideoPlayer, VideoView } from "expo-video"
-import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import * as WebBrowser from "expo-web-browser"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -40,39 +38,18 @@ import styles from "../styles/LoginScreen.styles"
 
 WebBrowser.maybeCompleteAuthSession()
 
-const LOGIN_BACKGROUND_VIDEO_URL =
-  "https://res.cloudinary.com/dc05ncs6l/video/upload/v1780726529/afhome_go2re6.mp4"
+// AF Home brand logo for the Welcome Back header.
+const AF_HOME_LOGO =
+  "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/af_home_logo_hh2qjv.png"
 
 type AuthStep = "login" | "2fa" | "mfa"
-
-/**
- * Background video isolated in a memoized component so form state changes
- * never re-render the video.
- */
-const LoginBackground = React.memo(function LoginBackground() {
-  const player = useVideoPlayer({ uri: LOGIN_BACKGROUND_VIDEO_URL }, (p) => {
-    p.loop = true
-    p.muted = true
-    p.play()
-  })
-  return (
-    <>
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-      />
-      <View style={styles.overlay} />
-    </>
-  )
-})
 
 export default function LoginScreen({
   onGoToSignup,
   onGoToIndex,
   onAuthenticated,
   onResetOnboarding,
+  onShowAffiliateScreen,
 }: {
   onGoToSignup?: () => void
   onGoToIndex?: () => void
@@ -81,6 +58,7 @@ export default function LoginScreen({
     token?: string
   ) => void
   onResetOnboarding?: () => Promise<void>
+  onShowAffiliateScreen?: () => void
 }) {
   const { control, handleSubmit, trigger, getValues, reset } = useForm({
     resolver: zodResolver(loginSchema),
@@ -352,6 +330,24 @@ export default function LoginScreen({
     }
   }
 
+  // Google sign-in is not wired to a backend flow yet — surface a clear notice
+  // instead of a dead button. (Replace with the real OAuth call when ready.)
+  function handleGoogleLogin() {
+    Toast.show({
+      type: "info",
+      text1: "Google Sign-In",
+      text2: "Google sign-in will be available soon.",
+    })
+  }
+
+  function handleForgotPassword() {
+    Toast.show({
+      type: "info",
+      text1: "Forgot Password",
+      text2: "Please contact support to reset your password.",
+    })
+  }
+
   async function handle2FAVerify() {
     if (!otp.trim()) {
       setOtpError("Please enter the OTP code")
@@ -444,187 +440,208 @@ export default function LoginScreen({
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
-      <LoginBackground />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? -100 : 0}
-      >
-        <View style={styles.spacer} />
-        <LinearGradient
-          colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 1)"]}
-          locations={[0, 0.4, 1]}
-          style={styles.gradient}
-          pointerEvents="none"
-        />
-        <SafeAreaView style={styles.contentSection} edges={["bottom"]}>
-          <View style={styles.headerRow}>
-            <Pressable
-              style={styles.backButton}
-              onPress={onGoToIndex}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="arrow-back" size={24} color={Colors.white} />
-            </Pressable>
-            <View style={styles.logoSection}>
-              <Image
-                source={{
-                  uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969765/home_logo_zktlq8.png",
-                }}
-                style={styles.homeLogoImage}
-                contentFit="contain"
-                transition={200}
-              />
-              <Text style={styles.homeLogoText}>Home</Text>
-            </View>
-          </View>
-
-          <View style={styles.headingSection}>
-            <Text style={styles.heading}>Welcome back!</Text>
-            <Text style={styles.subheading}>
-              Sign in to your AF Home account
-            </Text>
-          </View>
-
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {showRememberedUserUI && savedUser ? (
-              <>
-                <View style={styles.profileSection}>
-                  {savedUser.avatar_url ? (
-                    <Image
-                      source={{ uri: savedUser.avatar_url }}
-                      style={styles.profilePicture}
-                      transition={200}
-                    />
-                  ) : (
-                    <View style={styles.profilePictureDefault}>
-                      <Text style={styles.profilePictureDefaultText}>
-                        {savedUser.name?.charAt(0).toUpperCase() || "?"}
-                      </Text>
-                    </View>
-                  )}
-                  <Text style={styles.profileName}>{savedUser.name}</Text>
-                  <Text style={styles.profileEmail}>{savedUser.email}</Text>
-                </View>
+            {/* Brand */}
+            <View style={styles.logoWrap}>
+              <Image
+                source={{ uri: AF_HOME_LOGO }}
+                style={styles.logo}
+                contentFit="contain"
+                transition={200}
+              />
+            </View>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Login to continue</Text>
 
-                <ControlledAuthField
-                  control={control}
-                  name="password"
-                  label="Password"
-                  leftIcon="lock-closed-outline"
-                  secureTextEntry={!showPassword}
-                  autoComplete="password"
-                  onSubmitEditing={onRememberedLogin}
-                  rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
-                  onRightIconPress={() => setShowPassword((v) => !v)}
-                />
-                <Button
-                  title="Sign in"
-                  onPress={onRememberedLogin}
-                  loading={loading}
-                  style={styles.signInBtn}
-                />
-                <TouchableOpacity
-                  style={styles.notYouButton}
-                  onPress={clearSavedUser}
-                  disabled={loading}
-                >
-                  <Text style={styles.notYouText}>
-                    Not you? Use a different account
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <ControlledAuthField
-                  control={control}
-                  name="identifier"
-                  label="Username or Email"
-                  leftIcon="mail-outline"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  rightIcon="finger-print"
-                  rightIconActive={!biometricLoading}
-                  onRightIconPress={handleBiometricLogin}
-                />
-                <ControlledAuthField
-                  control={control}
-                  name="password"
-                  label="Password"
-                  leftIcon="lock-closed-outline"
-                  secureTextEntry={!showPassword}
-                  autoComplete="password"
-                  onSubmitEditing={onSignIn}
-                  rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
-                  onRightIconPress={() => setShowPassword((v) => !v)}
-                />
-                <View style={styles.rememberMeRow}>
+            <View style={styles.form}>
+              {showRememberedUserUI && savedUser ? (
+                <>
+                  <View style={styles.profileSection}>
+                    {savedUser.avatar_url ? (
+                      <Image
+                        source={{ uri: savedUser.avatar_url }}
+                        style={styles.profilePicture}
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.profilePictureDefault}>
+                        <Text style={styles.profilePictureDefaultText}>
+                          {savedUser.name?.charAt(0).toUpperCase() || "?"}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.profileName}>{savedUser.name}</Text>
+                    <Text style={styles.profileEmail}>{savedUser.email}</Text>
+                  </View>
+
+                  <ControlledAuthField
+                    control={control}
+                    name="password"
+                    variant="light"
+                    label="Password"
+                    placeholder="Enter your password"
+                    leftIcon="lock-closed-outline"
+                    secureTextEntry={!showPassword}
+                    autoComplete="password"
+                    onSubmitEditing={onRememberedLogin}
+                    rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                    onRightIconPress={() => setShowPassword((v) => !v)}
+                  />
+                  <Button
+                    title="LOG IN"
+                    onPress={onRememberedLogin}
+                    loading={loading}
+                    style={styles.primaryBtn}
+                  />
                   <TouchableOpacity
-                    style={styles.checkboxRow}
-                    onPress={() => setRememberMe((v) => !v)}
-                    activeOpacity={0.7}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: rememberMe }}
+                    style={styles.notYouButton}
+                    onPress={clearSavedUser}
+                    disabled={loading}
                   >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        rememberMe && styles.checkboxChecked,
-                      ]}
-                    >
-                      {rememberMe && (
-                        <Ionicons
-                          name="checkmark"
-                          size={12}
-                          color={Colors.white}
-                        />
-                      )}
-                    </View>
-                    <Text style={styles.rememberMeText}>Remember me</Text>
+                    <Text style={styles.notYouText}>
+                      Not you? Use a different account
+                    </Text>
                   </TouchableOpacity>
-                </View>
-                <Button
-                  title="Sign in"
-                  onPress={onSignIn}
-                  loading={loading}
-                  style={styles.signInBtn}
-                />
+                </>
+              ) : (
+                <>
+                  <ControlledAuthField
+                    control={control}
+                    name="identifier"
+                    variant="light"
+                    label="Email or Username"
+                    placeholder="Enter your email or username"
+                    leftIcon="person-outline"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                  />
+                  <ControlledAuthField
+                    control={control}
+                    name="password"
+                    variant="light"
+                    label="Password"
+                    placeholder="Enter your password"
+                    leftIcon="lock-closed-outline"
+                    secureTextEntry={!showPassword}
+                    autoComplete="password"
+                    onSubmitEditing={onSignIn}
+                    rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                    onRightIconPress={() => setShowPassword((v) => !v)}
+                  />
 
-                <View style={styles.signupLinkSection}>
-                  <Text style={styles.signupText}>
-                    Don&apos;t have an account?{" "}
-                  </Text>
-                  <TouchableOpacity onPress={onGoToSignup}>
-                    <Text style={styles.signupLink}>Sign up</Text>
+                  <Button
+                    title="LOG IN"
+                    onPress={onSignIn}
+                    loading={loading}
+                    style={styles.primaryBtn}
+                  />
+
+                  {/* OR divider */}
+                  <View style={styles.dividerRow}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>OR</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  {/* Biometric */}
+                  <TouchableOpacity
+                    style={styles.biometricBtn}
+                    onPress={handleBiometricLogin}
+                    activeOpacity={0.8}
+                    disabled={biometricLoading}
+                  >
+                    <Ionicons name="finger-print" size={20} color={Colors.sky} />
+                    <Text style={styles.biometricBtnText}>
+                      Login with Biometric
+                    </Text>
                   </TouchableOpacity>
-                </View>
-              </>
-            )}
 
-            <Text style={styles.legalFooter}>
-              By continuing you agree to our{" "}
-              <Text style={styles.legalLink} onPress={() => setLegalDoc("terms")}>
-                Terms
-              </Text>{" "}
-              and{" "}
-              <Text
-                style={styles.legalLink}
-                onPress={() => setLegalDoc("privacy")}
-              >
-                Privacy Policy
+                  {/* Google */}
+                  <TouchableOpacity
+                    style={styles.googleBtn}
+                    onPress={handleGoogleLogin}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="logo-google" size={20} color="#4285F4" />
+                    <Text style={styles.googleBtnText}>Continue with Google</Text>
+                  </TouchableOpacity>
+
+                  {/* Forgot password */}
+                  <TouchableOpacity
+                    style={styles.forgotBtn}
+                    onPress={handleForgotPassword}
+                  >
+                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.signupLinkSection}>
+                    <Text style={styles.signupText}>
+                      Don&apos;t have an account?{" "}
+                    </Text>
+                    <TouchableOpacity onPress={onGoToSignup}>
+                      <Text style={styles.signupLink}>Sign Up</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {onShowAffiliateScreen ? (
+                <TouchableOpacity
+                  style={styles.affiliateBanner}
+                  onPress={onShowAffiliateScreen}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.affiliateIcon}>
+                    <Ionicons name="megaphone" size={18} color={Colors.sky} />
+                  </View>
+                  <View style={styles.affiliateTextWrap}>
+                    <Text style={styles.affiliateTitle}>
+                      AF Home Affiliate Program
+                    </Text>
+                    <Text style={styles.affiliateSub}>
+                      Start your affiliate journey — learn how to earn
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={Colors.sky}
+                  />
+                </TouchableOpacity>
+              ) : null}
+
+              <Text style={styles.legalFooter}>
+                By continuing you agree to our{" "}
+                <Text
+                  style={styles.legalLink}
+                  onPress={() => setLegalDoc("terms")}
+                >
+                  Terms
+                </Text>{" "}
+                and{" "}
+                <Text
+                  style={styles.legalLink}
+                  onPress={() => setLegalDoc("privacy")}
+                >
+                  Privacy Policy
+                </Text>
+                .
               </Text>
-              .
-            </Text>
+            </View>
           </ScrollView>
-        </SafeAreaView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
       <Modal visible={authStep === "2fa"} transparent animationType="fade">
         <View style={styles.modalOverlay}>

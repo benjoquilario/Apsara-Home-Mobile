@@ -9,7 +9,7 @@ import {
 import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import styles from "../styles/ReferralScreen.styles"
 
@@ -103,7 +103,7 @@ export default function ReferralScreen({
         >
           <View style={styles.bannerContent}>
             <Ionicons name="gift" size={48} color={Colors.white} />
-            <Text style={styles.bannerTitle}>You're Invited!</Text>
+            <Text style={styles.bannerTitle}>You&apos;re Invited!</Text>
             <Text style={styles.bannerSubtitle}>
               Join through a special referral link
             </Text>

@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 17, fontWeight: "800" },
+  title: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
   content: { padding: 12, gap: 10, paddingBottom: 30 },
   card: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 6 },
   cardHead: {
@@ -39,9 +39,30 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
   },
-  tierName: { fontSize: 14, fontWeight: "700" },
-  state: { fontSize: 11, fontWeight: "700" },
-  req: { fontSize: 12, fontWeight: "500" },
+  tierName: { fontSize: 15, fontWeight: "800" },
+  rankLabel: { fontSize: 11, fontWeight: "600", marginTop: 1 },
+  statePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statePillText: { fontSize: 10.5, fontWeight: "800" },
+  reqGrid: {
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginTop: 4,
+    gap: 8,
+  },
+  reqRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  reqLabel: { fontSize: 12.5, fontWeight: "500" },
+  reqValue: { fontSize: 12.5, fontWeight: "700" },
 })
 
 export default styles

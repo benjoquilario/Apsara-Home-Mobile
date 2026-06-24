@@ -16,7 +16,7 @@ import {  View,
 import { Image } from "expo-image"
 import { SwipeListView } from "react-native-swipe-list-view"
 import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import axios from "axios"
 import { API_CONFIG } from "../config/api"
@@ -29,6 +29,7 @@ import { userBehaviorService } from "../services/userBehaviorService"
 import { productService } from "../services/productService"
 import { CartSkeleton } from "../components/SkeletonLoader/SkeletonLoader"
 import styles from "../styles/CartScreen.styles"
+import CartHeader from "../components/CartHeader/CartHeader"
 
 interface CartItem {
   crt_id: number
@@ -170,10 +171,12 @@ export default function CartScreen({
   )
   const desiredQtyRef = useRef<Record<number, number>>({})
   const qtyOriginalRef = useRef<Record<number, number>>({})
-  const variantModalTranslateY = useRef(
-    new Animated.Value(VARIANT_MODAL_HEIGHT)
-  ).current
-  const variantPanResponder = useRef(
+  // Created once via lazy state initializers (not useRef().current) so the
+  // React Compiler doesn't flag a ref read during render.
+  const variantModalTranslateY = useState(
+    () => new Animated.Value(VARIANT_MODAL_HEIGHT)
+  )[0]
+  const [variantPanResponder] = useState(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
@@ -201,7 +204,7 @@ export default function CartScreen({
         }
       },
     })
-  ).current
+  )
 
   // Palette sourced from the centralized theme (slate spine + sky accent),
   // keeping the same keys this screen's render already uses.
@@ -1240,56 +1243,13 @@ export default function CartScreen({
     return (
       <View style={{ flex: 1, position: "relative" }}>
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
-          {/* Header with Background Image */}
-          <View
-            style={[
-              styles.headerBackground,
-              { borderBottomColor: colors.border },
-            ]}
-          >
-            <Image
-              source={{
-                uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969374/cart_bg_jofj6o.png"
-              }}
-              style={styles.headerBackgroundImage}
-              contentFit="cover"
-              transition={200}
-            />
-            <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-              <TouchableOpacity
-                style={styles.headerIcon}
-                onPress={onBack}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="chevron-back-outline"
-                  size={24}
-                  color={Colors.white}
-                />
-              </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: Colors.white }]}>
-                My Cart
-              </Text>
-
-              {/* Wishlist Icon */}
-              <TouchableOpacity
-                style={styles.headerIcon}
-                activeOpacity={0.7}
-                onPress={onWishlistPress}
-              >
-                <Ionicons name="heart-outline" size={20} color={Colors.white} />
-                {wishlistCount > 0 && (
-                  <View
-                    style={[styles.badge, { borderColor: colors.containerBg }]}
-                  >
-                    <Text style={styles.badgeText}>
-                      {wishlistCount > 99 ? "99+" : wishlistCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+          <CartHeader
+            title="My Cart"
+            wishlistCount={wishlistCount}
+            isDarkMode={isDarkMode}
+            onBack={onBack}
+            onWishlistPress={onWishlistPress}
+          />
 
           {/* Loading skeleton */}
           <CartSkeleton isDarkMode={isDarkMode} />
@@ -1302,56 +1262,13 @@ export default function CartScreen({
     return (
       <View style={{ flex: 1, position: "relative" }}>
         <View style={[styles.container, { backgroundColor: colors.bg }]}>
-          {/* Header with Background Image */}
-          <View
-            style={[
-              styles.headerBackground,
-              { borderBottomColor: colors.border },
-            ]}
-          >
-            <Image
-              source={{
-                uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969374/cart_bg_jofj6o.png"
-              }}
-              style={styles.headerBackgroundImage}
-              contentFit="cover"
-              transition={200}
-            />
-            <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-              <TouchableOpacity
-                style={styles.headerIcon}
-                onPress={onBack}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="chevron-back-outline"
-                  size={24}
-                  color={Colors.white}
-                />
-              </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: Colors.white }]}>
-                My Cart
-              </Text>
-
-              {/* Wishlist Icon */}
-              <TouchableOpacity
-                style={styles.headerIcon}
-                activeOpacity={0.7}
-                onPress={onWishlistPress}
-              >
-                <Ionicons name="heart-outline" size={20} color={Colors.white} />
-                {wishlistCount > 0 && (
-                  <View
-                    style={[styles.badge, { borderColor: colors.containerBg }]}
-                  >
-                    <Text style={styles.badgeText}>
-                      {wishlistCount > 99 ? "99+" : wishlistCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+          <CartHeader
+            title="My Cart"
+            wishlistCount={wishlistCount}
+            isDarkMode={isDarkMode}
+            onBack={onBack}
+            onWishlistPress={onWishlistPress}
+          />
 
           {/* Empty State Content */}
           <View style={[styles.emptyContainer, { backgroundColor: colors.bg }]}>
@@ -1375,56 +1292,13 @@ export default function CartScreen({
   return (
     <View style={{ flex: 1, position: "relative" }}>
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
-        {/* Header with Background Image */}
-        <View
-          style={[
-            styles.headerBackground,
-            { borderBottomColor: colors.border },
-          ]}
-        >
-          <Image
-            source={{
-                uri: "https://res.cloudinary.com/dc05ncs6l/image/upload/v1780969374/cart_bg_jofj6o.png"
-              }}
-            style={styles.headerBackgroundImage}
-            contentFit="cover"
-            transition={200}
-          />
-          <View style={[styles.headerContent, { paddingTop: insets.top }]}>
-            <TouchableOpacity
-              style={styles.headerIcon}
-              onPress={onBack}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="chevron-back-outline"
-                size={20}
-                color={Colors.white}
-              />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: Colors.white }]}>
-              My Cart
-            </Text>
-
-            {/* Wishlist Icon */}
-            <TouchableOpacity
-              style={styles.headerIcon}
-              activeOpacity={0.7}
-              onPress={onWishlistPress}
-            >
-              <Ionicons name="heart-outline" size={20} color={Colors.white} />
-              {wishlistCount > 0 && (
-                <View
-                  style={[styles.badge, { borderColor: colors.containerBg }]}
-                >
-                  <Text style={styles.badgeText}>
-                    {wishlistCount > 99 ? "99+" : wishlistCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
+        <CartHeader
+          title="My Cart"
+          wishlistCount={wishlistCount}
+          isDarkMode={isDarkMode}
+          onBack={onBack}
+          onWishlistPress={onWishlistPress}
+        />
 
         {/* Cart Items */}
         <SwipeListView

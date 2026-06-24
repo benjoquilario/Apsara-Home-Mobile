@@ -11,9 +11,9 @@ import {
 } from "react-native"
 import { FlashList } from "@shopify/flash-list"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
-import { getColors } from "../theme/theme"
+import { getColors, tw } from "../theme/theme"
 import Toast from "react-native-toast-message"
 import axios from "axios"
 import { API_CONFIG } from "../config/api"
@@ -104,7 +104,7 @@ export default function WishlistScreen({
     textSec: t.textSecondary,
     border: t.border,
     card: t.card,
-    hint: isDarkMode ? t.card : "#f9fafb",
+    hint: isDarkMode ? tw.slate[900] : tw.slate[100],
   }
 
   // Debounce the search box so we don't refetch on every keystroke.
@@ -557,9 +557,19 @@ export default function WishlistScreen({
             },
           ]}
         >
-          <Text style={[styles.screenTitle, { color: colors.text }]}>
-            My Wishlist
-          </Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>
+              My Wishlist
+            </Text>
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={onNavigateToCart}
+              activeOpacity={0.7}
+              hitSlop={8}
+            >
+              <Ionicons name="cart-outline" size={23} color={colors.text} />
+            </TouchableOpacity>
+          </View>
 
           {/* Search within the wishlist (server-side via the infinite query) */}
           <View

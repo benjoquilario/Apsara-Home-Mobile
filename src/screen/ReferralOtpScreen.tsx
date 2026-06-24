@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from "react"
-import {  View,
+import {
+  View,
   Text,
   TouchableOpacity,
   ScrollView,
@@ -12,7 +13,7 @@ import {  View,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import Toast from "react-native-toast-message"
 import { Colors } from "../constants/colors"
 import Button from "../components/Button/PrimaryButton"
@@ -319,7 +320,7 @@ export default function ReferralOtpScreen({
           {/* Resend OTP */}
           <View style={styles.resendContainer}>
             <Text style={[styles.resendText, { color: colors.textSec }]}>
-              Didn't receive code?
+              Didn&apos;t receive code?
             </Text>
             <TouchableOpacity
               onPress={handleResendOtp}

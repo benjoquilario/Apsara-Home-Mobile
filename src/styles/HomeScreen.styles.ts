@@ -342,6 +342,42 @@ const styles = StyleSheet.create({
     gap: 8,
     marginRight: 12,
   },
+  // Shared circle used by BOTH "Shop by Rooms" and "Shop by Categories" so the
+  // two strips render identically.
+  browseItem: {
+    width: 78,
+    alignItems: "center",
+    gap: 8,
+  },
+  browseCircleContainer: {
+    position: "relative",
+    width: 64,
+    height: 64,
+  },
+  browseCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    ...shadow.sm,
+  },
+  browseBadge: {
+    position: "absolute",
+    top: -2,
+    right: -4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    zIndex: 10,
+  },
+  browseBadgeText: {
+    color: "#ffffff",
+    fontSize: 8,
+    fontWeight: "bold",
+  },
   categoryCircleItem: {
     width: 88,
     alignItems: "center",
@@ -368,10 +404,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   roomItem: {
-    flex: 1,
+    width: 80,
     alignItems: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 4,
   },
   roomCircleContainer: {
     position: "relative",

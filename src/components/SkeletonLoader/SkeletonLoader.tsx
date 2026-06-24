@@ -9,6 +9,7 @@ interface SkeletonProps {
   height?: string | number
   style?: any
   borderRadius?: number
+  isDarkMode?: boolean
 }
 
 export function Skeleton({
@@ -16,7 +17,13 @@ export function Skeleton({
   height = 20,
   style,
   borderRadius = 4,
+  isDarkMode = false,
 }: SkeletonProps) {
+  // Theme-aware shimmer colors — light grays glare on a dark background. The dark
+  // block (#334155) stays visible on both #0f172a and #1f2937 surfaces and matches
+  // the block color the ItemCard/Cart skeletons already use.
+  const base = isDarkMode ? "#334155" : "#e5e7eb"
+  const highlight = isDarkMode ? "#475569" : "#f5f7fa"
   // Animated shimmer: a highlight band sweeps across the base block on the UI
   // thread (transform-only, useNativeDriver) and loops while mounted.
   const shimmer = useState(() => new Animated.Value(0))[0]
@@ -44,7 +51,7 @@ export function Skeleton({
     <View
       onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
       style={[
-        { width, height, borderRadius, backgroundColor: "#e5e7eb" },
+        { width, height, borderRadius, backgroundColor: base },
         styles.skeleton,
         style,
       ]}
@@ -53,7 +60,7 @@ export function Skeleton({
         style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}
       >
         <LinearGradient
-          colors={["#e5e7eb", "#f5f7fa", "#e5e7eb"]}
+          colors={[base, highlight, base]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.shimmerFill}
@@ -63,85 +70,126 @@ export function Skeleton({
   )
 }
 
-export function BannerSkeleton() {
+export function BannerSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
     <View style={styles.bannerSkeleton}>
-      <Skeleton height={190} borderRadius={24} />
+      <Skeleton height={190} borderRadius={24} isDarkMode={isDarkMode} />
     </View>
   )
 }
 
-export function SectionHeaderSkeleton() {
+export function SectionHeaderSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
     <View style={styles.sectionHeaderSkeleton}>
-      <Skeleton width={120} height={20} />
+      <Skeleton width={120} height={20} isDarkMode={isDarkMode} />
       <View style={styles.sectionHeaderRight}>
-        <Skeleton width={40} height={12} />
-        <Skeleton width={16} height={16} borderRadius={8} />
+        <Skeleton width={40} height={12} isDarkMode={isDarkMode} />
+        <Skeleton width={16} height={16} borderRadius={8} isDarkMode={isDarkMode} />
       </View>
     </View>
   )
 }
 
-export function CircleSkeleton() {
+export function CircleSkeleton({ isDarkMode = false }: { isDarkMode?: boolean }) {
   return (
     <View style={styles.circleSkeleton}>
-      <Skeleton width={72} height={72} borderRadius={36} />
-      <Skeleton width={60} height={12} style={{ marginTop: 8 }} />
+      <Skeleton width={64} height={64} borderRadius={32} isDarkMode={isDarkMode} />
+      <Skeleton
+        width={56}
+        height={12}
+        style={{ marginTop: 8 }}
+        isDarkMode={isDarkMode}
+      />
     </View>
   )
 }
 
-export function RoomGridSkeleton() {
+export function RoomGridSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
     <View style={styles.roomGridSkeleton}>
       {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
         <View key={item} style={styles.roomItemSkeleton}>
-          <Skeleton width={60} height={60} borderRadius={30} />
-          <Skeleton width={50} height={10} style={{ marginTop: 6 }} />
+          <Skeleton
+            width={64}
+            height={64}
+            borderRadius={32}
+            isDarkMode={isDarkMode}
+          />
+          <Skeleton
+            width={50}
+            height={10}
+            style={{ marginTop: 6 }}
+            isDarkMode={isDarkMode}
+          />
         </View>
       ))}
     </View>
   )
 }
 
-export function CategoryRowSkeleton() {
+export function CategoryRowSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
     <View style={styles.categoryRowSkeleton}>
       {[1, 2, 3, 4, 5].map((item) => (
-        <CircleSkeleton key={item} />
+        <CircleSkeleton key={item} isDarkMode={isDarkMode} />
       ))}
     </View>
   )
 }
 
-export function BrandCardSkeleton() {
+export function BrandCardSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
     <View style={styles.brandCardSkeleton}>
-      <Skeleton width={170} height={110} borderRadius={18} />
+      <Skeleton width={170} height={110} borderRadius={18} isDarkMode={isDarkMode} />
     </View>
   )
 }
 
-export function FeaturedProductsSkeleton() {
+export function FeaturedProductsSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
     <View style={styles.masonryGridSkeleton}>
       <View style={styles.masonryColumnSkeleton}>
-        <Skeleton width="100%" height={220} borderRadius={8} />
+        <Skeleton width="100%" height={220} borderRadius={8} isDarkMode={isDarkMode} />
         <Skeleton
           width="100%"
           height={260}
           borderRadius={8}
           style={{ marginTop: 8 }}
+          isDarkMode={isDarkMode}
         />
       </View>
       <View style={styles.masonryColumnSkeleton}>
-        <Skeleton width="100%" height={260} borderRadius={8} />
+        <Skeleton width="100%" height={260} borderRadius={8} isDarkMode={isDarkMode} />
         <Skeleton
           width="100%"
           height={220}
           borderRadius={8}
           style={{ marginTop: 8 }}
+          isDarkMode={isDarkMode}
         />
       </View>
     </View>
@@ -165,7 +213,7 @@ export function ProductDetailSkeleton({
     <View style={[styles.pdContainer, { backgroundColor: bg }]}>
       {/* Full-width product image (matches the gallery's ~0.85 aspect) */}
       <View style={[styles.pdImage, { backgroundColor: galleryBg }]}>
-        <Skeleton width="62%" height="62%" borderRadius={12} />
+        <Skeleton width="62%" height="62%" borderRadius={12} isDarkMode={isDarkMode} />
       </View>
 
       {/* Variant / thumbnail strip — sits right under the image (matches 60x60) */}
@@ -177,16 +225,17 @@ export function ProductDetailSkeleton({
             height={60}
             borderRadius={8}
             style={{ marginRight: 10 }}
+            isDarkMode={isDarkMode}
           />
         ))}
       </View>
 
       {/* Price (large, first) → social proof → product name */}
       <View style={styles.pdInfo}>
-        <Skeleton width={150} height={30} borderRadius={6} />
-        <Skeleton width={120} height={12} style={{ marginTop: 12 }} />
-        <Skeleton width="88%" height={16} style={{ marginTop: 18 }} />
-        <Skeleton width="60%" height={16} style={{ marginTop: 8 }} />
+        <Skeleton width={150} height={30} borderRadius={6} isDarkMode={isDarkMode} />
+        <Skeleton width={120} height={12} style={{ marginTop: 12 }} isDarkMode={isDarkMode} />
+        <Skeleton width="88%" height={16} style={{ marginTop: 18 }} isDarkMode={isDarkMode} />
+        <Skeleton width="60%" height={16} style={{ marginTop: 8 }} isDarkMode={isDarkMode} />
       </View>
     </View>
   )
@@ -216,17 +265,18 @@ export function ItemCardSkeleton({
         height={imageHeight}
         borderRadius={0}
         style={{ backgroundColor: imageBg }}
+        isDarkMode={isDarkMode}
       />
       <View style={[styles.itemCardBorder, { backgroundColor: border }]} />
       <View style={styles.itemCardInfo}>
-        <Skeleton width="55%" height={10} style={{ backgroundColor: block }} />
-        <Skeleton width="92%" height={14} style={{ marginTop: 8, backgroundColor: block }} />
-        <Skeleton width="70%" height={14} style={{ marginTop: 6, backgroundColor: block }} />
+        <Skeleton width="55%" height={10} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
+        <Skeleton width="92%" height={14} style={{ marginTop: 8, backgroundColor: block }} isDarkMode={isDarkMode} />
+        <Skeleton width="70%" height={14} style={{ marginTop: 6, backgroundColor: block }} isDarkMode={isDarkMode} />
         <View style={styles.itemCardBadges}>
-          <Skeleton width={52} height={18} borderRadius={8} style={{ backgroundColor: block }} />
-          <Skeleton width={64} height={18} borderRadius={8} style={{ backgroundColor: block }} />
+          <Skeleton width={52} height={18} borderRadius={8} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
+          <Skeleton width={64} height={18} borderRadius={8} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
         </View>
-        <Skeleton width="45%" height={18} style={{ marginTop: 6, backgroundColor: block }} />
+        <Skeleton width="45%" height={18} style={{ marginTop: 6, backgroundColor: block }} isDarkMode={isDarkMode} />
       </View>
     </View>
   )
@@ -270,20 +320,21 @@ function CartRowSkeleton({ isDarkMode }: { isDarkMode?: boolean }) {
   const imageBg = isDarkMode ? "#0f172a" : "#f1f5f9"
   return (
     <View style={styles.cartRow}>
-      <Skeleton width={20} height={20} borderRadius={4} style={{ backgroundColor: block }} />
+      <Skeleton width={20} height={20} borderRadius={4} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
       <Skeleton
         width={92}
         height={92}
         borderRadius={10}
         style={{ backgroundColor: imageBg }}
+        isDarkMode={isDarkMode}
       />
       <View style={styles.cartRowInfo}>
-        <Skeleton width="45%" height={10} style={{ backgroundColor: block }} />
-        <Skeleton width="85%" height={14} style={{ marginTop: 8, backgroundColor: block }} />
-        <Skeleton width="60%" height={14} style={{ marginTop: 6, backgroundColor: block }} />
+        <Skeleton width="45%" height={10} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
+        <Skeleton width="85%" height={14} style={{ marginTop: 8, backgroundColor: block }} isDarkMode={isDarkMode} />
+        <Skeleton width="60%" height={14} style={{ marginTop: 6, backgroundColor: block }} isDarkMode={isDarkMode} />
         <View style={styles.cartRowBottom}>
-          <Skeleton width={70} height={18} borderRadius={6} style={{ backgroundColor: block }} />
-          <Skeleton width={80} height={26} borderRadius={8} style={{ backgroundColor: block }} />
+          <Skeleton width={70} height={18} borderRadius={6} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
+          <Skeleton width={80} height={26} borderRadius={8} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
         </View>
       </View>
     </View>
@@ -301,8 +352,8 @@ export function CartSkeleton({ isDarkMode = false }: { isDarkMode?: boolean }) {
       ]}
     >
       <View style={styles.cartBrandHeader}>
-        <Skeleton width={20} height={20} borderRadius={4} style={{ backgroundColor: block }} />
-        <Skeleton width={120} height={14} style={{ backgroundColor: block }} />
+        <Skeleton width={20} height={20} borderRadius={4} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
+        <Skeleton width={120} height={14} style={{ backgroundColor: block }} isDarkMode={isDarkMode} />
       </View>
       {[1, 2, 3, 4].map((i) => (
         <CartRowSkeleton key={i} isDarkMode={isDarkMode} />
@@ -311,33 +362,42 @@ export function CartSkeleton({ isDarkMode = false }: { isDarkMode?: boolean }) {
   )
 }
 
-export function HomeScreenSkeleton() {
+export function HomeScreenSkeleton({
+  isDarkMode = false,
+}: {
+  isDarkMode?: boolean
+}) {
   return (
-    <View style={styles.container}>
-      <BannerSkeleton />
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? "#0f172a" : "#f8fbff" },
+      ]}
+    >
+      <BannerSkeleton isDarkMode={isDarkMode} />
 
       <View style={styles.section}>
-        <SectionHeaderSkeleton />
-        <RoomGridSkeleton />
+        <SectionHeaderSkeleton isDarkMode={isDarkMode} />
+        <RoomGridSkeleton isDarkMode={isDarkMode} />
       </View>
 
       <View style={styles.section}>
-        <SectionHeaderSkeleton />
-        <CategoryRowSkeleton />
+        <SectionHeaderSkeleton isDarkMode={isDarkMode} />
+        <CategoryRowSkeleton isDarkMode={isDarkMode} />
       </View>
 
       <View style={styles.section}>
-        <SectionHeaderSkeleton />
+        <SectionHeaderSkeleton isDarkMode={isDarkMode} />
         <View style={styles.brandRowSkeleton}>
           {[1, 2, 3].map((item) => (
-            <BrandCardSkeleton key={item} />
+            <BrandCardSkeleton key={item} isDarkMode={isDarkMode} />
           ))}
         </View>
       </View>
 
       <View style={styles.section}>
-        <SectionHeaderSkeleton />
-        <FeaturedProductsSkeleton />
+        <SectionHeaderSkeleton isDarkMode={isDarkMode} />
+        <FeaturedProductsSkeleton isDarkMode={isDarkMode} />
       </View>
     </View>
   )

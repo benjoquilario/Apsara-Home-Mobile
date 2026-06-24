@@ -31,9 +31,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: palette.slate100,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: palette.slate200,
   },
   filterButtonActive: {
     borderColor: Colors.sky,
@@ -49,8 +49,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "800",
+    letterSpacing: -0.4,
     color: Colors.text,
   },
   totalBadge: {
@@ -168,6 +169,38 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 11,
     fontWeight: "700",
+  },
+  notificationFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  notificationMetaLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    flexWrap: "nowrap",
+  },
+  notificationAmountStrong: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  notificationMetaText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  viewOrderLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingLeft: 8,
+    flexShrink: 0,
+  },
+  viewOrderText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.sky,
   },
   emptyContainer: {
     flex: 1,

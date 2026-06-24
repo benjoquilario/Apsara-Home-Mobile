@@ -14,11 +14,11 @@ import {
 } from "react-native"
 import { Image } from "expo-image"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import { useAppContext } from "../context/AppContext"
 
-import AppHeader from "../components/AppHeader/AppHeader"
+import HomeHeader from "../components/HomeHeader/HomeHeader"
 import HomeScreen from "../screen/HomeScreen"
 import WishlistScreen from "../screen/WishlistScreen"
 import ShopScreen from "../screen/ShopScreen"
@@ -67,6 +67,7 @@ function HomeTabScreen() {
     setPreviousTab,
     activeTab,
     onShowProfileDetails,
+    unreadCount,
   } = useAppContext()
 
   const handleShopByRoom = useCallback(
@@ -127,16 +128,14 @@ function HomeTabScreen() {
 
   return (
     <>
-      <AppHeader
+      <HomeHeader
         user={enrichedUser}
         cartCount={cartCount}
+        unreadCount={unreadCount}
         isDarkMode={isDarkMode}
         onCartPress={onCartPress}
-        onCameraPress={() => {
-          console.log("Camera pressed")
-        }}
         onSearchPress={onSearchPress}
-        onProfilePress={() => onShowProfileDetails(true)}
+        onNotificationPress={() => navigation.navigate("notification" as any)}
       />
       <HomeScreen
         token={token}
@@ -305,6 +304,7 @@ function ShopTabScreen() {
           onProductPress={handleShopProductPress}
           onCartPress={onCartPress}
           onOpenSearch={onSearchPress}
+          onWishlistPress={() => navigation.navigate("wishlist" as any)}
           wishlistItems={wishlistItems}
           isDarkMode={isDarkMode}
           onWishlistChange={onWishlistChange}
@@ -328,6 +328,7 @@ function NotificationTabScreen() {
     purchasesStatus,
     setPurchasesStatus,
     setPurchasesInitialOrderId,
+    setShowPurchases,
   } = useAppContext()
 
   return (
@@ -360,6 +361,8 @@ function NotificationTabScreen() {
             normalized = s
           setPurchasesStatus(normalized)
           setPurchasesInitialOrderId(orderId)
+          // Actually open the MyPurchases modal on the matching status tab.
+          setShowPurchases(true)
         }}
       />
     </>
@@ -369,6 +372,7 @@ function NotificationTabScreen() {
 // Profile Tab Screen Wrapper
 function ProfileTabScreen() {
   const ctx = useAppContext()
+  const navigation = useNavigation()
 
   return (
     <ProfileScreen
@@ -379,7 +383,12 @@ function ProfileTabScreen() {
         ctx.setShowSettings(true)
       }}
       onCartPress={ctx.onCartPress}
+      onShowPurchases={() => {
+        ctx.setPurchasesStatus("pending")
+        ctx.setShowPurchases(true)
+      }}
       cartCount={ctx.cartCount}
+      unreadCount={ctx.unreadCount}
       isDarkMode={ctx.isDarkMode}
       onShowProfileDetails={ctx.onShowProfileDetails}
       onShowReferralNetwork={ctx.onShowReferralNetwork}
@@ -399,7 +408,7 @@ function ProfileTabScreen() {
       onWishlistChange={ctx.onWishlistChange}
       onProductPress={ctx.onProductPress}
       onShopNavigate={ctx.onShopNavigate}
-      onNavigateWishlist={ctx.onNavigateWishlist}
+      onNavigateWishlist={() => navigation.navigate("wishlist" as any)}
     />
   )
 }
@@ -412,9 +421,18 @@ function CustomTabBar({
   insets,
   hideTabBar,
 }: any) {
-  const { isDarkMode, wishlistItems, unreadCount, enrichedUser } =
-    useAppContext() as any
+  const {
+    isDarkMode,
+    wishlistItems,
+    unreadCount,
+    enrichedUser,
+    setShowPurchases,
+    setPurchasesStatus,
+  } = useAppContext() as any
   const safeAreaInsets = useSafeAreaInsets()
+  // Inactive tab tint — a muted slate that reads on both the white (light) and
+  // slate-800 (dark) bar. Colors.textSecondary is slate-700, too dark on dark.
+  const inactiveColor = isDarkMode ? "#94a3b8" : "#64748b"
 
   if (hideTabBar) {
     return null
@@ -447,13 +465,20 @@ function CustomTabBar({
             }
           }
 
-          // Get badge count
+          // The "notification" slot is now an Orders action button: it opens the
+          // MyPurchases (orders) overlay instead of navigating to a tab.
+          const handlePress =
+            route.name === "notification"
+              ? () => {
+                  setPurchasesStatus?.("pending")
+                  setShowPurchases?.(true)
+                }
+              : onPress
+
+          // Get badge count (Orders slot shows no badge — notifications live in
+          // the top header bell).
           const badgeCount =
-            route.name === "wishlist"
-              ? wishlistItems?.length || 0
-              : route.name === "notification"
-                ? unreadCount || 0
-                : 0
+            route.name === "wishlist" ? wishlistItems?.length || 0 : 0
 
           // Render shop tab differently (diamond logo in center)
           if (route.name === "shop") {
@@ -486,32 +511,34 @@ function CustomTabBar({
             )
           }
 
-          // Render other tabs (home, wishlist, notification, profile)
+          // Render other tabs (home, wishlist, orders, profile)
           return (
-            <Pressable key={index} onPress={onPress} style={styles.navItem}>
+            <Pressable key={index} onPress={handlePress} style={styles.navItem}>
               <View style={styles.indicator}>
-                {isFocused && <View style={styles.indicatorLine} />}
+                {isFocused && route.name !== "notification" && (
+                  <View style={styles.indicatorLine} />
+                )}
               </View>
               <View style={styles.iconWrap}>
                 {route.name === "home" && (
                   <Ionicons
                     name={isFocused ? "home" : "home-outline"}
                     size={26}
-                    color={isFocused ? Colors.sky : Colors.textSecondary}
+                    color={isFocused ? Colors.sky : inactiveColor}
                   />
                 )}
                 {route.name === "wishlist" && (
                   <Ionicons
                     name={isFocused ? "heart" : "heart-outline"}
                     size={24}
-                    color={isFocused ? Colors.sky : Colors.textSecondary}
+                    color={isFocused ? Colors.sky : inactiveColor}
                   />
                 )}
                 {route.name === "notification" && (
                   <Ionicons
-                    name={isFocused ? "notifications" : "notifications-outline"}
+                    name="receipt-outline"
                     size={24}
-                    color={isFocused ? Colors.sky : Colors.textSecondary}
+                    color={inactiveColor}
                   />
                 )}
                 {route.name === "profile" && (
@@ -555,7 +582,7 @@ function CustomTabBar({
                   : route.name === "wishlist"
                     ? "Wishlist"
                     : route.name === "notification"
-                      ? "Notify"
+                      ? "Orders"
                       : "Profile"}
               </Text>
             </Pressable>
@@ -666,7 +693,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 10,
-    color: Colors.textSecondary,
+    color: "#64748b", // slate-500 muted (Colors.textSecondary is now slate-700)
     fontWeight: "600",
     lineHeight: 12,
   },

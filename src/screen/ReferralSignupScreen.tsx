@@ -12,8 +12,7 @@ import {
   BackHandler,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Toast from "react-native-toast-message"
@@ -39,43 +38,10 @@ interface ReferralSignupScreenProps {
   onBack: () => void
   onContinueToOtp?: (phone: string, verificationToken: string) => void
   onResumOtp?: () => void
+  onShowAffiliateScreen?: () => void
 }
 
 const DRAFT_KEY = "referral_signup_draft"
-
-const TEXT_FIELDS: Array<{
-  name:
-    | "firstName"
-    | "lastName"
-    | "mobileNumber"
-    | "email"
-    | "username"
-    | "referralCode"
-  label: string
-  keyboard?: any
-  autoCapitalize?: "none" | "words"
-  required?: boolean
-  hint?: string
-}> = [
-  { name: "firstName", label: "First Name", autoCapitalize: "words", required: true },
-  { name: "lastName", label: "Last Name", autoCapitalize: "words", required: true },
-  {
-    name: "mobileNumber",
-    label: "Mobile Number",
-    keyboard: "phone-pad",
-    required: true,
-    hint: "Use 11 digits only.",
-  },
-  { name: "email", label: "Email Address", keyboard: "email-address", autoCapitalize: "none", hint: "Optional" },
-  {
-    name: "username",
-    label: "Username",
-    autoCapitalize: "none",
-    required: true,
-    hint: "Letters and numbers only, no spaces or symbols.",
-  },
-  { name: "referralCode", label: "Referral Code", required: true },
-]
 
 export default function ReferralSignupScreen({
   referrerUsername,
@@ -85,6 +51,7 @@ export default function ReferralSignupScreen({
   onBack,
   onContinueToOtp,
   onResumOtp,
+  onShowAffiliateScreen,
 }: ReferralSignupScreenProps) {
   const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(false)
@@ -288,43 +255,22 @@ export default function ReferralSignupScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <LinearGradient
-        colors={
-          isDarkMode
-            ? ["rgba(59,130,246,0.15)", "rgba(31,41,55,0)"]
-            : ["rgba(14,165,233,0.18)", "rgba(255,255,255,0)"]
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 12,
-            backgroundColor: colors.containerBg,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={onBack}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.headerGreeting, { color: colors.text }]}>
-              Register
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: colors.textSec }]}>
-              Complete your registration
-            </Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-      </LinearGradient>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerGreeting, { color: colors.text }]}>
+          Create Account
+        </Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSec }]}>
+          Complete your registration
+        </Text>
+      </View>
 
       <View style={styles.scrollableContainer}>
         <KeyboardAvoidingView
@@ -338,54 +284,84 @@ export default function ReferralSignupScreen({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {Array.from({ length: Math.ceil(TEXT_FIELDS.length / 2) }).map(
-              (_, rowIndex) => {
-                const f1 = TEXT_FIELDS[rowIndex * 2]
-                const f2 = TEXT_FIELDS[rowIndex * 2 + 1]
-                const disabled = (n: string) =>
-                  n === "referralCode" && !!referrerUsername
-                return (
-                  <View key={`row-${rowIndex}`} style={styles.fieldRow}>
-                    {f1 ? (
-                      <ControlledAuthField
-                        control={control}
-                        name={f1.name}
-                        variant={variant}
-                        containerStyle={styles.halfField}
-                        label={f1.label}
-                        required={f1.required}
-                        hint={
-                          f1.name === "referralCode" && referrerUsername
-                            ? "Pre-filled from your referral link."
-                            : f1.hint
-                        }
-                        keyboardType={f1.keyboard}
-                        autoCapitalize={f1.autoCapitalize ?? "words"}
-                        editable={!disabled(f1.name)}
-                      />
-                    ) : null}
-                    {f2 ? (
-                      <ControlledAuthField
-                        control={control}
-                        name={f2.name}
-                        variant={variant}
-                        containerStyle={styles.halfField}
-                        label={f2.label}
-                        required={f2.required}
-                        hint={
-                          f2.name === "referralCode" && referrerUsername
-                            ? "Pre-filled from your referral link."
-                            : f2.hint
-                        }
-                        keyboardType={f2.keyboard}
-                        autoCapitalize={f2.autoCapitalize ?? "words"}
-                        editable={!disabled(f2.name)}
-                      />
-                    ) : null}
-                  </View>
-                )
-              }
-            )}
+            <View style={styles.fieldRow}>
+              <ControlledAuthField
+                control={control}
+                name="firstName"
+                variant={variant}
+                containerStyle={styles.halfField}
+                label="First Name"
+                required
+                placeholder="First name"
+                leftIcon="person-outline"
+                autoCapitalize="words"
+              />
+              <ControlledAuthField
+                control={control}
+                name="lastName"
+                variant={variant}
+                containerStyle={styles.halfField}
+                label="Last Name"
+                required
+                placeholder="Last name"
+                leftIcon="person-outline"
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.fieldRow}>
+              <ControlledAuthField
+                control={control}
+                name="mobileNumber"
+                variant={variant}
+                containerStyle={styles.halfField}
+                label="Mobile Number"
+                required
+                placeholder="09XXXXXXXXX"
+                leftIcon="call-outline"
+                keyboardType="phone-pad"
+                hint="Use 11 digits only."
+              />
+              <ControlledAuthField
+                control={control}
+                name="email"
+                variant={variant}
+                containerStyle={styles.halfField}
+                label="Email Address"
+                placeholder="you@email.com"
+                leftIcon="mail-outline"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                hint="Optional"
+              />
+            </View>
+
+            <View style={styles.fieldRow}>
+              <ControlledAuthField
+                control={control}
+                name="username"
+                variant={variant}
+                containerStyle={styles.halfField}
+                label="Username"
+                required
+                placeholder="Choose username"
+                leftIcon="at-outline"
+                autoCapitalize="none"
+                hint="Letters and numbers only, no spaces or symbols."
+              />
+              <ControlledAuthField
+                control={control}
+                name="referralCode"
+                variant={variant}
+                containerStyle={styles.halfField}
+                label="Referral Code"
+                required
+                placeholder="Enter referral code"
+                leftIcon="pricetag-outline"
+                editable={!referrerUsername}
+                hint={referrerUsername ? "Pre-filled from your link." : undefined}
+              />
+            </View>
 
             <ControlledAuthField
               control={control}
@@ -393,6 +369,8 @@ export default function ReferralSignupScreen({
               variant={variant}
               label="Password"
               required
+              placeholder="Create a password"
+              leftIcon="lock-closed-outline"
               secureTextEntry={!showPassword}
               autoComplete="new-password"
               rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -402,13 +380,13 @@ export default function ReferralSignupScreen({
               control={control}
               name="passwordConfirmation"
               variant={variant}
-              label="Password Confirmation"
+              label="Confirm Password"
               required
+              placeholder="Re-enter password"
+              leftIcon="lock-closed-outline"
               secureTextEntry={!showConfirmPassword}
               autoComplete="new-password"
-              rightIcon={
-                showConfirmPassword ? "eye-off-outline" : "eye-outline"
-              }
+              rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
               onRightIconPress={() => setShowConfirmPassword((v) => !v)}
             />
             <PasswordChecklist
@@ -419,18 +397,51 @@ export default function ReferralSignupScreen({
               matchLabel="Should be Match"
               variant={variant}
             />
+
+            {onShowAffiliateScreen ? (
+              <TouchableOpacity
+                style={[
+                  styles.affiliateBanner,
+                  {
+                    backgroundColor: isDarkMode
+                      ? "rgba(14,165,233,0.12)"
+                      : "#eff6ff",
+                    borderColor: isDarkMode ? "#1e3a5f" : "#dbeafe",
+                  },
+                ]}
+                onPress={onShowAffiliateScreen}
+                activeOpacity={0.85}
+              >
+                <View
+                  style={[
+                    styles.affiliateIcon,
+                    { backgroundColor: isDarkMode ? "#0f3050" : "#dbeafe" },
+                  ]}
+                >
+                  <Ionicons name="megaphone" size={18} color={Colors.sky} />
+                </View>
+                <View style={styles.affiliateTextWrap}>
+                  <Text style={[styles.affiliateTitle, { color: colors.text }]}>
+                    AF Home Affiliate Program
+                  </Text>
+                  <Text
+                    style={[styles.affiliateSub, { color: colors.textSec }]}
+                  >
+                    Start your affiliate journey — learn how to earn
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={Colors.sky} />
+              </TouchableOpacity>
+            ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
 
       {/* Fixed Bottom Footer */}
-      <LinearGradient
-        colors={isDarkMode ? ["#0f172a", "#1e293b"] : ["#f0f9ff", "#f0fdf4"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.bottomFooter,
-          { backgroundColor: colors.containerBg, borderTopColor: colors.border },
+          { backgroundColor: colors.bg, borderTopColor: colors.border },
         ]}
       >
         <View
@@ -502,8 +513,17 @@ export default function ReferralSignupScreen({
               style={styles.signUpBtn}
             />
           )}
+
+          <View style={styles.loginLinkRow}>
+            <Text style={[styles.loginLinkText, { color: colors.textSec }]}>
+              Already have an account?{" "}
+            </Text>
+            <TouchableOpacity onPress={onBack}>
+              <Text style={styles.loginLink}>Log In</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <Modal visible={successModalVisible} transparent animationType="fade">
         <View

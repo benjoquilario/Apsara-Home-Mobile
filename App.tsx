@@ -4,7 +4,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { NavigationContainer } from "@react-navigation/native"
 import Toast from "react-native-toast-message"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import IndexScreen from "./src/screen/IndexScreen"
 import LoginScreen from "./src/screen/LoginScreen"
 import SignupScreen from "./src/screen/SignupScreen"
 import OtpScreen from "./src/screen/OtpScreen"
@@ -35,7 +34,6 @@ LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"])
 setupGlobalFont()
 
 type AuthScreen =
-  | "index"
   | "login"
   | "signup"
   | "otp"
@@ -95,7 +93,7 @@ interface AuthUser {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<AuthScreen>("index")
+  const [screen, setScreen] = useState<AuthScreen>("login")
   const [otpEmail, setOtpEmail] = useState("")
   const [verificationToken, setVerificationToken] = useState("")
   const [authenticated, setAuthenticated] = useState(false)
@@ -222,7 +220,7 @@ export default function App() {
 
     if (user) setAuthUser(user)
     if (token) setAuthToken(token)
-    setScreen("index")
+    setScreen("login")
 
     // Clear referral state after authentication
     setReferralCodeFromDeepLink(null)
@@ -253,7 +251,7 @@ export default function App() {
       setAuthenticated(false)
       setAuthUser(null)
       setAuthToken(null)
-      setScreen("index")
+      setScreen("login")
 
       // Clear referral state on logout
       setReferralCodeFromDeepLink(null)
@@ -265,22 +263,11 @@ export default function App() {
   }
 
   function renderAuth() {
-    if (screen === "index") {
-      return (
-        <IndexScreen
-          onGoToLogin={() => setScreen("login")}
-          onGoToSignup={() => setScreen("referral-signup")}
-          onAuthenticated={(user, token) => goAuthenticated(user, token)}
-          onShowAffiliateScreen={() => setShowAffiliateScreen(true)}
-        />
-      )
-    }
-
     if (screen === "signup") {
       return (
         <SignupScreen
           onGoToLogin={() => setScreen("login")}
-          onGoToIndex={() => setScreen("index")}
+          onGoToIndex={() => setScreen("login")}
           onContinueToOtp={(email, token) => {
             setOtpEmail(email)
             setVerificationToken(token)
@@ -300,7 +287,7 @@ export default function App() {
           onBack={() => {
             setReferralOtpEmail("")
             setReferralOtpToken("")
-            setScreen("index")
+            setScreen("login")
           }}
           onContinueToOtp={(email, token) => {
             setReferralOtpEmail(email)
@@ -308,6 +295,7 @@ export default function App() {
             setScreen("referral-otp")
           }}
           onResumOtp={() => setScreen("referral-otp")}
+          onShowAffiliateScreen={() => setShowAffiliateScreen(true)}
         />
       )
     }
@@ -322,7 +310,7 @@ export default function App() {
           onSuccess={() => {
             setReferralOtpEmail("")
             setReferralOtpToken("")
-            setScreen("index")
+            setScreen("login")
             // TODO: Auto-login user after OTP verification
           }}
         />
@@ -343,9 +331,9 @@ export default function App() {
     return (
       <LoginScreen
         onGoToSignup={() => setScreen("referral-signup")}
-        onGoToIndex={() => setScreen("index")}
         onAuthenticated={(user, token) => goAuthenticated(user, token)}
         onResetOnboarding={resetOnboarding}
+        onShowAffiliateScreen={() => setShowAffiliateScreen(true)}
       />
     )
   }

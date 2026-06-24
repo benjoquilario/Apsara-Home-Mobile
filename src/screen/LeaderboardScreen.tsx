@@ -11,7 +11,7 @@ import {  View,
 import { Image } from "expo-image"
 import { LinearGradient } from "expo-linear-gradient"
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import { getColors, palette } from "../theme/theme"
 import { API_CONFIG } from "../config/api"
@@ -84,6 +84,41 @@ export default function LeaderboardScreen({
     ? ["#0f172a", "#1e293b", "#0f172a"]
     : [palette.sky500, palette.cyan500, palette.sky600]
 
+  const fetchLeaderboard = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/public/top-members?sort=referrals&per_page=20`
+      )
+      const result = await response.json()
+      const formattedData = Array.isArray(result?.data)
+        ? result.data.map((member: any, index: number) => ({
+            id: member.id,
+            name: member.name,
+            username: member.username,
+            avatar: member.avatar,
+            referrals: Number(member.referrals) || 0,
+            rank: member.rank || index + 1,
+          }))
+        : []
+      setLeaderboardData(formattedData)
+
+      if (enrichedUser) {
+        const userRankIndex = formattedData.findIndex(
+          (entry) => entry.id === parseInt(enrichedUser.id)
+        )
+        if (userRankIndex !== -1) {
+          setCurrentUserRank(userRankIndex + 1)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
   useEffect(() => {
     fetchLeaderboard()
   }, [])
@@ -129,41 +164,6 @@ export default function LeaderboardScreen({
       ])
     ).start()
   }, [bob, glow])
-
-  const fetchLeaderboard = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/public/top-members?sort=referrals&per_page=20`
-      )
-      const result = await response.json()
-      const formattedData = Array.isArray(result?.data)
-        ? result.data.map((member: any, index: number) => ({
-            id: member.id,
-            name: member.name,
-            username: member.username,
-            avatar: member.avatar,
-            referrals: Number(member.referrals) || 0,
-            rank: member.rank || index + 1,
-          }))
-        : []
-      setLeaderboardData(formattedData)
-
-      if (enrichedUser) {
-        const userRankIndex = formattedData.findIndex(
-          (entry) => entry.id === parseInt(enrichedUser.id)
-        )
-        if (userRankIndex !== -1) {
-          setCurrentUserRank(userRankIndex + 1)
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching leaderboard:", error)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }
 
   const onRefresh = async () => {
     setRefreshing(true)

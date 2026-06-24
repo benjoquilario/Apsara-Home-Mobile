@@ -8,9 +8,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerBackground: {
-    position: "relative",
-    overflow: "hidden",
-    minHeight: 100,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
   },
   headerBackgroundImage: {
     position: "absolute",
@@ -45,8 +47,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   headerGreeting: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: 12,
@@ -364,6 +367,13 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  copyValue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 1,
+    justifyContent: "flex-end",
   },
   divider: {
     height: 1,

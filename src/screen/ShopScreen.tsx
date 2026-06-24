@@ -18,12 +18,13 @@ import {
 import { Image } from "expo-image"
 import { FlashList, FlashListRef } from "@shopify/flash-list"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Ionicons } from "@expo/vector-icons"
+import Ionicons from "../components/ui/Icon"
 import { Colors } from "../constants/colors"
 import { getColors } from "../theme/theme"
 import { Product } from "../services/productService"
 import ItemCard from "../components/Items/ItemCard"
-import AppHeader from "../components/AppHeader/AppHeader"
+import ShopHeader from "../components/ShopHeader/ShopHeader"
+import HeaderFilter from "../components/AppHeader/HeaderFilter"
 import { useOptimizedProducts } from "../hooks/useOptimizedProducts"
 import { ChatBotIcon } from "../components/ChatBot"
 import styles from "../styles/ShopScreen.styles"
@@ -52,6 +53,7 @@ interface ShopScreenProps {
   onProductPress?: (id: number) => void
   onCartPress?: () => void
   onOpenSearch?: () => void
+  onWishlistPress?: () => void
   wishlistItems?: any[]
   onWishlistChange?: () => void
   onWishlistToggle?: (
@@ -64,7 +66,6 @@ interface ShopScreenProps {
 
 function ShopScreen({
   token,
-  user,
   cartCount = 0,
   roomId = null,
   categoryId = null,
@@ -74,67 +75,44 @@ function ShopScreen({
   onProductPress = () => {},
   onCartPress = () => {},
   onOpenSearch = () => {},
+  onWishlistPress,
   wishlistItems = [],
   onWishlistChange = () => {},
   onWishlistToggle,
   isDarkMode = false,
 }: ShopScreenProps) {
-  const shopScreenLoadStartRef = useRef(Date.now())
   const flashListRef = useRef<FlashListRef<Product>>(null)
   const [showScrollToTop, setShowScrollToTop] = useState(false)
   const lastScrollOffsetRef = useRef(0)
 
-  // Refs to preserve filter state across navigation
-  const filterStateRef = useRef({
-    roomId: roomId || null,
-    categoryId: categoryId || null,
-    brandId: brandId || null,
-    sort: "Relevant",
-    price: "All",
-  })
-
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [showFilters, setShowFilters] = useState(true)
 
-  // Palette from the centralized theme (slate spine + sky accent).
-  const t = getColors(isDarkMode)
-  const colors = {
-    bg: t.bgSubtle,
-    text: t.text,
-    textSec: t.textSecondary,
-    border: t.border,
-    card: t.card,
-    toolbar: t.card,
-  }
-
-  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(() => {
-    if (roomId !== null && roomId !== undefined) {
-      filterStateRef.current.roomId = roomId
-      return roomId
+  // Palette from the centralized theme (slate spine + sky accent). Memoized on
+  // isDarkMode so the render callbacks that depend on `colors` stay stable.
+  const colors = useMemo(() => {
+    const t = getColors(isDarkMode)
+    return {
+      bg: t.bgSubtle,
+      text: t.text,
+      textSec: t.textSecondary,
+      border: t.border,
+      card: t.card,
+      toolbar: t.card,
     }
-    return filterStateRef.current.roomId
-  })
+  }, [isDarkMode])
+
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(
+    roomId ?? null
+  )
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
-    () => {
-      if (categoryId !== null && categoryId !== undefined) {
-        filterStateRef.current.categoryId = categoryId
-        return categoryId
-      }
-      return filterStateRef.current.categoryId
-    }
+    categoryId ?? null
   )
-  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(() => {
-    if (brandId !== null && brandId !== undefined) {
-      filterStateRef.current.brandId = brandId
-      return brandId
-    }
-    return filterStateRef.current.brandId
-  })
-  const [selectedSort, setSelectedSort] = useState(
-    () => filterStateRef.current.sort
+  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(
+    brandId ?? null
   )
-  const [selectedPrice, setSelectedPrice] = useState<any>(
-    () => filterStateRef.current.price
-  )
+  const [selectedSort, setSelectedSort] = useState("Relevant")
+  const [selectedPrice, setSelectedPrice] = useState<any>("All")
   const prevPropsRef = useRef({ roomId, categoryId, brandId })
 
   // Sync incoming props to local state when props change (only from parent navigation)
@@ -144,7 +122,6 @@ function ShopScreen({
       roomId !== undefined &&
       roomId !== prevPropsRef.current.roomId
     ) {
-      filterStateRef.current.roomId = roomId
       setSelectedRoomId(roomId)
       prevPropsRef.current.roomId = roomId
     }
@@ -156,7 +133,6 @@ function ShopScreen({
       categoryId !== undefined &&
       categoryId !== prevPropsRef.current.categoryId
     ) {
-      filterStateRef.current.categoryId = categoryId
       setSelectedCategoryId(categoryId)
       prevPropsRef.current.categoryId = categoryId
     }
@@ -168,7 +144,6 @@ function ShopScreen({
       brandId !== undefined &&
       brandId !== prevPropsRef.current.brandId
     ) {
-      filterStateRef.current.brandId = brandId
       setSelectedBrandId(brandId)
       prevPropsRef.current.brandId = brandId
     }
@@ -216,33 +191,23 @@ function ShopScreen({
   }, [selectedRoomId, selectedCategoryId, selectedBrandId])
 
   const handleRoomSelect = useCallback((roomId: number | null) => {
-    filterStateRef.current.roomId = roomId
     setSelectedRoomId(roomId)
-    console.log(`🏠 Room filter changed to: ${roomId}`)
   }, [])
 
   const handleCategorySelect = useCallback((categoryId: number | null) => {
-    filterStateRef.current.categoryId = categoryId
     setSelectedCategoryId(categoryId)
-    console.log(`📂 Category filter changed to: ${categoryId}`)
   }, [])
 
   const handleBrandSelect = useCallback((brandId: number | null) => {
-    filterStateRef.current.brandId = brandId
     setSelectedBrandId(brandId)
-    console.log(`🏷️ Brand filter changed to: ${brandId}`)
   }, [])
 
   const handleSortSelect = useCallback((sort: string) => {
-    filterStateRef.current.sort = sort
     setSelectedSort(sort)
-    console.log(`Sort filter changed to: ${sort}`)
   }, [])
 
   const handlePriceSelect = useCallback((price: any) => {
-    filterStateRef.current.price = price
     setSelectedPrice(price)
-    console.log(`Price filter changed to:`, price)
   }, [])
 
   // Flatten every loaded page into a single list, then apply the price filter
@@ -276,12 +241,6 @@ function ShopScreen({
       })
     }
 
-    if (list.length > 0) {
-      const loadTime = Date.now() - shopScreenLoadStartRef.current
-      console.log(
-        `⚡ ShopScreen READY: ${list.length} products (${data?.pages?.length ?? 0} pages) loaded in ${loadTime}ms`
-      )
-    }
     return list
   }, [data?.pages, selectedPrice])
 
@@ -457,7 +416,7 @@ function ShopScreen({
         </Pressable>
       )
     },
-    [wishlistItems, token, isDarkMode, onProductPress, colors]
+    [wishlistItems, isDarkMode, onProductPress, colors]
   )
 
   const keyExtractor = useCallback(
@@ -567,54 +526,61 @@ function ShopScreen({
         style={[styles.container, { backgroundColor: colors.bg }]}
         edges={[]}
       >
-        <AppHeader
-          user={user}
+        <ShopHeader
           cartCount={cartCount}
+          wishlistCount={wishlistItems?.length ?? 0}
           isDarkMode={isDarkMode}
-          onCartPress={onCartPress}
-          onCameraPress={() => console.log("Camera pressed")}
+          filterActive={showFilters}
           onSearchPress={onOpenSearch}
-          onProfilePress={() => console.log("Profile pressed")}
-          showRoomFilter={true}
-          selectedRoom={selectedRoom?.room_name || "All Room Types"}
-          showCategoryFilter={true}
-          selectedCategory={
-            selectedCategoryId
-              ? categories.find((c) => c.id === selectedCategoryId)?.name
-              : "All Categories"
-          }
-          categories={categories}
-          showBrandFilter={true}
-          selectedBrand={
-            selectedBrandId
-              ? brands.find((b) => b.id === selectedBrandId)?.name
-              : "All Brands"
-          }
-          brands={brands}
-          showScrollToTop={showScrollToTop}
-          onScrollToTop={handleScrollToTop}
-          onRoomFilterChange={(filterType, value) => {
-            if (filterType === "room") {
-              handleRoomSelect(
-                value === "All Room Types"
-                  ? null
-                  : ROOMS.find((r) => r.room_name === value)?.room_id || null
-              )
-            }
-            if (filterType === "category") {
-              handleCategorySelect(value || null)
-            }
-            if (filterType === "brand") {
-              handleBrandSelect(value || null)
-            }
-            if (filterType === "sort") {
-              handleSortSelect(value)
-            }
-            if (filterType === "price") {
-              handlePriceSelect(value)
-            }
-          }}
+          onCartPress={onCartPress}
+          onWishlistPress={onWishlistPress}
+          onFilterPress={() => setShowFilters((v) => !v)}
         />
+
+        {showFilters && (
+          <HeaderFilter
+            showRoomFilter={true}
+            selectedRoom={selectedRoom?.room_name || "All Room Types"}
+            showCategoryFilter={true}
+            selectedCategory={
+              selectedCategoryId
+                ? categories.find((c) => c.id === selectedCategoryId)?.name
+                : "All Categories"
+            }
+            categories={categories}
+            showBrandFilter={true}
+            selectedBrand={
+              selectedBrandId
+                ? brands.find((b) => b.id === selectedBrandId)?.name
+                : "All Brands"
+            }
+            brands={brands}
+            isDarkMode={isDarkMode}
+            showScrollToTop={showScrollToTop}
+            onScrollToTop={handleScrollToTop}
+            onFilterChange={(filterType, value) => {
+              if (filterType === "room") {
+                handleRoomSelect(
+                  value === "All Room Types"
+                    ? null
+                    : ROOMS.find((r) => r.room_name === value)?.room_id || null
+                )
+              }
+              if (filterType === "category") {
+                handleCategorySelect(value || null)
+              }
+              if (filterType === "brand") {
+                handleBrandSelect(value || null)
+              }
+              if (filterType === "sort") {
+                handleSortSelect(value)
+              }
+              if (filterType === "price") {
+                handlePriceSelect(value)
+              }
+            }}
+          />
+        )}
 
         {/* View-mode toolbar */}
         <View
